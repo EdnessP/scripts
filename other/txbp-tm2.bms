@@ -1,0 +1,84 @@
+# Lazy TXBP to TM2 converter
+# Edness  2021-03-09
+
+get FNAME basename
+set COUNTER 0
+
+getdstring MAGIC 0x4
+if MAGIC != "TXBP"
+	print "ERROR! Does not seem to be a TXBP file?"
+	break # comment or remove this line if it's causing false negatives
+endif
+get TEXCOUNT long
+
+goto 0x20
+math OFFSET += 0x40
+
+for i = 0 < TEXCOUNT
+	log MEMORY_FILE 0 0
+	put 0x324D4954 long MEMORY_FILE # TIM2
+	put 0x10004 long MEMORY_FILE
+	put 0 longlong MEMORY_FILE
+	
+	get TEXSIZE long
+	get WIDTH long
+	get HEIGHT long
+	get FORMAT long
+	goto 0x10 0 SEEK_CUR
+
+	math COUNTER += 1
+	string NAME p "%s_%d.tm2" FNAME COUNTER
+
+	if FORMAT != 0x14 && FORMAT != 0x15
+		print "ERROR! Unsupported format for the TIM2 container!"
+		#print "DEBUG: %TEXSIZE% %WIDTH% %HEIGHT% %FORMAT%"
+		goto TEXSIZE 0 SEEK_CUR
+		math OFFSET += TEXSIZE
+	else
+		math TMSIZE == TEXSIZE
+		math TMSIZE += 0x30
+		math BITMAP == WIDTH
+		math BITMAP *= HEIGHT
+		if FORMAT == 0x14
+			math BITMAP /= 2
+		endif
+		math PALETTE == TEXSIZE
+		math PALETTE -= BITMAP
+		#print "DEBUG %TMSIZE% %BITMAP% %WIDTH% %HEIGHT% %PALETTE% %TEXSIZE%"
+		put TMSIZE long MEMORY_FILE
+		put PALETTE long MEMORY_FILE
+		put BITMAP long MEMORY_FILE
+		put 0x30 short MEMORY_FILE
+		if FORMAT == 0x14
+			put 0x10 short MEMORY_FILE
+		elif FORMAT == 0x15
+			put 0x100 short MEMORY_FILE
+		endif
+		if FORMAT == 0x14
+			put 0x4030100 long MEMORY_FILE
+		elif FORMAT == 0x15
+			put 0x5030100 long MEMORY_FILE
+		endif
+		put WIDTH short MEMORY_FILE
+		put HEIGHT short MEMORY_FILE
+		put 0x11300000 long MEMORY_FILE
+		put 1 long MEMORY_FILE
+		put 0x260 longlong MEMORY_FILE
+		put 0 longlong MEMORY_FILE
+		append
+		log NAME 0 64 MEMORY_FILE
+		append
+		math OFFSET += PALETTE
+		append
+		log NAME OFFSET BITMAP
+		append
+		math OFFSET -= PALETTE
+		append
+		log NAME OFFSET PALETTE
+		append
+		math OFFSET += TEXSIZE
+		goto OFFSET
+		math OFFSET += 0x20
+		set MEMORY_FILE 0
+	endif
+next i
