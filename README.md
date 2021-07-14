@@ -5,7 +5,7 @@ If any problems arise, contact Edness#2203 on Discord.
 
 ## Script list
 <details>
-<summary>other\ folder</summary>
+<summary>other\</summary>
 
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
@@ -14,6 +14,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.
+- txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
 
 </details>
