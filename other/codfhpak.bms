@@ -1,0 +1,27 @@
+# COD:FH PS2/XBOX? PAK
+# Edness  2021-05-10  v1.1
+
+get CHECK string
+if CHECK != "Spark Pack (C)2004 Spark Unlimited, Inc. Author Jim Schuler."
+	print "ERROR! Unrecognised file!"
+	break
+endif
+
+goto 0x78
+get VERSION long
+if VERSION != 1
+	print "ERROR! Unsupported version!"
+	break
+endif
+get FILES long
+
+for i = 0 < FILES
+	get SIZE long
+	get OFFSET long
+	get NAME1 long
+	get NAME2 long
+	string NAME p "%08X%08X" NAME2 NAME1
+	log NAME OFFSET SIZE
+next i
+
+print "\nINFO! The filenames are some form of a hashed or compressed string!"
