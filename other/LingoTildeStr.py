@@ -16,7 +16,7 @@
 # ... Or just replace the unpacked string at 0040ACF0 in RAM, but that's no fun and won't change the 1st character.
 
 # Written by Edness
-# 2021-07-13   v1.0
+# 2021-07-13   v1.1
 
 import argparse,struct,os
 
@@ -56,7 +56,7 @@ def read_num(args):
 
 def read_str(args):
     res = int("".join(map(lambda x: utf2char(x),args.str[::-1].upper())),33)
-    print("Compressed string: 0x"+hex(res)[2:].upper(),"("+str(res)+")")
+    print(f"Compressed string: 0x{res:X} ({res})")
 
 def read_res(args):
     data = open(args.path,"rb")
