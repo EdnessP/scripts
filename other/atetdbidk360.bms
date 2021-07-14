@@ -1,0 +1,33 @@
+# Adventure Time: Explore the dungeon bc idk X360 PAK
+# this script likely works with other platforms too
+# Edness   2021-03-21   v1.1
+
+#get EXT extension
+#if EXT != "pak"
+#	print "ERROR! Not a .PAK file!"
+#	break
+#endif
+
+endian big
+
+get HEADER long
+get FILES long
+getdstring CHECK 0x10
+
+math HEADER += 0x40 # include "MANAGEDFILE_DATABLOCK_USED_IN_ENGINE_________________________END"
+
+if CHECK != "FILELINK_____END"
+	print "ERROR! This file likely is not compatible with this script!"
+	break
+endif
+
+for i = 0 < FILES
+	get OFFSET long
+	get SIZE long
+	get NAME string
+	get DUMMY string
+	goto -1 0 SEEK_CUR
+	math OFFSET += HEADER
+	string NAME R : \
+	log NAME OFFSET SIZE
+next i

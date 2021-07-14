@@ -1,0 +1,82 @@
+# The input is expected to be the barebones variant of TIM2 (0x40 sized header) and 4bpp.  The bitmap will be
+# rearranged to 8bpp, as well as the palette being "swizzled" by swapping the 8-grouped colors.
+
+# Convert 4bpp to 8bpp TIM2
+# Edness  2021-03-11
+
+get FNAME basename
+string NAME p "%s_8bpp.tm2" FNAME
+
+getdstring MAGIC 0x4
+
+if MAGIC != "TIM2"
+	print "ERROR! Does not seem to be a TIM2 file."
+	break
+endif
+
+goto 0x14
+	get PALETTE long
+	get BITMAP long
+goto 0x24
+	get WIDTH short
+	get HEIGHT short
+
+if PALETTE != 0x40
+	print "ERROR! Does not seem to be a 4bpp TIM2 file."
+	break
+endif
+
+math BMPSIZE == BITMAP
+math BMPSIZE *= 2
+math PALSIZE == 0x400
+math TMSIZE == 0x30
+math TMSIZE += BMPSIZE
+math TMSIZE += PALSIZE
+math TOTALSIZE == 0x10
+math TOTALSIZE += TMSIZE
+
+log MEMORY_FILE 0 0
+
+put 0x324D4954 long MEMORY_FILE
+put 0x10004 long MEMORY_FILE
+put 0 longlong MEMORY_FILE
+put TMSIZE long MEMORY_FILE
+put 0x400 long MEMORY_FILE
+put BMPSIZE long MEMORY_FILE
+put 0x1000030 long MEMORY_FILE
+put 0x5030100 long MEMORY_FILE
+put WIDTH short MEMORY_FILE
+put HEIGHT short MEMORY_FILE
+put 0x11300000 long MEMORY_FILE
+put 1 long MEMORY_FILE
+put 0x260 longlong MEMORY_FILE
+put 0 longlong MEMORY_FILE
+
+goto 0x40
+
+for i = 0 < BITMAP
+	getbits BYTE1 4
+	getbits BYTE2 4
+	put BYTE1 byte MEMORY_FILE
+	put BYTE2 byte MEMORY_FILE
+next i
+
+for j = 0 < 8
+	get PALCOLOR long
+	put PALCOLOR long MEMORY_FILE
+next j
+
+for k = 0 < 4
+	put 0 longlong MEMORY_FILE
+next k
+
+for l = 0 < 8
+	get PALCOLOR long
+	put PALCOLOR long MEMORY_FILE
+next l
+
+for m = 0 < 116
+	put 0 longlong MEMORY_FILE
+next m
+
+log	NAME 0 TOTALSIZE MEMORY_FILE

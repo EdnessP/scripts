@@ -1,0 +1,81 @@
+# Outputs the timestamp from Windows and Xbox MZ/PE .EXEs, Xbox Alpha XE and final XBEH .XBEs,
+# and Xbox 360 XEX?, XEX-, XEX0, XEX1 and XEX2 .XEXs, without any weird timezone modification.
+
+# OGX/360/MZPE timestamp retreiver
+# Edness   2021-03-17   v1.1
+
+getdstring MAGIC1 0x2
+getdstring MAGIC2 0x2
+string MAGIC p "%s%s" MAGIC1 MAGIC2
+set TIMET1 0
+set TIMET2 0
+set TIMET3 0
+
+if MAGIC == "XE" # alpha
+	print "\n\tDetected Xbox XE executable!\n\n"
+	endian little
+	goto 0x1C
+	get TIMET1 time
+	goto 0x74
+	get TIMET2 time
+	print "\tXE date:      %TIMET1%"
+	print "\tPE date:      %TIMET2%"
+
+elif MAGIC == "XBEH" # final
+	print "\n\tDetected Xbox XBEH executable!\n\n"
+	endian little
+	goto 0x114
+	get TIMET1 time
+	goto 0x148
+	get TIMET2 time
+	goto 0x188
+	get TIMET3 time
+	print "\tXBE date:     %TIMET1%"
+	print "\tPE date:      %TIMET2%"
+	print "\tCert date:    %TIMET3%"
+
+elif MAGIC == "XEX?" || MAGIC == "XEX0" # alpha
+	print "\n\tDetected Xbox 360 %MAGIC% executable!\n\n"
+	endian little
+	goto 0x103C
+	get PE long
+	math PE += 0x1000
+	goto PE
+	goto 0x8 0 SEEK_CUR
+	get TIMET1 time
+	print "\tPE date:      %TIMET1%"
+
+elif MAGIC == "XEX-" || MAGIC == "XEX1" || MAGIC == "XEX2" # beta, final
+	print "\n\tDetected Xbox 360 %MAGIC% executable!\n\n"
+	endian big
+	goto 0x14
+	get ADDHDRS long
+	for i = 0 < ADDHDRS
+		get TYPE long
+		get OFFSET long
+		if TYPE == 0x18002
+			savepos HDR
+			math OFFSET += 0x4
+			goto OFFSET
+			get TIMET1 time
+			goto HDR
+			print "\tXEX/PE date:  %TIMET1%"
+		endif
+	next i
+
+elif MAGIC1 == "MZ"
+	print "\n\tDetected an unknown MZ executable!\n\n"
+	endian little
+	goto 0x3C
+	get PE long
+	goto PE
+	goto 0x8 0 SEEK_CUR
+	get TIMET1 time
+	print "\tPE date:      %TIMET1%"
+	
+else 
+	print "\n\tERROR! Couldn't determine or unsupported executable type! (%MAGIC%)"
+
+endif
+
+print "\n--------------------------------------"

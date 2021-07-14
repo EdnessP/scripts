@@ -1,0 +1,38 @@
+# Jak 1 & 2 VAGWAD Extractor
+# Edness   2021-05-13   v1.1
+
+get TOTAL asize
+
+open FDSE "VAGDIR.AYB" 1
+get FILES long 1
+
+goto 16 1
+get ISJAK2 byte 1
+if ISJAK2 <= 1
+	set ISJAK2 1
+endif
+goto 4 1
+
+for i = 0 < FILES
+	getdstring NAME 8 1
+	get OFFSET long 1
+	math OFFSET *= 2048
+	if ISJAK2 == 1
+		get CHANNELS long 1
+	endif
+	
+	goto 8 1 SEEK_CUR
+	get SIZE long 1
+	if SIZE == 0
+		math SIZE == TOTAL
+		math SIZE -= OFFSET
+	else
+		math SIZE *= 2048
+		math SIZE -= OFFSET
+	endif
+	goto -12 1 SEEK_CUR
+	
+	string NAME R " " ""
+	string NAME + ".VAG"
+	log NAME OFFSET SIZE
+next i
