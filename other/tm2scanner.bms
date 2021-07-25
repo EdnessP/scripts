@@ -1,0 +1,25 @@
+# This script was initially written for the .TC files in Dance Party
+# but if any game has a bunch of TM2s in a container without anything
+# else to indicate its offset, this can come in handy.
+
+# Dance Party .TC TIM2 extractor
+# Edness  2021-01-20  v1.1
+
+#get EXT extension
+#if EXT = "tm2"
+#	break
+#endif
+get FILE basename
+get TSIZE asize
+set COUNT 0
+do
+	math COUNT += 1
+	findloc OFFSET string "TIM2"
+	goto OFFSET
+	goto 0x10 0 SEEK_CUR
+	get SIZE long
+	math SIZE += 0x10
+	string NAME p "%s%s.tm2" FILE COUNT
+	log NAME OFFSET SIZE
+	math OFFSET += SIZE
+while OFFSET < TSIZE
