@@ -1,0 +1,246 @@
+# A lot of this script has been reworked into the fmt_Burnout3LRD.py Noesis plugin.
+# The primary use of this script was to split and unsplit PS2 vehicle palettes, but
+# as I've learned while making the Noesis plugin, there are a couple other palette
+# amounts that this script won't handle properly.  This will likely never be updated.
+
+# Burnout 3/Revenge/Dominator .BGV/.BTV texture/palette extractor
+# Edness -- TEST v0.8 - 2021-01-26
+
+get EXT extension
+if EXT != "bgv" && EXT != "btv"
+	print "ERROR! Not a .BGV or .BTV file!"
+	break
+endif
+get FNAME basename
+set NAMECOUNT 0 # resets the counter if ran as a batch eextracting multiple bxvs from a folder
+
+get VERSION byte
+
+if VERSION != 0x00 && VERSION != 0x78 # endianness / zlib 
+	goto 0x60
+	get OFFSET long # TEXOFFSET
+	#set OFFSET 0xE8A40 # DEBUG
+	goto OFFSET
+
+	goto 0x4 0 SEEK_CUR
+		get HEADERSIZE short
+	if HEADERSIZE = 0x250
+		set SYSTEM "PS2"
+		goto 0x6 0 SEEK_CUR # 0xC from TEXOFFSET
+			get WIDTH long
+			get HEIGHT long
+			get BPP long
+			if BPP != 8
+				# print "DEBUG %WIDTH% %HEIGHT%"
+				print "ERROR! Unsupported %BPP% bit colour depth! Contact Edness#2203"
+				break
+			endif
+		goto 0x88 0 SEEK_CUR # 0xA0 from TEXOFFSET
+			get PALETTES byte
+			if PALETTES != 1 && PALETTES != 4 && PALETTES != 6 && PALETTES != 8
+				# print "DEBUG %WIDTH% %HEIGHT% %BPP%"
+				print "ERROR! Unsupported palette amount -- %PALETTES% palettes! Contact Edness#2203"
+				break # This and the one above shouldn't ever occur AFAIK but failsafe
+			endif
+		goto 0x7 0 SEEK_CUR # 0xA8 from TEXOFFSET
+			get TEXNAME string
+		math OFFSET += 0x250
+		goto OFFSET
+
+		math SIZE = WIDTH
+		math SIZE *= HEIGHT
+		string NAME p "%s\BITMAP" TEXNAME
+		log NAME OFFSET SIZE
+
+		math OFFSET += SIZE
+		math OFFSET += 0x80
+		goto 0x80 0 SEEK_CUR
+		if PALETTES = 1
+			string NAME p "%s\PALETTE" TEXNAME
+			set SIZE 0x400
+			log NAME OFFSET SIZE
+		elif PALETTES >= 2 # PALETTES / 2 = interleaved palettes per group
+			set SIZE 0x40 # chunk size
+			for i = 0 < 16
+				set NAMECOUNT 1
+				string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+				append
+				log NAME OFFSET SIZE
+				append
+				math OFFSET += 0x40
+				if PALETTES >= 4
+					math NAMECOUNT += 1
+					string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+					append
+					log NAME OFFSET SIZE
+					append
+					math OFFSET += 0x40
+				endif
+				if PALETTES >= 6
+					math NAMECOUNT += 1
+					string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+					append
+					log NAME OFFSET SIZE
+					append
+					math OFFSET += 0x40
+				endif
+				if PALETTES >= 8
+					math NAMECOUNT += 1
+					string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+					append
+					log NAME OFFSET SIZE
+					append
+					math OFFSET += 0x40
+				endif
+			next i
+			set NAMETEMP NAMECOUNT
+			for j = 0 < 16 # palette group 2
+				set NAMECOUNT NAMETEMP
+				math NAMECOUNT += 1
+				string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+				append
+				log NAME OFFSET SIZE
+				append
+				math OFFSET += 0x40
+				if PALETTES >= 4
+					math NAMECOUNT += 1
+					string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+					append
+					log NAME OFFSET SIZE
+					append
+					math OFFSET += 0x40
+				endif
+				if PALETTES >= 6
+					math NAMECOUNT += 1
+					string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+					append
+					log NAME OFFSET SIZE
+					append
+					math OFFSET += 0x40
+				endif
+				if PALETTES >= 8
+					math NAMECOUNT += 1
+					string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+					append
+					log NAME OFFSET SIZE
+					append
+					math OFFSET += 0x40
+				endif
+			next j
+		endif
+	elif HEADERSIZE = 0x80
+		set SYSTEM "XBOX"
+		print "ERROR! Xbox format is currently not supported!"
+		break
+	elif HEADERSIZE = 0
+		set SYSTEM "PSP" # headersize 0x110 is stored 4 bytes after
+		goto 0x6 0 SEEK_CUR # 0xC from TEXOFFSET
+			get WIDTH long
+			get HEIGHT long
+			get BPP long
+			if BPP != 8 && BPP != 4
+				print "ERROR! Unsupported %BPP% bit colour depth! Contact Edness#2203"
+				break
+			endif
+		goto 0x98 0 SEEK_CUR # 0xB0 from TEXOFFSET
+			get PALETTES byte
+		goto -0x25 0 SEEK_CUR # 0x8C from TEXOFFSET
+			get TEXNAME string
+		math OFFSET += 0x110
+		goto OFFSET
+
+		math SIZE = WIDTH
+		math SIZE *= HEIGHT
+		if BPP = 4 # Are there even any 4bpp car textures?
+			math SIZE /= 2
+		endif
+		string NAME p "%s\BITMAP" TEXNAME
+		log NAME OFFSET SIZE
+
+		math OFFSET += SIZE
+		set SIZE 0x400
+		for i = 0 < PALETTES
+			math NAMECOUNT += 1
+			string NAME p "%s\PALETTE%s" TEXNAME NAMECOUNT
+			log NAME OFFSET SIZE
+			math OFFSET += 0x400
+		next i
+	endif
+else
+	set SYSTEM "XBOX 360"
+	if VERSION == 0x78 # zlib decompression
+		comtype zlib_noerror
+		get ZSIZE asize
+		set SIZE long
+		math SIZE = ZSIZE
+		math SIZE *= 20
+		string NAME p "%s_decompress.%s" FNAME EXT
+		clog NAME 0 ZSIZE SIZE
+		print "\nWARNING! Extracting directly from Zlib compressed files is not currently supported! The file has been decompressed and stored as %NAME% for you. Please use that instead."
+		break
+	endif	
+		#comtype zlib_compress # zlib recompression
+		#get SIZE asize
+		#log MEMORY_FILE 0 0
+		#set NAME FNAME
+		#append
+		#clog MEMORY_FILE 0  SIZE SIZE
+		#append
+		#get SIZE asize MEMORY_FILE 
+		#log NAME 0 SIZE MEMORY_FILE
+	endian big # maybe add a long check with proper endianness to see if it matches 0x25?
+	goto 0x60
+	for i = 0 < 36 # might be 40 max possible textures?
+		get TEXOFFSET long
+		if TEXOFFSET != 0x00000000 && TEXOFFSET != 0xFFFFFFFF
+			math NAMECOUNT += 1
+			savepos HDR
+			goto TEXOFFSET
+			goto 0x20 0 SEEK_CUR
+				get WIDTH short
+				get HEIGHT short
+			goto 0x8 0 SEEK_CUR # 0x2C from TEXOFFSET
+				get SIZE long
+			goto 0x1B 0 SEEK_CUR # 0x4B from TEXOFFSET
+				get FORMAT byte
+			if FORMAT = 0x52
+				set FORMAT "DXT1"
+			elif FORMAT = 0x53
+				set FORMAT "DXT3"
+			elif FORMAT = 0x54
+				set FORMAT "DXT5"
+			elif FORMAT = 0x86
+				set FORMAT "RAW"
+			else
+				set FORMAT "Unknown format"
+			endif
+			goto TEXOFFSET
+				get TEXNAME string
+
+			math TEXOFFSET += 0x1000
+			math SIZE -= 0x1000 # removing header
+			string NAME p "%s\%02d-%s" FNAME NAMECOUNT TEXNAME
+			log NAME TEXOFFSET SIZE
+			print "\t\t\t%WIDTH% x %HEIGHT% - %FORMAT%\n\n"
+			goto HDR
+		endif
+	next i
+endif
+
+print "--------------------------------------"
+if VERSION != 0x00 && VERSION != 0x78
+	print "\n%TEXNAME% - %WIDTH% x %HEIGHT% x %BPP%bpp %SYSTEM% texture with %PALETTES% palette(s)."
+else
+	print "\n%SYSTEM% file with %NAMECOUNT% texture(s)."
+endif
+print "\nBurnout .BGV, .BTV texture & palette extractor. WIP v0.8 - 2021-01-26 - If any problems arise, contact Edness#2203"
+print "\n\tGame\tSupported Platforms"
+print "\n\t3 Takedown\tPS2"
+print "\tLegends\t\tPSP"
+print "\tRevenge\t\tPS2, X360"
+print "\tDominator\tPS2, PSP"
+print "\n\tSupported Formats"
+print "\n\tPS2\tBitmap + 1, 4, 6, 8 interleaved 8bpp palettes"
+print "\tPSP\tBitmap + Any palette amount"
+print "\tXBOX\tBitmap only -- DISABLED"
+print "\tX360\tAny texture -- EXPERIMENTAL"

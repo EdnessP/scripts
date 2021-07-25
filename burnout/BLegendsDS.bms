@@ -1,0 +1,20 @@
+# Burnout Legends DS decompression
+# 2021-04-19
+
+comtype LZSS
+get MAGIC long
+get ZSIZE long
+if MAGIC = 0x87654321
+	get SIZE long
+elif MAGIC = 0x12345678
+	math SIZE == ZSIZE
+	math SIZE *= 20
+else
+	print "ERROR! Unknown file type!"
+	break
+endif
+savepos OFFSET
+get FNAME basename
+get EXT extension
+string NAME p "%s-decompress.%s" FNAME EXT
+clog NAME OFFSET ZSIZE SIZE
