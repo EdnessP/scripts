@@ -1,5 +1,5 @@
 # My Scripts
-This repository contains random scripts I've written at one point or another.  I've written additional info in the header for some of them just for uploading them here.  Most of them are written for QuickBMS, but there are a few Python (both regular and Noesis) scripts too.
+This repository contains random scripts I've written at one point or another.  I've written additional info in the header for some of them just for uploading them here.  Most of them are written for QuickBMS, but there are a few Python (both regular and Noesis) scripts, and one GreaseMonkey script too.
 
 If any problems arise, contact Edness#2203 on Discord.
 
@@ -7,7 +7,11 @@ If any problems arise, contact Edness#2203 on Discord.
 <details>
 <summary>burnout\</summary>
 
-- todo
+- BLegendsDS.bms &mdash; Decompress LZSS compressed files in **Burnout Legends** NDS.
+- bxv_palsplit.bms &mdash; Split and re-merge interleaved-grouped palettes from .BGV and .BTV files.
+- fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the Takedown-era games.  Currently only supports textures.
+- fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
+- txdscanner.bms &mdash; Extracts .TXDs from containers.  Only really needed for fonts stored in the executable.
 
 </details>
 
@@ -22,7 +26,16 @@ If any problems arise, contact Edness#2203 on Discord.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
+- tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
+- twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
 - txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
+
+</details>
+
+<details>
+<summary>sims-console\</summary>
+
+- todo
 
 </details>
