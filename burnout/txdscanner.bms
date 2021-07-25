@@ -1,0 +1,44 @@
+# Primarily only needed to export font textures from the
+# executables of Burnout 3: Takedown and Burnout Legends.
+
+# Burnout lazy TXD scanner
+# Edness  2021-07-25  v1.0
+
+get TSIZE asize
+set NAMECOUNT 0
+
+do
+	findloc STARTOFFSET binary "\x00\x00\x3C\x54\x81\xED\xDE\xBC" # TEXDIC GtID
+	goto STARTOFFSET 0
+	goto 8 0 SEEK_CUR
+	findloc ENDOFFSET binary "\x00\x00\x3C\x54\x81\xED\xDE\xBC" 0 0
+	#print "%STARTOFFSET% %ENDOFFSET%"
+
+	string NAME p "%02d.txd" NAMECOUNT
+	math NAMECOUNT += 1
+
+	if ENDOFFSET != 0
+		math SIZE == ENDOFFSET
+		math SIZE -= STARTOFFSET
+	else
+		math SIZE == TSIZE
+		math SIZE -= STARTOFFSET
+	endif
+
+	log NAME STARTOFFSET SIZE
+
+	# initially i was going to search for the TXD end but screw that
+	#goto STARTOFFSET
+	#get GTID longlong
+	#get FILECOUNT long
+	#get PTROFFSET long
+	#math OFFSET == STARTOFFSET
+	#math OFFSET += PTROFFSET
+	#math FILECOUNT *= 16
+	#math OFFSET += FILECOUNT
+	#goto OFFSET
+	#goto -8 0 SEEK_CUR
+	#get TEXOFFSET long
+	#math STARTOFFSET += TEXOFFSET
+	#print "%STARTOFFSET%"
+while STARTOFFSET < TSIZE
