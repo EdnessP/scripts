@@ -1,10 +1,20 @@
+2021-07-26  -  v0.5b
+	Bugfix release!
+	It's highly recommended to update Noesis to v4.452 or newer.
+	Fixed issues:
+	 * Proper 8px 4-bit and 1px 24-bit PS2 texture exporting.
+	 * Added loop breaks, where needed.
+	Added features:
+	 * Noesis version check.
+
+
 2021-07-25  -  v0.5
 	Added features:
 	 * Xbox texture support.
 	 * Enviro DAT texture exporter.
 	 * Static DAT texture exporter.
 	 * Black Frontend BIN texture exporter. (Might be separated in its own script)
-    Fixed issues:
+	Fixed issues:
 	 * 16px 4-bit PS2 textures with 32px padding.
 	 * 8px 4-bit PS2 textures with 16px wide bitmaps and 32px padding. (Partial)
 	 * 1px 24-bit PS2 textures with 8px padding. (Partial)
