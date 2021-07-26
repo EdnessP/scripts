@@ -1,80 +1,80 @@
 2021-07-26  -  v0.5b
-	Bugfix release!
-	It's highly recommended to update Noesis to v4.452 or newer.
-	Fixed issues:
-	 * Proper 8px 4-bit and 1px 24-bit PS2 texture exporting.
-	 * Added loop breaks, where needed.
-	Added features:
-	 * Noesis version check.
+    Bugfix release!
+    It's highly recommended to update Noesis to v4.452 or newer.
+    Fixed issues:
+     * Proper 8px 4-bit and 1px 24-bit PS2 texture exporting.
+     * Added loop breaks, where needed.
+    Added features:
+     * Noesis version check.
 
 
 2021-07-25  -  v0.5
-	Added features:
-	 * Xbox texture support.
-	 * Enviro DAT texture exporter.
-	 * Static DAT texture exporter.
-	 * Black Frontend BIN texture exporter. (Might be separated in its own script)
-	Fixed issues:
-	 * 16px 4-bit PS2 textures with 32px padding.
-	 * 8px 4-bit PS2 textures with 16px wide bitmaps and 32px padding. (Partial)
-	 * 1px 24-bit PS2 textures with 8px padding. (Partial)
+    Added features:
+     * Xbox texture support.
+     * Enviro DAT texture exporter.
+     * Static DAT texture exporter.
+     * Black Frontend BIN texture exporter. (Might be separated in its own script)
+    Fixed issues:
+     * 16px 4-bit PS2 textures with 32px padding.
+     * 8px 4-bit PS2 textures with 16px wide bitmaps and 32px padding. (Partial)
+     * 1px 24-bit PS2 textures with 8px padding. (Partial)
 
 
 2021-07-11  -  v0.4
-	Added features:
-	 * Platform selector window.
-	 * PSP texture support.
-	 * ARENA texture exporter.
-		* The platform selector is ignored only for these.
-	 * Dominator PS2-specific font BIN texture exporter.
-	Known issues:
-	 * Some small resolution PS2 textures have weird double size parameters, which aren't handled yet.
+    Added features:
+     * Platform selector window.
+     * PSP texture support.
+     * ARENA texture exporter.
+        * The platform selector is ignored only for these.
+     * Dominator PS2-specific font BIN texture exporter.
+    Known issues:
+     * Some small resolution PS2 textures have weird double size parameters, which aren't handled yet.
 
 
 2021-07-09  -  v0.3b
-	Bugfix release!
-	Fixed issues:
-	 * Unpacked Revenge Xbox 360 BGVs and BTVs became broken at the very last minute due to rewriting file detection.
-	Miscellaneous:
-	 * Made Revenge Xbox 360 BGVs/BTVs 8bpp textures smaller than 256px in width be supported at any size in theory, not just 128px.
+    Bugfix release!
+    Fixed issues:
+     * Unpacked Revenge Xbox 360 BGVs and BTVs became broken at the very last minute due to rewriting file detection.
+    Miscellaneous:
+     * Made Revenge Xbox 360 BGVs/BTVs 8bpp textures smaller than 256px in width be supported at any size in theory, not just 128px.
 
 
 2021-07-09  -  v0.3
-	Added features:
-	 * Xbox 360 texture support.
-		* Currently there is no way to choose platform. You have to manually set boSystem at the start of the script.
-	 * Reorganised a lot of stuff to be cleaner.
-	Incomplete features:
-	 * Platform select window. (Set boDebug to 2 to see it)
-	Known issues:
-	 * Dominator specific font BIN files still can't be exported.
+    Added features:
+     * Xbox 360 texture support.
+        * Currently there is no way to choose platform. You have to manually set boSystem at the start of the script.
+     * Reorganised a lot of stuff to be cleaner.
+    Incomplete features:
+     * Platform select window. (Set boDebug to 2 to see it)
+    Known issues:
+     * Dominator specific font BIN files still can't be exported.
 
 
 2021-06-26  -  v0.2
-	Added features:
-	 * Frontend BIN texture exporter.
-	Incomplete features:
-	 * Platform select window. (Enable boDebug to see it)
-	Known issues:
-	 * Dominator specific font BIN files can't be exported due to a slightly different header.
+    Added features:
+     * Frontend BIN texture exporter.
+    Incomplete features:
+     * Platform select window. (Enable boDebug to see it)
+    Known issues:
+     * Dominator specific font BIN files can't be exported due to a slightly different header.
 
 
 2021-06-23  -  v0.1b
-	Bugfix release!
-	Fixed issues:
-	 * 2 and 3 interleaved palettes weren't being read correctly.
-	 * Slightly improved the Frontend BIN texture listing in the Debug Log.
+    Bugfix release!
+    Fixed issues:
+     * 2 and 3 interleaved palettes weren't being read correctly.
+     * Slightly improved the Frontend BIN texture listing in the Debug Log.
 
 
 2021-06-23  -  v0.1
-	First public release, only in the Burnout Modding server!
-	Added features:
-	 * PS2 textures only.
-	 * TXD texture exporter.
-	 * LOADSCRN.BIN texture exporter.
-	 * Font BIN texture exporter.
-	 * BGV and BTV texture exporter.
-	Incomplete features:
-	 * Frontend BIN texture exporter.
-		* Currently only lists the textures in them through the Debug Log.
+    First public release, only in the Burnout Modding server!
+    Added features:
+     * PS2 textures only.
+     * TXD texture exporter.
+     * LOADSCRN.BIN texture exporter.
+     * Font BIN texture exporter.
+     * BGV and BTV texture exporter.
+    Incomplete features:
+     * Frontend BIN texture exporter.
+        * Currently only lists the textures in them through the Debug Log.
 
