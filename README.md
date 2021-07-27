@@ -21,6 +21,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
+- DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
