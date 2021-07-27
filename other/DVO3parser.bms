@@ -1,0 +1,17 @@
+# DSF Wii DVO3 parser
+# Edness   2021-07-27
+
+# NOTE: Not all of the values seem to be floats
+
+idstring "DVO3"
+
+get VERSION long
+get VALUES long
+
+for i = 0 < VALUES
+	get INDEX short
+	get DUMMY short # AAAA
+	get VALUE float
+	string IND p "%04d" INDEX
+	print "%IND%  -  %VALUE%"
+next i
