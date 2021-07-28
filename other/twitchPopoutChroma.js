@@ -25,7 +25,7 @@ if (typeof GM_addStyle == "undefined") {
 }
 
 GM_addStyle ( `
-  .chat-line__message, .sc-AxirZ {
+  .chat-line__message, .chat-line__status {
     text-shadow:  1px  3px 0px #000,  2px  2px 0px #000,  3px  1px 0px #000,  3px  0px 0px #000,  3px -1px 0px #000,  2px -2px 0px #000,  1px -3px 0px #000,
                  -1px  3px 0px #000, -2px  2px 0px #000, -3px  1px 0px #000, -3px  0px 0px #000, -3px -1px 0px #000, -2px -2px 0px #000, -1px -3px 0px #000,
                   3px  1px 0px #000,  2px  2px 0px #000,  1px  3px 0px #000,  0px  3px 0px #000, -1px  3px 0px #000, -2px  2px 0px #000, -3px  1px 0px #000,
