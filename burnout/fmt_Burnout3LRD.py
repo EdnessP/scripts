@@ -1,6 +1,6 @@
 # Written by Edness
-boVer = "v0.5b"
-boDate = "2021-07-26"
+boVer = "v0.5c"
+boDate = "2021-07-29"
 boDebug = 0
 
 from inc_noesis import *
@@ -63,12 +63,12 @@ def boToolCheckTypeBinOther(data):
     texCount = bs.readUInt64()
     fontMagic = int(hex(texCount)[-8:],16)
     #print(hex(texCount),hex(fontMagic))
-    if texCount < 60 and texCount != 0: # B3/BL loadscrn, unreliable?
-        return 1
+    if texCount < 100 and texCount != 0: # B3/BL loadscrn
+        bs.seek(0x800)
+        if bs.readUInt64() == 0xBCDEED81543C0000:
+            return 1
     elif fontMagic == 0x76312E34 or fontMagic == 0x342E3176: # v1.4
         return 1 # Rev font file
-    #bs.seek(0)
-    #bs.readString()
     bs.seek(0x70) # Dom PS2 font file
     texOffset = bs.readUInt()
     if texOffset < len(data)//2:
@@ -106,9 +106,9 @@ def boToolCheckTypeDatStatic(data):
 def boToolCheckTypeDatEnviro(data):
     bs = NoeBitStream(data)
     bs.seek(0xA8)
-    someId = bs.readUInt()
+    someID = bs.readUInt()
     fileSize = bs.readUInt()
-    if (fileSize == len(data) or fileSize == 0) and someId == 0x45440002: # ps2 & xbox
+    if (fileSize == len(data) or fileSize == 0) and someID == 0x45440002: # ps2 & xbox
         return 1
     bs.seek(0xB8)
     if bs.readUInt() == 0x03004445 and bs.readUInt() == 0: # 360 rev
@@ -131,6 +131,7 @@ def boToolCheckTypeDatEnviro(data):
 #   boToolDecZlib
 #   boToolPadAlign
 #   boToolGetFirstTexIndex
+#   boToolGetTexName
 #   boToolGetTexTxd
 #   boToolTxdParse
 #   boToolGetTexBinFE
@@ -148,13 +149,16 @@ def boToolCheckTypeDatEnviro(data):
 #   boToolPSPArenaTex
 #   boToolXboxTex
 #   boTool360Tex
+#   boToolTex1pxSkip
+#   boToolTexCrop
+#   boToolTexWidthDiv
 #   boToolPalCount
 
 def boToolVersionWarning():
     boWindow = noewin.NoeUserWindow("Warning","BOToolWarningClass",286,139) # 280x110
     boWindowRect = noewin.getNoesisWindowRect()
-    boWindow.x = boWindowRect[0]+384
-    boWindow.y = boWindowRect[1]+256
+    boWindow.x = boWindowRect[0]+444
+    boWindow.y = boWindowRect[1]+313
     if boWindow.createWindow():
         boWindow.setFont("Segoe UI",12)
         boWindow.createStatic("Outdated version detected!\nPlease update Noesis to v4.452 or newer!",16,16,248,32)
@@ -177,7 +181,7 @@ def boToolPlatformCheck():
         boWindow.createButton("OK",288,96,96,32,boToolCloseWindow)
         boWindow.createStatic("(Until Noesis is restarted or reloaded with Alt+T+R.)",32,138,336,16)
         boWindow.createStatic("—————————————————————————————————",2,152,396,16)
-        boWindow.createStatic("This plugin is brought to you by the Burnout Modding community.\ndiscord.gg/8zxbb4x",16,167,368,32)
+        boWindow.createStatic("This plugin is brought to you by the Burnout Modding community.\nwww.burnout.wiki  |  discord.gg/8zxbb4x",16,167,368,32)
         boWindow.createStatic(boVer+"  –  Written by Edness  –  ("+boDate+")",32,200,336,16)
         global boSystem
         try: boSystem
@@ -218,7 +222,6 @@ def boToolSetSystem(boWindow,cID,wParam,lParam):
         checkBoxPSP.setChecked(0)
         checkBoxXbx.setChecked(0)
         checkBox360.setChecked(1)
-    return
 
 def boToolLockSystem(boWindow,cID,wParam,lParam):
     global boSysLock
@@ -229,11 +232,9 @@ def boToolLockSystem(boWindow,cID,wParam,lParam):
         boSysLock = 0
     else:
         boSysLock = 1
-    return
 
 def boToolCloseWindow(boWindow,cID,wParam,lParam):
     boWindow.closeWindow()
-    return
 
 def boToolSetup(data):
     global boSystem
@@ -264,15 +265,24 @@ def boToolPadAlign(bs,padSize,padFrom):
     if padFrom % padSize != 0:
         bs.seek((padFrom//padSize+1)*padSize)
 
-def boToolGetFirstTexIndex(bs,data,aptDataOffset,texList):
+def boToolGetFirstTexIndex(bs,data,aptDataOffset,firstTex,texList):
     bs.seek(aptDataOffset)
     aptData = bs.readString()
     boToolPadAlign(bs,4,bs.tell())
-    texNameIndex = 0
-    while texNameIndex != 1: # may be unreliable? (especially for psp .arenas)
+    while True: # may be unreliable? (especially for psp .arenas)
         texNameIndex = bs.readUInt()
-        if texNameIndex == 1:
+        if texNameIndex == firstTex:
             bs.seek(-8,1)
+            break
+
+def boToolGetTexName(bs,data,texOffset):
+    bs.seek(texOffset)
+    if boSystem == 1:
+        bs.seek(0xA8,1)
+    elif boSystem == 3:
+        bs.seek(0x44,1)
+    texName = bs.readString()
+    return texName
 
 def boToolGetTexTxd(data,texList):
     bs = boToolSetup(data)
@@ -330,7 +340,11 @@ def boToolGetTexBinFE(data,texList):
             aptDataOffset += dirDataOffset
             aptConstOffset += dirDataOffset
 
-            boToolGetFirstTexIndex(bs,data,aptDataOffset,texList)
+            bs.seek(texArrayOffset)
+            texOffset = bs.readUInt()
+            texOffset += dirDataOffset
+            firstTex = boToolGetTexName(bs,data,texOffset)
+            boToolGetFirstTexIndex(bs,data,aptDataOffset,int(firstTex),texList)
             for c in range(texCount):
                 texNameOffset = bs.readUInt()
                 texNameIndex = bs.readUInt()
@@ -343,20 +357,16 @@ def boToolGetTexBinFE(data,texList):
                     texOffset = bs.readUInt()
                     texOffset += dirDataOffset
                     curTexPtrOffset = bs.tell()
-                    bs.seek(texOffset)
-                    if boSystem == 1:
-                        bs.seek(0xA8,1)
-                    elif boSystem == 3:
-                        bs.seek(0x44,1)
-                    texNameChk = bs.readString()
+
+                    texNameChk = boToolGetTexName(bs,data,texOffset)
                     if texNameChk == str(texNameIndex) or texNameChk[11:] == str(texNameIndex-1):
                         boToolTexParse(bs,data,texOffset,0,texList,texNameWDir)
-                        break
                         #if rapi.noesisIsExporting():
                             #curDir = expDir[0] + "\\" + texName + expDir[1]
                             #movDir = expDir[0] + "\\" + dirName + "\\" + texName + expDir[1]
                             #print(curDir," -> ",movDir)
                             #os.rename(curDir,movDir)
+                        break
                     bs.seek(curTexPtrOffset)
 
                 if boDebug:
@@ -421,7 +431,7 @@ def boToolGetTexArena(data,texList):
             texArrayOffset = bs.readUInt()
             texArrayOffset += 16
             if bs.readUInt() == 1:
-                boToolGetFirstTexIndex(bs,data,aptDataOffset,texList)
+                boToolGetFirstTexIndex(bs,data,aptDataOffset,1,texList)
                 texNameOffset = bs.readUInt()
                 if texNameOffset < texArrayOffset:
                     bs.seek(-4,1)
@@ -524,9 +534,8 @@ def boToolGetTexBxv(data,texList):
                             if palName == texName and bs.readUInt() == 0x86:
                                 boToolTexParse(bs,data,texOffset,palOffset,texList,0)
                                 bs.seek(curPalOffset - 4)
-                                bs.writeUInt(0)
+                                bs.writeUInt(0) # to avoid being picked up by the tex scanner
                                 break
-                                # to avoid being picked up by the tex scanner
                             bs.seek(curPalOffset)
                 bs.seek(curTexOffset)
     return 1
@@ -561,21 +570,22 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
         texName = bs.readString()
         texName += " ("+fontName+")"
 
-    #bs.seek(bmpOffset-0x30)
-    #texWidthDiv = bs.readUInt()
-    #texHeightDiv = bs.readUInt()
-
     if boDebug:
         print("DEBUG2:",hex(bmpOffset+texOffset),hex(palOffset+texOffset),texWidth,texHeight,bitDepth,hex(texFmt),palCount,texName)
-        #if texWidth != texWidthDiv*2 or texHeight != texHeightDiv*2:
-            #print("SOMETHING DOESN'T MATCH HERE!",texWidth,"x",texHeight,"vs",texWidthDiv*2,"x",texHeightDiv*2)
 
     texData = list()
     bs.seek(bmpOffset + texOffset)
 
     crop = 0
     if bitDepth == 4:
-        if texWidth == 8:
+        if texWidth == 2 and texHeight == 2:
+            texWidth = 16
+            texHeight = 4
+            crop = 4
+        if texWidth == 4:
+            texWidth = 16
+            crop = 2
+        elif texWidth == 8:
             texWidth = 16
             crop = 1
         if texWidth == 16:
@@ -586,12 +596,16 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
             texBytes = texWidth*texHeight//2
             boToolCvt4bitTo8bit(bs,data,texBytes,texData)
     elif bitDepth == 8:
+        if texWidth == 1:
+            texWidth = 16
+            crop = 3
+        if texWidth == 4:
+            texWidth = 16
+            crop = 2
         texData = bs.readBytes(texWidth*texHeight)
     elif bitDepth == 24:
         if texWidth == 1:
-            for l in range(texHeight):
-                texData.extend(bs.readBytes(3))
-                bs.seek(21,1)
+            boToolTex1pxSkip(bs,data,texData,texHeight,3,21)
         else:
             texData = bs.readBytes(texWidth*texHeight*3)
     elif bitDepth == 32:
@@ -612,16 +626,27 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
             boToolPS2AlphaFix(bs,data,palColors,palData)
             palData = bytes(palData)
             texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"R8G8B8A8",noesis.DECODEFLAG_PS2SHIFT if bitDepth != 4 else noesis.NOESISTEX_UNKNOWN) # ??
-            if crop: # janky fix tbh
-                bs = NoeBitStream(texData)
+
+            bs = NoeBitStream(texData)
+            if crop == 1: # janky fixes tbh
                 #texData = texData[32::]
                 texWidth = 8
                 texData = list()
-                for m in range(texHeight):
-                    texData.extend(bs.readBytes(32))
-                    bs.seek(32,1)
+                texData = boToolTexWidthDiv(bs,data,texData,texHeight,32)
+            elif crop == 2:
+                texWidth = 4
+                divSize = 32
+                texData = boToolTexCrop(bs,data,texData,texHeight,2)
+            elif crop == 3:
+                texWidth = 1
+                texData = list()
+                boToolTex1pxSkip(bs,data,texData,texHeight,4,60)
                 texData = bytes(texData)
-
+            elif crop == 4:
+                texWidth = 2
+                texHeight = 2
+                divSize = 32
+                texData = boToolTexCrop(bs,data,texData,texHeight,3)
         else:
             # interleaved & grouped palette splitter; supports up to 8
             palData0 = list()
@@ -632,14 +657,14 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
             palData5 = list()
             palData6 = list()
             palData7 = list()
-            for n in range(16):
+            for l in range(16):
                 boToolPS2AlphaFix(bs,data,16,palData0)
                 boToolPS2AlphaFix(bs,data,16,palData1)
                 if palCount == 3 or palCount >= 5:
                     boToolPS2AlphaFix(bs,data,16,palData2)
                 if palCount >= 7:
                     boToolPS2AlphaFix(bs,data,16,palData3)
-            for o in range(16):
+            for m in range(16):
                 if palCount >= 4:
                     boToolPS2AlphaFix(bs,data,16,palData4)
                     boToolPS2AlphaFix(bs,data,16,palData5)
@@ -682,7 +707,7 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
     texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32 if bitDepth != 24 else noesis.NOESISTEX_RGB24))
 
 def boToolPS2AlphaFix(bs,data,rColors,rData):
-    for p in range(rColors):
+    for n in range(rColors):
         rData.extend(bs.readBytes(3))
         rAlpha = bs.readUByte()
         rAlpha *= 2
@@ -691,7 +716,7 @@ def boToolPS2AlphaFix(bs,data,rColors,rData):
         rData.append(rAlpha)
 
 def boToolCvt4bitTo8bit(bs,data,rSize,rData):
-    for q in range(rSize):
+    for o in range(rSize):
         rData.append(bs.readBits(4))
         rData.append(bs.readBits(4))
 
@@ -732,7 +757,7 @@ def boToolPSPTex(bs,data,texOffset,texList):
             texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,bitDepth,"R8G8B8A8")
         elif bitDepth == 8 and palCount > 1:
             nameCount = 1
-            for r in range(palCount):
+            for p in range(palCount):
                 palData = bs.readBytes(0x400)
                 boToolPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData,texList)
                 nameCount += 1
@@ -808,7 +833,7 @@ def boToolXboxTex(bs,data,texOffset,fontName,texList,texName):
         texData = rapi.imageFromMortonOrder(texData,texWidth,texHeight,1)
         bs.seek(texOffset+0x14)
         nameCount = 1
-        for s in range(palCount):
+        for q in range(palCount):
             palOffset = bs.readUInt()
             curPalOffset = bs.tell()
             bs.seek(texOffset+palOffset+4) # 30001
@@ -862,13 +887,10 @@ def boTool360Tex(bs,data,texOffset,palOffset,texList,texName):
     if boDebug:
         print("DEBUG4:",hex(texOffset),hex(palOffset),texWidth,texHeight,palCount,hex(texSize),hex(texFmt),texName)
     boToolPadAlign(bs,0x1000,bs.tell())
-    if texFmt == 2 and texWidth < 256:
-        # ?????????????????????????????????
+
+    if texFmt == 2 and texWidth == 128:
         texData = list()
-        for t in range(texHeight):
-            texData.extend(bs.readBytes(texWidth))
-            bs.seek(256-texWidth,1)
-        texData = bytes(texData)
+        texData = boToolTexWidthDiv(bs,data,texData,texHeight,texWidth)
     else:
         texData = bs.readBytes(texSize - 0x1000)
 
@@ -879,7 +901,7 @@ def boTool360Tex(bs,data,texOffset,palOffset,texList,texName):
             texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"A8R8G8B8")
         else:
             nameCount = 1
-            for u in range(palCount):
+            for r in range(palCount):
                 palData = bs.readBytes(0x400)
                 boToolPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData,texList)
                 nameCount += 1
@@ -899,6 +921,27 @@ def boTool360Tex(bs,data,texOffset,palOffset,texList,texName):
         texData = rapi.imageDecodeRaw(texData,texWidth,texHeight,"A8R8G8B8")
         texFmt = noesis.NOESISTEX_RGBA32
     texList.append(NoeTexture(texName,texWidth,texHeight,texData,texFmt))
+
+def boToolTex1pxSkip(bs,data,texData,texHeight,readSize,skipSize):
+    for s in range(texHeight):
+        texData.extend(bs.readBytes(readSize))
+        bs.seek(skipSize,1)
+
+def boToolTexCrop(bs,data,texData,texHeight,divCount):
+    divSize = 32
+    for t in range(divCount):
+        texData = list()
+        texData = boToolTexWidthDiv(bs,data,texData,texHeight,divSize)
+        bs = NoeBitStream(texData)
+        divSize //= 2
+    return texData
+
+def boToolTexWidthDiv(bs,data,texData,texHeight,divSize):
+    for u in range(texHeight):
+        texData.extend(bs.readBytes(divSize))
+        bs.seek(divSize,1)
+    texData = bytes(texData)
+    return texData
 
 def boToolPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData,texList):
     texName += " (Palette "+str(nameCount)+")"
