@@ -635,7 +635,6 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
                 texData = boToolTexWidthDiv(bs,data,texData,texHeight,32)
             elif crop == 2:
                 texWidth = 4
-                divSize = 32
                 texData = boToolTexCrop(bs,data,texData,texHeight,2)
             elif crop == 3:
                 texWidth = 1
@@ -645,7 +644,6 @@ def boToolPS2Tex(bs,data,texOffset,fontName,texList,texName):
             elif crop == 4:
                 texWidth = 2
                 texHeight = 2
-                divSize = 32
                 texData = boToolTexCrop(bs,data,texData,texHeight,3)
         else:
             # interleaved & grouped palette splitter; supports up to 8
