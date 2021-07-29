@@ -1,3 +1,14 @@
+2021-07-29  -  v0.5c
+    Bugfix release!
+    Fixed issues:
+     * 1px 8-bit PS2 textures.
+     * 2px 4-bit PS2 textures.
+     * 4px 4-bit and 8-bit PS2 textures.
+        * These should cover all the small PS2 textures that cause issues.  More may eventually crop up.
+     * Early Revenge Frontend BINs were partially broken due to the texture index not always starting with 1.
+        * The ARENA exporter can likely be improved with this fix as well, but it already is "good enough."
+
+
 2021-07-26  -  v0.5b
     Bugfix release!
     It's highly recommended to update Noesis to v4.452 or newer.
