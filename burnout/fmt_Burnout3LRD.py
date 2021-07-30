@@ -1,6 +1,6 @@
 # Written by Edness
 boVer = "v0.5c"
-boDate = "2021-07-29"
+boDate = "2021-07-30"
 boDebug = 0
 
 from inc_noesis import *
@@ -826,6 +826,15 @@ def boToolXboxTex(bs,data,texOffset,fontName,texList,texName):
     if boDebug:
         print("DEBUG7:",texWidth,texHeight,bitDepth,palCount,hex(texFmt),texName)
 
+    wCrop = 0
+    hCrop = 0
+    if texWidth < 4:
+        wCrop = texWidth
+        texWidth = 4
+    if texHeight < 4:
+        hCrop = texHeight
+        texHeight = 4
+
     if texFmt == 0xB:
         texData = bs.readBytes(texWidth*texHeight)
         texData = rapi.imageFromMortonOrder(texData,texWidth,texHeight,1)
@@ -865,6 +874,11 @@ def boToolXboxTex(bs,data,texOffset,fontName,texList,texName):
         texData = rapi.imageFromMortonOrder(texData,texWidth,texHeight,4)
     else:
         print("UNKNOWN!!!",hex(texFmt))
+
+    if wCrop: # janky fixes, the sequel.  only works with dxt
+        texWidth = wCrop
+    if hCrop:
+        texHeight = hCrop
     texList.append(NoeTexture(texName,texWidth,texHeight,texData,texFmt))
 
 def boTool360Tex(bs,data,texOffset,palOffset,texList,texName):
