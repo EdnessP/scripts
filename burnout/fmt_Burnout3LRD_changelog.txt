@@ -9,6 +9,10 @@
         * These should cover all the small textures that cause issues.  More may eventually crop up.
      * Early Revenge Frontend BINs were partially broken due to the texture index not always starting with 1.
         * The ARENA exporter can likely be improved with this fix as well, but it already is "good enough."
+    Known issues:
+     * Unused Xbox 360 textures under 16px width are broken by being padded to 128px and after 32px in height offset by 8px.
+     * Similarly, unused Xbox 360 8px height textures only start after 72px.
+        * These do not affect other textures that are used.  Likely not going to be fixed.
 
 
 2021-07-26  -  v0.5b
