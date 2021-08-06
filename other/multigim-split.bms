@@ -1,0 +1,61 @@
+# Multi-GIM splitter
+# Edness  2021-08-06
+
+get TSIZE asize
+get FNAME basename
+
+getdstring IDSTR 4
+getdstring VER 4
+getdstring SYS 4
+
+if IDSTR == ".GIM"
+	endian big
+endif
+
+goto 0x10
+get BLOCKID long
+get BLKSIZE long
+get BLKHEAD long
+get BLKOFFS long
+
+log MEMORY_FILE 0 0
+
+set NAMECOUNT 1
+do
+	savepos OFFSET
+	print "%OFFSET%"
+	get CHILDID short
+	get DUMMY short # endianness workaround
+	if CHILDID != 3
+		do
+			get DMYSIZE long
+			math OFFSET += DMYSIZE
+			goto OFFSET
+			get CHILDID short
+			get DUMMY short
+		while CHILDID != 3
+	endif
+	get CHLSIZE long
+
+	math BLKSIZE = CHLSIZE
+	math BLKSIZE += 16
+	putdstring IDSTR 4 MEMORY_FILE
+	putdstring VER 4 MEMORY_FILE
+	putdstring SYS 4 MEMORY_FILE
+	put 0 long MEMORY_FILE
+	put BLOCKID long MEMORY_FILE
+	put BLKSIZE long MEMORY_FILE
+	put BLKHEAD long MEMORY_FILE
+	put BLKOFFS long MEMORY_FILE
+
+	string NAME p "%s_%04d.gim" FNAME NAMECOUNT
+	print "%NAME%"
+	math NAMECOUNT += 1
+	append
+	log NAME 0 32 MEMORY_FILE
+	log NAME OFFSET CHLSIZE 0
+	append
+	set MEMORY_FILE 0
+	math OFFSET += CHLSIZE
+	goto OFFSET
+while OFFSET < TSIZE
