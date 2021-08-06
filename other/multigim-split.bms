@@ -23,7 +23,7 @@ log MEMORY_FILE 0 0
 set NAMECOUNT 1
 do
 	savepos OFFSET
-	print "%OFFSET%"
+	#print "%OFFSET%"
 	get CHILDID short
 	get DUMMY short # endianness workaround
 	if CHILDID != 3
