@@ -25,6 +25,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
+- multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
