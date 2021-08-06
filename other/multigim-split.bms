@@ -49,7 +49,7 @@ do
 	put BLKOFFS long MEMORY_FILE
 
 	string NAME p "%s_%04d.gim" FNAME NAMECOUNT
-	print "%NAME%"
+	#print "%NAME%"
 	math NAMECOUNT += 1
 	append
 	log NAME 0 32 MEMORY_FILE
