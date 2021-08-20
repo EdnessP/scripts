@@ -39,9 +39,9 @@ def read_num(args):
 
 def read_str(args):
     res = 0
-    d_str = args.str.ljust(len)
+    d_str = args.str.ljust(len)[::-1]
     for i in range(len):
-        res += (utf2char(str(d_str[i].upper()))*(40**(len-i-1)))
+        res += (utf2char(str(d_str[i].upper()))*(40**i))
     print(f"Compressed string: 0x{res:X} ({res})")
 
 parser = argparse.ArgumentParser(description="Converts to and from the EA compressed string format present in Burnout games.")
