@@ -40,8 +40,8 @@ def parseArchive(data,texList):
         bs.seek(texName)
         texName = bs.readString()
 
-        if texName.startswith("t_") or texName.startswith("hvd"):
-            getTexture(bs,data,texList,texName,texOffset if texName.startswith("t_") else texOffset + 0x1000)
+        if texName.startswith(("t_","lm_","g_","hvd","framework_v","te")) and not texName.startswith(("t_k")):
+            getTexture(bs,data,texList,texName,texOffset if texName.startswith(("t_","lm_","g_")) else texOffset + 0x1000)
 
         bs.seek(curPos)
     return 1
