@@ -28,6 +28,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.
+- tex_SpongebobSurfnSkate.py &mdash; **SpongeBob's Surf & Skate Roadtrip** .XEN textures. May work on other Blitz Games archives too.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
