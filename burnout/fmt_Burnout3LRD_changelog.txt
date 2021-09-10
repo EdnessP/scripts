@@ -1,3 +1,16 @@
+2021-09-10  -  v0.5d
+    Bugfix release!
+    Fixed issues:
+     * Made stuff written to be more compact.
+     * Added a length check for DAT and BIN files, due false errors being caused from seeking on heeader files with DGIorio's Burnout Paradise scripts.
+     * Partial fix for (unused) small DXT3 and DXT5 Xbox 360 textures. (Disabled by default, set boDebug to 2 to enable it)
+     * Added GtID decompression support, although currently no real use for it, other than printing GtIDs from LoadScrn.bin.
+    Known issues:
+     * Small PSP textures (8px width or lower) don't seem to export properly.
+    Removed features:
+     * Black Frontend BIN support.
+
+
 2021-07-30  -  v0.5c
     Bugfix release!
     Fixed issues:
