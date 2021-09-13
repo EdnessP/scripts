@@ -1,6 +1,6 @@
 # Written by Edness
 boVer = "v0.5d"
-boDate = "2021-09-10"
+boDate = "2021-09-13"
 boDebug = 0
 
 from inc_noesis import *
@@ -69,7 +69,7 @@ def boToolCheckTypeBinOther(data):
             return 1
     elif fontMagic == 0x76312E34 or fontMagic == 0x342E3176: # v1.4
         return 1 # Rev font file
-    if len(data) > 0x200: # see boToolCheckTypeDatEnviro but in general
+    if len(data) > 0x200: # see boToolCheckTypeDatEnviro
         bs.seek(0x70) # Dom PS2 font file
         texOffset = bs.readUInt()
         if texOffset < len(data)//2:
@@ -106,7 +106,7 @@ def boToolCheckTypeDatStatic(data):
 
 def boToolCheckTypeDatEnviro(data):
     bs = NoeBitStream(data)
-    if len(data) > 0x200: # to not break burnout paradise .dats
+    if len(data) > 0x300: # to not break burnout paradise .dats
         bs.seek(0xA8)
         someID = bs.readUInt()
         fileSize = bs.readUInt()
@@ -120,6 +120,9 @@ def boToolCheckTypeDatEnviro(data):
             return 1
         bs.seek(0x1D8)
         if bs.readUInt() == 0x45440004 and bs.readUInt() == len(data): # psp dom
+            return 1
+        bs.seek(0x2D4)
+        if bs.readUInt() == 0x45440004 and bs.readUInt() == len(data): # psp nfs shift
             return 1
     return 0
 
@@ -170,7 +173,7 @@ def boToolVersionWarning():
         boWindow.doModal()
 
 def boToolPlatformCheck():
-    boWindow = noewin.NoeUserWindow("Burnout Tool","BOToolPlatformClass",406,253) # 400x224
+    boWindow = noewin.NoeUserWindow("Burnout Tool  –  Opening "+os.path.split(rapi.getInputName())[1],"BOToolPlatformClass",406,253) # 400x224
     boWindowRect = noewin.getNoesisWindowRect()
     boWindow.x = boWindowRect[0]+384
     boWindow.y = boWindowRect[1]+256
@@ -408,7 +411,9 @@ def boToolGetTexArena(data,texList):
     arenaName = bs.readString()
     bs.seek(0x50)
     texOffset = bs.readUInt()
-    if texOffset != 0:
+    if arenaName[-4:] == ".msh":
+        boToolPSPArenaTex(bs,data,16,arenaName,0,texList)
+    elif texOffset != 0:
         boToolPSPArenaTex(bs,data,texOffset+16,0,arenaName,texList)
     else:
         bs.seek(0x90)
@@ -712,7 +717,9 @@ def boToolPSPTex(bs,data,texOffset,texList):
     bitDepth = bs.readUInt()
     bs.seek(0x20,1)
     bmpOffset = bs.readUInt()
-    bs.seek(0x74,1)
+    bs.seek(0x70,1)
+    if bs.readUInt() == 0:
+        bs.seek(4,1) # nfs shift psp fix
     palCount = bs.readUByte()
     bs.seek(-0x25,1)
     texName = bs.readString()
@@ -749,6 +756,7 @@ def boToolPSPTex(bs,data,texOffset,texList):
     texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32))
 
 def boToolPSPArenaTex(bs,data,texOffset,texName,arenaName,texList):
+    bs.seek(texOffset)
     if arenaName != 0:
         texName = bs.readString()
         texName += " ("+arenaName+")"
@@ -776,9 +784,12 @@ def boToolPSPArenaTex(bs,data,texOffset,texName,arenaName,texList):
     bs.seek(bmpOffset + texOffset)
     if texFmt == 2:
         texData = bs.readBytes(texWidth*texHeight//2)
-        palData = bs.readBytes(0x40)
     elif texFmt == 3:
         texData = bs.readBytes(texWidth*texHeight)
+    bs.seek(palOffset + texOffset)
+    if texFmt == 2:
+        palData = bs.readBytes(0x40)
+    elif texFmt == 3:
         palData = bs.readBytes(0x400)
 
     texData = rapi.imageUntwiddlePSP(texData,texWidth,texHeight,bitDepth)
