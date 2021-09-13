@@ -717,8 +717,8 @@ def boToolPSPTex(bs,data,texOffset,texList):
     bitDepth = bs.readUInt()
     bs.seek(0x20,1)
     bmpOffset = bs.readUInt()
-    bs.seek(0x70,1)
-    if bs.readUInt() == 0:
+    bs.seek(0x72,1)
+    if bs.readUShort() == 0:
         bs.seek(4,1) # nfs shift psp fix
     palCount = bs.readUByte()
     bs.seek(-0x25,1)
