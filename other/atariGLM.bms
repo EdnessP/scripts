@@ -1,0 +1,21 @@
+# Atari Anthology .GLM
+# Edness  2021-09-27  v1.0
+
+get FILES long
+get HDRSIZE long
+#log MEMORY_FILE 8 HDRSIZE
+
+for i = 0 < FILES
+	get NAMEOFF long
+	get OFFSET long
+	get SIZE long
+	math NAMEOFF += 8
+	math OFFSET += 8
+
+	savepos HEADER
+	goto NAMEOFF
+	get NAME string
+	goto HEADER
+
+	log NAME OFFSET SIZE
+next i
