@@ -1,0 +1,58 @@
+# Activision Anthology .RPF
+# Edness   2021-09-27   v1.0
+
+# There is an error that may show up if it reaches EOF early
+# This doesn't affect file exporting and should still be fine
+
+get FILESIZE long
+get FILES long
+get DUMMY longlong # filesize w/o padding repeated twice?
+goto 0x1C
+get INFOOFF long # always 0x40?  may be padding size?
+get DATASIZE long
+get FNAME basename
+
+goto INFOOFF
+get DUMMY long # SIZE
+get DATAOFFSET long
+log MEMORY_FILE DATAOFFSET DATASIZE
+
+goto INFOOFF
+set NEXTOFF 0
+for i = 0 < FILES
+	get SIZE long
+	get OFFSET long
+	get SIZE2 long # always == size, or is this SIZE/ZSIZE?
+	get DUMMY longlong
+	getdstring NAME 0x40 # padded w/ 0xCD after NULL terminator
+	string NAME p "%s\%s" FNAME NAME
+
+	# idfk what in the world this is
+	savepos HEADER
+	if NEXTOFF == 0
+		math OFFSET -= DATAOFFSET
+		log NAME OFFSET SIZE MEMORY_FILE
+		math OFFSET += SIZE
+		goto OFFSET MEMORY_FILE
+	else
+		log NAME NEXTOFF SIZE MEMORY_FILE
+		math NEXTOFF += SIZE
+		goto NEXTOFF MEMORY_FILE
+	endif
+	get FD long MEMORY_FILE
+	if FD == 0xFDFDFDFD
+		padding 0x40 MEMORY_FILE
+	else
+		goto -4 MEMORY_FILE SEEK_CUR
+		math SIZE % 40
+		if SIZE != 0
+			get FD byte MEMORY_FILE
+			goto -1 MEMORY_FILE SEEK_CUR
+			if FD == 0xFD
+				padding 0x40 MEMORY_FILE
+			endif
+		endif
+	endif
+	savepos NEXTOFF MEMORY_FILE
+	goto HEADER
+next i
