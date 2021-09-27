@@ -20,6 +20,7 @@ If any problems arise, contact Edness#2203 on Discord.
 <summary>other\</summary>
 
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
+- atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
