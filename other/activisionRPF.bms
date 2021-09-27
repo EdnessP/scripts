@@ -14,8 +14,8 @@ get FNAME basename
 
 goto INFOOFF
 get DUMMY long # SIZE
-get DATAOFFSET long
-log MEMORY_FILE DATAOFFSET DATASIZE
+get DATAOFF long
+log MEMORY_FILE DATAOFF DATASIZE
 
 goto INFOOFF
 set NEXTOFF 0
@@ -30,7 +30,7 @@ for i = 0 < FILES
 	# idfk what in the world this is
 	savepos HEADER
 	if NEXTOFF == 0
-		math OFFSET -= DATAOFFSET
+		math OFFSET -= DATAOFF
 		log NAME OFFSET SIZE MEMORY_FILE
 		math OFFSET += SIZE
 		goto OFFSET MEMORY_FILE
@@ -44,7 +44,7 @@ for i = 0 < FILES
 		padding 0x40 MEMORY_FILE
 	else
 		goto -4 MEMORY_FILE SEEK_CUR
-		math SIZE % 40
+		math SIZE % 0x40
 		if SIZE != 0
 			get FD byte MEMORY_FILE
 			goto -1 MEMORY_FILE SEEK_CUR
