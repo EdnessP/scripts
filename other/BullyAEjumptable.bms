@@ -1,0 +1,16 @@
+# Bully AE jumptable.bin container
+# Edness   2021-09-30   v1.0
+
+get FILES long
+
+for i = 0 < FILES
+	get NAMELEN long
+	getdstring NAME NAMELEN
+	get SIZE long
+	savepos OFFSET
+	log NAME OFFSET SIZE
+	math OFFSET += SIZE
+	goto OFFSET
+	get SEEKNEXT long
+	goto SEEKNEXT 0 SEEK_CUR
+next i
