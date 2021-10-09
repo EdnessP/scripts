@@ -1,0 +1,25 @@
+# Castle Strike .RDA Extract
+# Edness   2021-10-10   v1.0
+
+getdstring IDSTR 0x100
+if IDSTR != "Resource File V1.1"
+	print "ERROR! Unsupported file."
+	break
+endif
+
+comtype zlib
+get FILES long
+for i = 0 < FILES
+	getdstring NAME 0x100
+	get OFFSET long
+	get ZSIZE long
+	get SIZE long
+	get TYPE long
+	get TSTAMP time
+	if SIZE == ZSIZE # or if TYPE == 4 elif 5 (?)
+		log NAME OFFSET SIZE
+	else
+		clog NAME OFFSET ZSIZE SIZE
+	endif
+	print "  Last Modified:      %TSTAMP%\n\n"
+next i
