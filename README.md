@@ -25,6 +25,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
+- cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
