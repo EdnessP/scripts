@@ -1,3 +1,17 @@
+2021-10-11  -  v0.5e
+    Added features:
+     * Reorganised just about everything.
+     * Readded Black Frontend BIN support.
+     * Added Black Char DB support.
+     * Added Black GlobData BIN support.
+     * Added Black Guns BIN support.
+     * Added Black LevelDat BIN support.
+     * Added Black StLevel BIN support.
+     * Added Black StUnit BIN support.
+     * Added an experimental translation feature for the platform select window.
+        * Probably will not actually be used in the end.
+
+
 2021-09-13  -  v0.5d
     Bugfix release!
     Fixed issues:
