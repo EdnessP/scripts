@@ -10,6 +10,10 @@
      * Added Black StUnit BIN support.
      * Added an experimental translation feature for the platform select window.
         * Probably will not actually be used in the end.
+    Known issues:
+     * Small PSP textures may not export properly.
+     * Filenames from Black Frontend BINs often seem incorrect.
+        * Likely won't be or can't be fixed.  Does not affect Burnout Frontend BINs.
 
 
 2021-09-13  -  v0.5d
