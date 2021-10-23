@@ -1,6 +1,8 @@
 # Outputs the timestamp from Windows and Xbox MZ/PE .EXEs, Xbox alpha XE and final XBEH .XBEs,
 # and Xbox 360 XEX?, XEX-, XEX0, XEX1 and XEX2 .XEXs without any weird timezone modifications.
 
+# Also check out the Python reimplementation written by jason098 - ms_timestamp.py
+
 # OGX/360/MZPE timestamp retreiver
 # Edness   2021-03-17   v1.1
 
