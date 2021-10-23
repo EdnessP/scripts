@@ -19,25 +19,31 @@ If any problems arise, contact Edness#2203 on Discord.
 <details>
 <summary>other\</summary>
 
-- 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
+### GAME ARCHIVES
+
 - activisionRPF.bms &mdash; **Activision Anthology** .RPF archives.
 - atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
-- DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
-- LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
-- LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
-- multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has filenames unlike *sru-mst.bms*)
 - sru-mst.bms &mdash; **Saints Row Undercover** .MST files.  (Has no filenames unlike *sdwww-mst.bms*)
 - tex_SpongebobSurfnSkate.py &mdash; **SpongeBob's Surf & Skate Roadtrip** .XEN textures. May work on other Blitz Games archives too.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
+- txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
+
+### MISCELLANEOUS
+
+- 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
+- DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
+- LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
+- LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
+- multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
+- ms_timestamp.py &mdash; Python reimplementation of *xbexexmzpe.bms* written by jason098.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
-- txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
 
 </details>
