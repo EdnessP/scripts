@@ -6,7 +6,8 @@ import argparse
 from datetime import datetime
 
 def print_time(type):
-    print(datetime.utcfromtimestamp(int.from_bytes(file.read(4), "big" if type == "XEX/PE" else "little")).strftime(f"{type} date: %Y-%m-%d %H:%M:%S"))
+    timestamp = int.from_bytes(file.read(4), "big" if type == "XEX/PE" else "little")
+    print(datetime.utcfromtimestamp(timestamp).strftime(f"{type} date: %Y-%m-%d %H:%M:%S"))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str)
