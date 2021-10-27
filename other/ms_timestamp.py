@@ -14,7 +14,7 @@ parser.add_argument("file", type=str)
 args = parser.parse_args()
 
 file = open(args.file, "rb") 
-magic = file.read(4)
+magic = file.read(0x4)
 
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
@@ -42,10 +42,10 @@ elif (magic == b"XEX?" or magic == b"XEX0"): # alpha
 
 elif (magic == b"XEX-" or magic == b"XEX1" or magic == b"XEX2"): # beta, final
     file.seek(0x14)
-    sections = int.from_bytes(file.read(4), "big")
+    sections = int.from_bytes(file.read(0x4), "big")
     for _ in range(sections):
-        type = int.from_bytes(file.read(4), "big")
-        offset = int.from_bytes(file.read(4), "big")
+        type = int.from_bytes(file.read(0x4), "big")
+        offset = int.from_bytes(file.read(0x4), "big")
         if (type == 0x18002):
             file.seek(offset + 0x4)
             print_time("XEX")
