@@ -1,0 +1,35 @@
+# .SCH strip all but BANK, PFSM sections (IMUS, PFST)
+# Written by Edness   2021-11-09   v1.0
+
+idstring binary "SCH\x00"
+get DATASIZE long
+math DATASIZE += 8
+
+get FNAME basename
+string FNAME += "_strip.sch"
+
+log MEMORY_FILE1 0 0
+log MEMORY_FILE2 0 0
+
+append
+do
+	getdstring IDENT 4
+	get IDSIZE long
+	savepos OFFSET
+	if IDENT == "BANK" || IDENT == "PFSM"
+		putdstring IDENT 4 MEMORY_FILE1
+		put IDSIZE long MEMORY_FILE1
+		log MEMORY_FILE1 OFFSET IDSIZE
+	endif
+	#print "%IDENT%"
+	goto IDSIZE 0 SEEK_CUR
+	savepos OFFSET
+while OFFSET < DATASIZE
+
+get MSIZE asize MEMORY_FILE1
+putdstring "SCH" 4 MEMORY_FILE2
+put MSIZE long MEMORY_FILE2
+
+log FNAME 0 8 MEMORY_FILE2
+log FNAME 0 MSIZE MEMORY_FILE1
+append
