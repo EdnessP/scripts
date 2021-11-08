@@ -30,9 +30,13 @@ If any problems arise, contact Edness#2203 on Discord.
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has filenames unlike *sru-mst.bms*)
 - sru-mst.bms &mdash; **Saints Row Undercover** .MST files.  (Has no filenames unlike *sdwww-mst.bms*)
+- txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
+
+### GAME TEXTURES
+
+- tex_HuneX_MF_PS2.py &mdash; PS2 Texture extraction for **HuneX** developed games. 
 - tex_SpongebobSurfnSkate.py &mdash; **SpongeBob's Surf & Skate Roadtrip** .XEN textures. May work on other Blitz Games archives too.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
-- txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 
 ### MISCELLANEOUS
 
@@ -42,6 +46,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - ms_timestamp.py &mdash; Python reimplementation of *xbexexmzpe.bms* written by jason098.
+- sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
