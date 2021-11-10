@@ -373,7 +373,6 @@ def boToolDecZlib(bs,data):
     bs.seek(0)
     cmpData = bs.readBytes(bs.getSize())
     decData = rapi.decompInflate(cmpData,rapi.getInflatedSize(cmpData))
-    print("OK: boToolDecZlib")
     return NoeBitStream(decData,NOE_BIGENDIAN) # assume 360 only
 
 def boToolPadAlign(bs,padSize,padFrom):
