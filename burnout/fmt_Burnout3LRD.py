@@ -21,9 +21,13 @@ def registerNoesisTypes():
     noesis.setHandlerTypeCheck(handleBinFE,boCheckBinFE)
     noesis.setHandlerLoadRGBA(handleBinFE,boArcGetTexBinFE)
 
-    handleBinOther = noesis.register("Burnout 3T, BLeg, BRev, BDom, Black Font & Loadsc",".bin")
-    noesis.setHandlerTypeCheck(handleBinOther,boCheckBinOther)
-    noesis.setHandlerLoadRGBA(handleBinOther,boArcGetTexBinOther)
+    handleBinLoad = noesis.register("Burnout 3T, BLeg, BRev, BDom, Black Loadsc",".bin")
+    noesis.setHandlerTypeCheck(handleBinLoad,boCheckBinLoad)
+    noesis.setHandlerLoadRGBA(handleBinLoad,boArcGetTexBinLoad)
+
+    handleBinFont = noesis.register("Burnout 3T, BLeg, BRev, BDom, Black Font",".bin")
+    noesis.setHandlerTypeCheck(handleBinFont,boCheckBinFont)
+    noesis.setHandlerLoadRGBA(handleBinFont,boArcGetTexBinFont)
 
     handleTxd = noesis.register("Burnout 3T, BLeg, BRev, BDom, NFS Shift",".txd")
     noesis.setHandlerTypeCheck(handleTxd,boCheckTxd)
@@ -72,12 +76,13 @@ def registerNoesisTypes():
 
 def boCheckBxv(data):
     bs = NoeBitStream(data)
+    try: bs = boToolDecZlib(bs,data)
+    except: bs.seek(0)
     fileVer = bs.readUInt()
-    if fileVer >= 0x14 and fileVer <= 0x1F or fileVer == 0x25000000:
-        return 1 # B3 - Dom
-    cmpCheck = int(hex(fileVer)[-4:],16)
-    if cmpCheck == 0xDA78:
-        return 1 # Rev360 zlib'd
+    fileSize = bs.readUInt()
+    if fileVer >= 0x14 and fileVer <= 0x25 or fileVer == 0x25000000:
+        if fileSize == bs.getSize() or fileSize == 0:
+            return 1
     return 0
 
 def boCheckBinFE(data):
@@ -87,30 +92,34 @@ def boCheckBinFE(data):
         return 1
     return 0
 
-def boCheckBinOther(data):
+def boCheckBinLoad(data):
     bs = NoeBitStream(data)
-    fileSize = bs.getSize()
     texCount = bs.readUInt64()
-    fontMagic = int(hex(texCount)[-8:],16)
     #print(hex(texCount),hex(fontMagic))
-    if texCount < 100 and texCount != 0 and fileSize > 0x810: # B3/BL loadscrn
+    if texCount < 100 and texCount != 0 and bs.getSize() > 0x810: # B3/BL loadscrn
         bs.seek(0x800)
         if bs.readUInt64() == 0xBCDEED81543C0000:
             return 1
-    elif fontMagic == 0x76312E34 or fontMagic == 0x342E3176: # v1.4
+    return 0
+
+def boCheckBinFont(data):
+    bs = NoeBitStream(data)
+    fileSize = bs.getSize()
+    fontMagic = bs.readBytes(4)
+    if fontMagic == b"4.1v" or fontMagic == b"v1.4":
         return 1 # Rev font file
-    if fileSize > 0x200: # see boCheckDatEnviro
-        bs.seek(0x70) # Dom PS2 font file
+    if fileSize > 0x2000: # see boCheckDatEnviro
+        bs.seek(0x70)
         texOffset = bs.readUInt()
         if texOffset < (fileSize // 2):
             bs.seek(texOffset)
             if bs.readUInt64() == 0x000025000000000:
-                return 1
+                return 1 # Dom PS2 font file
     return 0
 
 def boCheckArena(data):
     bs = NoeBitStream(data)
-    if bs.readUInt() == 0x6F6B654E: # Neko
+    if bs.readBytes(4) == b"Neko":
         return 1
     return 0
 
@@ -123,15 +132,15 @@ def boCheckTxd(data):
 
 def boCheckDatStatic(data):
     bs = NoeBitStream(data)
+    fileSize = bs.getSize()
+    if fileSize < 0x3200000: # 50 MiB limit for zlib check
+        try: bs = boToolDecZlib(bs,data)
+        except: bs.seek(0)
     fileVer = bs.readUInt()
-    fileSize = bs.readUInt()
+    storeSize = bs.readUInt()
     if fileVer >= 0x21 and fileVer <= 0x3E or fileVer == 0x3C000000:
-        if fileSize == len(data) or fileSize == 0:
-            return 1 # B3 - Dom
-    cmpCheck = int(hex(fileVer)[-4:],16)
-    #print(hex(fileVer),hex(cmpCheck))
-    if cmpCheck == 0xDA78:
-        return 1 # Rev360 zlib'd
+        if storeSize == fileSize or storeSize == 0:
+            return 1
     return 0
 
 def boCheckDatEnviro(data):
@@ -187,7 +196,7 @@ def blkCheckBinUnit(data):
 
 def blkCheckBinLevelDat(data):
     bs = NoeBitStream(data)
-    if bs.getSize > 0x500:
+    if bs.getSize() > 0x500:
         fileVer = bs.readUInt()
         if fileVer == 0xA:
             bs.seek(0x2BC) # -> 0x300
@@ -224,6 +233,7 @@ def blkCheckBinStUnit(data):
 def blkCheckBinGuns(data):
     bs = NoeBitStream(data)
     txdOffset = bs.readUInt()
+    #mdlOffset = bs.readUInt() # -> MODELS GtID
     if txdOffset < bs.getSize()-8:
         bs.seek(txdOffset)
         if bs.readUInt64() == 0xBCDF4EB7DD9A8000: # TEXTURE GtID
@@ -363,13 +373,14 @@ def boToolDecZlib(bs,data):
     bs.seek(0)
     cmpData = bs.readBytes(bs.getSize())
     decData = rapi.decompInflate(cmpData,rapi.getInflatedSize(cmpData))
+    print("OK: boToolDecZlib")
     return NoeBitStream(decData,NOE_BIGENDIAN) # assume 360 only
 
 def boToolPadAlign(bs,padSize,padFrom):
     if padFrom % padSize != 0:
         bs.seek((padFrom//padSize+1)*padSize)
 
-def boToolGoToFirstTexIndex(bs,data,aptDataOffset,firstTex,texList):
+def boToolGoToFirstTexIndex(bs,data,aptDataOffset,firstTex):
     bs.seek(aptDataOffset)
     while True: # may be unreliable? (especially for psp .arenas)
         if bs.readUInt() == firstTex:
@@ -982,7 +993,7 @@ def boArcGetTexBinFE(data,texList):
             bs.seek(texArrayOffset)
             texOffset = bs.readUInt() + dirDataOffset
             texNameChk = boToolGetTexName(bs,data,texOffset)
-            boToolGoToFirstTexIndex(bs,data,aptDataOffset,int(texNameChk[11:])+1 if texNameChk.startswith("TexturePage") else int(texNameChk),texList)
+            boToolGoToFirstTexIndex(bs,data,aptDataOffset,int(texNameChk[11:])+1 if texNameChk.startswith("TexturePage") else int(texNameChk))
             for j in range(texCount):
                 texNameOffset = bs.readUInt()
                 texNameIndex = bs.readUInt()
@@ -1012,21 +1023,25 @@ def boArcGetTexBinFE(data,texList):
         bs.seek(curHdrOffset)
     return 1
 
-def boArcGetTexBinOther(data,texList):
+def boArcGetTexBinLoad(data,texList):
     bs = boSetup(data)
 
-    txdCount = bs.readUInt()
+    txdCount = bs.readUInt64()
+    for i in range(txdCount):
+        txdNameGtID = boToolDecGtID(bs.readUInt64()) # check if matches texname[:12]?
+        txdSize = bs.readUInt()
+        txdOffset = bs.readUInt()+0x800 # aligned to 0x800 but never long enough to be elsewhere?
+        curOffset = bs.tell()
+        boArcTxdParse(bs,data,txdOffset,texList)
+        bs.seek(curOffset)
+    return 1
+
+def boArcGetTexBinFont(data,texList):
+    bs = boSetup(data)
+
+    fontMagic = bs.readUInt()
     texOffset = bs.readUInt()
-    if texOffset == 0:
-        # assume B3/BL loadscrn
-        for i in range(txdCount):
-            txdNameGtID = boToolDecGtID(bs.readUInt64()) # check if matches texname[:12]?
-            txdSize = bs.readUInt()
-            txdOffset = bs.readUInt()+0x800 # aligned to 0x800 but never long enough to be elsewhere?
-            curOffset = bs.tell()
-            boArcTxdParse(bs,data,txdOffset,texList)
-            bs.seek(curOffset)
-    elif txdCount == 0x76312E34: # v1.4
+    if fontMagic == 0x76312E34: # v1.4
         # assume Rev font file
         boTexParse(bs,data,texOffset,0,texList,0)
     else:
@@ -1072,7 +1087,7 @@ def boArcGetTexArena(data,texList):
         if texCount != 0:
             texArrayOffset = bs.readUInt()+16
             if bs.readUInt() == 1: # this can probably be done better now with the improved texindex but im too scared to touch this nightmare
-                boToolGoToFirstTexIndex(bs,data,aptDataOffset,1,texList)
+                boToolGoToFirstTexIndex(bs,data,aptDataOffset,1)
                 texNameOffset = bs.readUInt()
                 if texNameOffset < texArrayOffset:
                     bs.seek(-4,1)
@@ -1099,7 +1114,7 @@ def boArcGetTexDatEnviro(data,texList):
     bs.seek(0x98)
     while True:
         texOffset = bs.readUInt()
-        if texOffset < 0x100 or texOffset >= len(data):
+        if texOffset < 0x100 or texOffset >= bs.getSize():
             break
         curTexOffset = bs.tell()
         boTexParse(bs,data,texOffset,0,texList,0)
@@ -1109,9 +1124,9 @@ def boArcGetTexDatEnviro(data,texList):
 def boArcGetTexDatStatic(data,texList):
     bs = boSetup(data)
 
-    fileVer = bs.readUByte()
-    if fileVer == 0x78:
-        bs = boToolDecZlib(bs,data)
+    try: bs = boToolDecZlib(bs,data)
+    except: bs.seek(0)
+    fileVer = bs.readUInt()
 
     if fileVer < 0x26: # B3 demo
         bs.seek(0x14)
@@ -1131,17 +1146,15 @@ def boArcGetTexDatStatic(data,texList):
 def boArcGetTexBxv(data,texList):
     bs = boSetup(data)
 
-    fileVer = bs.readUByte()
-    if fileVer != 0 and fileVer != 0x78: # zlib
-        bs.seek(0x60)
+    try: bs = boToolDecZlib(bs,data)
+    except: bs.seek(0)
+    fileVer = bs.readUInt()
+    bs.seek(0x60)
+    if fileVer < 0x25:
         texOffset = bs.readUInt()
         boTexParse(bs,data,texOffset,0,texList,0)
-    else:
-        if fileVer == 0x78:
-            bs = boToolDecZlib(bs,data)
-
+    else: # XBOX360
         # i hate this whole section
-        bs.seek(0x60)
         for i in range(19): # i think?
             texOffset = bs.readUInt()
             if texOffset != 0:
@@ -1167,4 +1180,3 @@ def boArcGetTexBxv(data,texList):
                             bs.seek(curPalOffset)
                 bs.seek(curTexOffset)
     return 1
-
