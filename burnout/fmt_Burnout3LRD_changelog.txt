@@ -10,6 +10,7 @@
      * Added Black StUnit BIN support.
      * Added an experimental translation feature for the platform select window.
         * Probably will not actually be used in the end.
+     * Split Font and LoadScrn detection separately.
     Known issues:
      * Small PSP textures may not export properly.
      * Filenames from Black Frontend BINs often seem incorrect.
