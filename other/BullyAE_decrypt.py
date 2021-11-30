@@ -24,7 +24,7 @@ def decrypt(string):
     idx = 0
     switch = 0
     data_len = len(string)
-    dec_size = (5 * data_len >> 3)
+    dec_size = 5 * data_len >> 3
     dec_data = [0 for i in range(dec_size + 1)]
     for i in range(data_len):
         detect = buffer[string[i]]
