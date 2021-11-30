@@ -41,6 +41,7 @@ If any problems arise, contact Edness#2203 on Discord.
 ### MISCELLANEOUS
 
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
+- BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
 - DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
