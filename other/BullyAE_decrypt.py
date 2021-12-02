@@ -5,8 +5,8 @@
 # and on Linux, macOS, and BSD with Terminal using:
 #   find /path/to/files -name "*.xml" -print -exec ./BullyAE_decrypt.py decf {} \;
 
-# Python reimplementation of  https://forum.xentax.com/viewtopic.php?t=15777
-# and  https://github.com/bartlomiejduda/Tools/blob/master/NEW%20Tools/Bully%20Anniversary%20Edition/Bully_XML_Tool.cpp
+# Python reimplementation of  https://forum.xentax.com/viewtopic.php?t=15777  and
+# https://github.com/bartlomiejduda/Tools/blob/master/NEW%20Tools/Bully%20Anniversary%20Edition/Bully_XML_Tool.cpp
 
 # Written by Edness
 # 2021-11-29   v1.0
@@ -16,17 +16,20 @@ import argparse, os
 encrypt_key = b"6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
 encrypt_hash = 0x0CEB538D
 
-def decrypt(string):
+def set_buffer():
     buffer = [0 for i in range(256)]
     for idx in range(len(encrypt_key)):
         buffer[encrypt_key[idx]] = idx
+    return buffer
 
+def decrypt(string):
     idx = 0
     switch = 0
-    data_len = len(string)
-    dec_size = 5 * data_len >> 3
+    buffer = set_buffer()
+    enc_size = len(string)
+    dec_size = 5 * enc_size // 8
     dec_data = [0 for i in range(dec_size + 1)]
-    for i in range(data_len):
+    for i in range(enc_size):
         detect = buffer[string[i]]
 
         value = {
@@ -56,7 +59,7 @@ def decrypt(string):
             idx += 1
             switch -= 3
 
-    xor = 0x12
+    xor = 18
     hash = encrypt_hash
     for i in range(dec_size):
         hash = 0xAB * (hash % 0xB1) - 2 * (hash // 0xB1)
@@ -68,9 +71,9 @@ def decrypt(string):
     return dec_data
 
 def dec_str(args):
-    string = args.dec_string
-    assert(string.startswith("Wx"))
-    data = decrypt(bytes(string[2:], "ASCII"))
+    string = bytes(args.dec_string, "ASCII")
+    assert(string.startswith(b"Wx"))
+    data = decrypt(string[2:])
     print(str(data, "UTF-8"))
 
 def dec_file(args):
@@ -84,18 +87,23 @@ def dec_file(args):
         file.write(data)
         print("Decrypted file written to", output)
 
-cur_file = os.path.basename(__file__)
-parser = argparse.ArgumentParser(description="Converts the encrypted text files in Bully: Anniversary Edition.")
-subparsers = parser.add_subparsers()
-decrypt_file_parser = subparsers.add_parser("decf", help="Decrypt file.\xA0\xA0\xA0 Example: " + cur_file + " decf " + ("X:\\path\\to\\encrypted.xml" if os.name == "nt" else "/path/to/encrypted.xml"))
-decrypt_file_parser.add_argument("dec_path", type=str)
-decrypt_file_parser.set_defaults(func=dec_file)
-decrypt_string_parser = subparsers.add_parser("decs", help="Decrypt string.\xA0 Example: " + cur_file + " decs WxEHUf2GfEnC...")
-decrypt_string_parser.add_argument("dec_string", type=str)
-decrypt_string_parser.set_defaults(func=dec_str)
-args = parser.parse_args()
-try: args.func(args)
-except AttributeError: print("No arguments given. Use -h or --help to show valid arguments.")
-except AssertionError: print("Invalid string detected!")
-except IndexError: print("Decryption failed!")
-except UnicodeDecodeError: print("Decoding failed!")
+def main():
+    this = os.path.basename(__file__)
+    path = "X:\\path\\to\\" if os.name == "nt" else "/path/to/"
+
+    parser = argparse.ArgumentParser(description="Converts the encrypted text files in Bully: Anniversary Edition.")
+    subparsers = parser.add_subparsers()
+    decrypt_file_parser = subparsers.add_parser("decf", help="Decrypt file.\xA0 \xA0 \xA0Example: " + this + " decf " + path + "encrypted.xml")
+    decrypt_file_parser.add_argument("dec_path", type=str)
+    decrypt_file_parser.set_defaults(func=dec_file)
+    decrypt_string_parser = subparsers.add_parser("decs", help="Decrypt string.\xA0 \xA0Example: " + this + " decs WxEHUf2GfEnC...")
+    decrypt_string_parser.add_argument("dec_string", type=str)
+    decrypt_string_parser.set_defaults(func=dec_str)
+    args = parser.parse_args()
+
+    try: args.func(args)
+    except AttributeError: print("No arguments given. Use -h or --help to show valid arguments.")
+    except (AssertionError, UnicodeEncodeError): print("Invalid string detected!")
+    except (IndexError, UnicodeDecodeError): print("Decryption failed!")
+
+main()
