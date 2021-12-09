@@ -17,7 +17,7 @@ encrypt_key = b"6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
 encrypt_hash = 0x0CEB538D
 
 def set_buffer():
-    buffer = [0 for i in range(256)]
+    buffer = list(bytes(256))
     for idx in range(len(encrypt_key)):
         buffer[encrypt_key[idx]] = idx
     return buffer
@@ -28,7 +28,7 @@ def decrypt(string):
     buffer = set_buffer()
     enc_size = len(string)
     dec_size = 5 * enc_size // 8
-    dec_data = [0 for i in range(dec_size + 1)]
+    dec_data = list(bytes(dec_size + 1))
     for i in range(enc_size):
         detect = buffer[string[i]]
 
