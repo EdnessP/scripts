@@ -1,46 +1,52 @@
 #!/usr/bin/env python3
-# Python reimplementation of xbexexmzpe.bms
-# Written by jason098   2021-10-23   v1.2
+# Python reimplementation of xbexexmzpe.bms with extra features
+# Written by jason098 & Edness   2021-10-23 - 2021-12-11   v1.3
 
 import argparse
 from datetime import datetime
 
 def print_time(type):
-    timestamp = int.from_bytes(file.read(0x4), "big" if type == "XEX" else "little")
-    print(datetime.utcfromtimestamp(timestamp).strftime(f"{type} date: %Y-%m-%d %H:%M:%S"))
+    time = int.from_bytes(file.read(0x4), "big" if (type == "XEX") else "little")
+    print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str)
 args = parser.parse_args()
 
 file = open(args.file, "rb") 
-magic = file.read(0x4)
+magic = file.read(0x20)
 
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
-    file.seek(int.from_bytes(file.read(4), "little") + 0x8)
-    print_time("PE")
+    file.seek(int.from_bytes(file.read(0x4), "little"))
+    magic = str(file.read(0x2), "UTF-8")
+    if (magic == "PE"):
+        file.seek(0x6, 1)
+        print_time("PE")
+    else: # NE, LE, LX have no timestamp
+        print(f"Unsupported MZ/{magic} file.")
 
-elif (magic == b"XE\x00\x00"): # alpha
+elif (magic[:4] == b"XE\x00\x00"): # alpha
     file.seek(0x1C)
     print_time("XE")
     file.seek(0x74)
     print_time("PE")
 
-elif (magic == b"XBEH"): # final
+elif (magic[:4] == b"XBEH"): # final
     file.seek(0x114)
     print_time("XBE")
+    cert_offs = int.from_bytes(file.read(0x2), "little")
     file.seek(0x148)
     print_time("PE")
-    file.seek(0x188)
+    file.seek(cert_offs + 0x4)
     print_time("Cert")
 
-elif (magic == b"XEX?" or magic == b"XEX0"): # alpha
+elif (magic[:4] == b"XEX?" or magic[:4] == b"XEX0"): # alpha
     file.seek(0x103C)
     file.seek(int.from_bytes(file.read(0x4), "little") + 0x1008)
     print_time("PE")
 
-elif (magic == b"XEX-" or magic == b"XEX1" or magic == b"XEX2"): # beta, final
+elif (magic[:4] == b"XEX-" or magic[:4] == b"XEX1" or magic[:4] == b"XEX2"): # beta, final
     file.seek(0x14)
     sections = int.from_bytes(file.read(0x4), "big")
     for _ in range(sections):
@@ -49,6 +55,17 @@ elif (magic == b"XEX-" or magic == b"XEX1" or magic == b"XEX2"): # beta, final
         if (type == 0x18002):
             file.seek(offset + 0x4)
             print_time("XEX")
+            break
+
+elif (magic == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
+    page_size = int.from_bytes(file.read(0x4), "little")
+    file.seek(0x4, 1)
+    pages = int.from_bytes(file.read(0x4), "little")
+    for page in range(pages):
+        file.seek(page * page_size)
+        magic = int.from_bytes(file.read(0x4), "little")
+        if (magic == 20000404):
+            print_time("PDB")
             break
 
 else:
