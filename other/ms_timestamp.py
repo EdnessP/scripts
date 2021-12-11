@@ -86,8 +86,8 @@ elif (magic[:32] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
 
 elif (magic == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"):
     page_size = int.from_bytes(file.read(0x4), "little")
-    file.seek(0x4, 1)
-    pages = int.from_bytes(file.read(0x4), "little")
+    file.seek(0x2, 1)
+    pages = int.from_bytes(file.read(0x2), "little")
     parse_pdb(page_size, pages, 19970604)
 
 else:
