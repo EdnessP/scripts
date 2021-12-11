@@ -5,16 +5,16 @@
 import argparse
 from datetime import datetime
 
-def print_time(type):
-    time = int.from_bytes(file.read(0x4), "big" if (type == "XEX") else "little")
-    print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
-
 parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str)
 args = parser.parse_args()
 
 file = open(args.file, "rb") 
-magic = file.read(0x20)
+magic = file.read(0x2C)
+
+def print_time(type):
+    time = int.from_bytes(file.read(0x4), "big" if (type == "XEX") else "little")
+    print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
@@ -57,7 +57,20 @@ elif (magic[:4] == b"XEX-" or magic[:4] == b"XEX1" or magic[:4] == b"XEX2"): # b
             print_time("XEX")
             break
 
-elif (magic == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
+elif (magic == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"):
+    page_size = int.from_bytes(file.read(0x4), "little")
+    file.seek(0x4, 1)
+    pages = int.from_bytes(file.read(0x4), "little")
+    for page in range(pages):
+        file.seek(page * page_size)
+        c_date = int.from_bytes(file.read(0x4), "little")
+        if (c_date == 19970604):
+            print_time("PDB")
+            break
+
+elif (magic[:32] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
+    # if using the c_date method as above, then search for 20000404
+    file.seek(0x20)
     page_size = int.from_bytes(file.read(0x4), "little")
     file.seek(0x34)
     file.seek(int.from_bytes(file.read(0x4), "little") * page_size)
