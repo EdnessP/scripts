@@ -16,7 +16,7 @@ def print_time(type):
     time = int.from_bytes(file.read(0x4), "big" if (type == "XEX") else "little")
     print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
-def parse_pdb(page_size, pages, date):
+def scan_pdb(date):
     for page in range(pages):
         file.seek(page * page_size)
         c_date = int.from_bytes(file.read(0x4), "little")
@@ -37,7 +37,8 @@ if (magic[:2] == b"MZ"):
 elif (magic[:4] == b"XE\x00\x00"): # alpha
     file.seek(0x1C)
     print_time("XE")
-    file.seek(0x74)
+    file.seek(0x24)
+    file.seek(int.from_bytes(file.read(0x4), "little") + 0x3C)
     print_time("PE")
 
 elif (magic[:4] == b"XBEH"): # final
@@ -75,20 +76,23 @@ elif (magic[:32] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     stream_dir = int.from_bytes(file.read(0x4), "little") * page_size
     file.seek(stream_dir)
     streams = int.from_bytes(file.read(0x4), "little")
-    stream2_ptr = streams * 4 + 8
-    file.seek(stream_dir + stream2_ptr)
-    file.seek(int.from_bytes(file.read(0x4), "little") * page_size)
-    c_date = int.from_bytes(file.read(0x4), "little")
-    if (c_date == 20000404):
-        print_time("PDB")
-    else: # Fallback
-        parse_pdb(page_size, pages, 20000404)
+    stream_ptr = streams * 4 + 4
+    for _ in range(streams):
+        file.seek(stream_dir + stream_ptr)
+        file.seek(int.from_bytes(file.read(0x4), "little") * page_size)
+        if (int.from_bytes(file.read(0x4), "little") == 20000404):
+            print_time("PDB")
+            break
+        stream_ptr += 4
+    else:
+        print("Attempting fallback scan! This shouldn't ever happen!")
+        scan_pdb(20000404)
 
 elif (magic == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"):
     page_size = int.from_bytes(file.read(0x4), "little")
-    file.seek(0x2, 1)
+    file.seek(0x32)
     pages = int.from_bytes(file.read(0x2), "little")
-    parse_pdb(page_size, pages, 19970604)
+    scan_pdb(19970604)
 
 else:
     print("Couldn't determine file type!")
