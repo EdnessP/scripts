@@ -59,14 +59,15 @@ elif (magic[:4] == b"XEX-" or magic[:4] == b"XEX1" or magic[:4] == b"XEX2"): # b
 
 elif (magic == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     page_size = int.from_bytes(file.read(0x4), "little")
-    file.seek(0x4, 1)
-    pages = int.from_bytes(file.read(0x4), "little")
-    for page in range(pages):
-        file.seek(page * page_size)
-        magic = int.from_bytes(file.read(0x4), "little")
-        if (magic == 20000404):
-            print_time("PDB")
-            break
+    file.seek(0x34)
+    file.seek(int.from_bytes(file.read(0x4), "little") * page_size)
+    stream_dir = int.from_bytes(file.read(0x4), "little") * page_size
+    file.seek(stream_dir)
+    streams = int.from_bytes(file.read(0x4), "little")
+    stream2_ptr = streams * 4 + 8
+    file.seek(stream_dir + stream2_ptr)
+    file.seek(int.from_bytes(file.read(0x4), "little") * page_size + 4)
+    print_time("PDB")
 
 else:
     print("Couldn't determine file type!")
