@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Python reimplementation of xbexexmzpe.bms with extra features
-# Written by jason098 & Edness   2021-10-23 - 2021-12-11   v1.3
+# Python reimplementation of  xbexexmzpe.bms  with extra features
+# Written by jason098 & Edness   2021-10-23 - 2021-12-12   v1.3.2
 
 import argparse
 from datetime import datetime
@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str)
 args = parser.parse_args()
 
-file = open(args.file, "rb") 
+file = open(args.file, "rb")
 magic = file.read(0x2C)
 
 def print_time(type):
@@ -21,14 +21,15 @@ def parse_pdb(word, c_date):
     # few edge cases have arisen where this isn't the case
     # and instead it's stored in seemingly random streams.
     global stream_ptr
-    for _ in range(streams):
-        file.seek(stream_dir + stream_ptr)
-        file.seek(int.from_bytes(file.read(word), "little") * page_size)
-        if (int.from_bytes(file.read(0x4), "little") == c_date):
-            print_time("PDB")
-            return
-        stream_ptr += word
-    print("Attempting fallback scan! This shouldn't ever happen!\nPlease contact jason098#9850 or Edness#2203 with this")
+    if (stream_dir != 0 and streams != 0 and streams < pages):
+        for _ in range(streams):
+            file.seek(stream_dir + stream_ptr)
+            file.seek(int.from_bytes(file.read(word), "little") * page_size)
+            if (int.from_bytes(file.read(0x4), "little") == c_date):
+                print_time("PDB")
+                return
+            stream_ptr += word
+        print("Failed to find the correct stream! Attempting fallback scan...")
     for page in range(pages):
         file.seek(page * page_size)
         if (int.from_bytes(file.read(0x4), "little") == c_date):
