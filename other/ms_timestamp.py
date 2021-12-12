@@ -16,11 +16,10 @@ def print_time(type):
     time = int.from_bytes(file.read(0x4), "big" if (type == "XEX") else "little")
     print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
-def scan_pdb(date):
+def scan_pdb(c_date):
     for page in range(pages):
         file.seek(page * page_size)
-        c_date = int.from_bytes(file.read(0x4), "little")
-        if (c_date == date):
+        if (int.from_bytes(file.read(0x4), "little") == c_date):
             print_time("PDB")
             break
 
