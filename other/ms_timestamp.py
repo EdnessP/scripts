@@ -38,12 +38,12 @@ def parse_pdb(word, c_date):
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
     file.seek(int.from_bytes(file.read(0x4), "little"))
-    magic = str(file.read(0x2), "UTF-8")
-    if (magic == "PE"):
+    section = str(file.read(0x2), "UTF-8")
+    if (section == "PE"):
         file.seek(0x6, 1)
-        print_time("PE")
+        print_time(section)
     else: # NE, LE, LX have no timestamp
-        print(f"Unsupported MZ/{magic} file.")
+        print(f"Unsupported {section} file.")
 
 elif (magic[:4] == b"XE\x00\x00"): # alpha
     file.seek(0x1C)
