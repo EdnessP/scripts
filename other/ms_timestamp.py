@@ -16,18 +16,11 @@ def print_time(type):
     time = int.from_bytes(file.read(0x4), "big" if (type == "XEX") else "little")
     print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
-def scan_pdb(c_date):
-    for page in range(pages):
-        file.seek(page * page_size)
-        if (int.from_bytes(file.read(0x4), "little") == c_date):
-            print_time("PDB")
-            break
-
 def parse_pdb(word, c_date):
-    global stream_ptr
     # Normally it's supposed to always be Stream 2, but a
     # few edge cases have arisen where this isn't the case
     # and instead it's stored in seemingly random streams.
+    global stream_ptr
     for _ in range(streams):
         file.seek(stream_dir + stream_ptr)
         file.seek(int.from_bytes(file.read(word), "little") * page_size)
@@ -36,7 +29,11 @@ def parse_pdb(word, c_date):
             return
         stream_ptr += word
     print("Attempting fallback scan! This shouldn't ever happen!\nPlease contact jason098#9850 or Edness#2203 with this")
-    scan_pdb(c_date)
+    for page in range(pages):
+        file.seek(page * page_size)
+        if (int.from_bytes(file.read(0x4), "little") == c_date):
+            print_time("PDB")
+            return
 
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
