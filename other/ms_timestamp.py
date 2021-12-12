@@ -23,6 +23,21 @@ def scan_pdb(c_date):
             print_time("PDB")
             break
 
+def parse_pdb(word, c_date):
+    global stream_ptr
+    # Normally it's supposed to always be Stream 2, but a
+    # few edge cases have arisen where this isn't the case
+    # and instead it's stored in seemingly random streams.
+    for _ in range(streams):
+        file.seek(stream_dir + stream_ptr)
+        file.seek(int.from_bytes(file.read(word), "little") * page_size)
+        if (int.from_bytes(file.read(0x4), "little") == c_date):
+            print_time("PDB")
+            return
+        stream_ptr += word
+    print("Attempting fallback scan! This shouldn't ever happen!\nPlease contact jason098#9850 or Edness#2203 with this")
+    scan_pdb(c_date)
+
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
     file.seek(int.from_bytes(file.read(0x4), "little"))
@@ -65,6 +80,18 @@ elif (magic[:4] == b"XEX-" or magic[:4] == b"XEX1" or magic[:4] == b"XEX2"): # b
             print_time("XEX")
             break
 
+elif (magic == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"):
+    file.seek(0x2C)
+    page_size = int.from_bytes(file.read(0x4), "little")
+    file.seek(0x32)
+    pages = int.from_bytes(file.read(0x2), "little")
+    file.seek(0x3C)
+    stream_dir = int.from_bytes(file.read(0x2), "little") * page_size
+    file.seek(stream_dir)
+    streams = int.from_bytes(file.read(0x2), "little")
+    stream_ptr = streams * 8 + 4
+    parse_pdb(0x2, 19970604)
+
 elif (magic[:32] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(0x20)
     page_size = int.from_bytes(file.read(0x4), "little")
@@ -76,22 +103,7 @@ elif (magic[:32] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(stream_dir)
     streams = int.from_bytes(file.read(0x4), "little")
     stream_ptr = streams * 4 + 4
-    for _ in range(streams):
-        file.seek(stream_dir + stream_ptr)
-        file.seek(int.from_bytes(file.read(0x4), "little") * page_size)
-        if (int.from_bytes(file.read(0x4), "little") == 20000404):
-            print_time("PDB")
-            break
-        stream_ptr += 4
-    else:
-        print("Attempting fallback scan! This shouldn't ever happen!")
-        scan_pdb(20000404)
-
-elif (magic == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"):
-    page_size = int.from_bytes(file.read(0x4), "little")
-    file.seek(0x32)
-    pages = int.from_bytes(file.read(0x2), "little")
-    scan_pdb(19970604)
+    parse_pdb(0x4, 20000404)
 
 else:
     print("Couldn't determine file type!")
