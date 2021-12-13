@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness   2021-10-23 - 2021-12-12   v1.3.2
+# Written by jason098 & Edness   2021-10-23 - 2021-12-13   v1.3.3
 
-import argparse
+import argparse, os
 from datetime import datetime
 
 parser = argparse.ArgumentParser()
@@ -20,21 +20,26 @@ def parse_pdb(word, c_date):
     # Normally it's supposed to always be Stream 2, but a
     # few edge cases have arisen where this isn't the case
     # and instead it's stored in seemingly random streams.
-    global stream_ptr
-    if (stream_dir != 0 and streams != 0 and streams < pages):
+    file_pages = os.path.getsize(args.file) // page_size
+    if (streams != 0 and streams < pages and stream_dir != 0 and
+        stream_dir < pages * page_size and pages == file_pages):
+        global stream_ptr
         for _ in range(streams):
             file.seek(stream_dir + stream_ptr)
-            file.seek(int.from_bytes(file.read(word), "little") * page_size)
+            stream = int.from_bytes(file.read(word), "little")
+            if (stream == 0 or stream > pages):
+                break
+            file.seek(stream * page_size)
             if (int.from_bytes(file.read(0x4), "little") == c_date):
                 print_time("PDB")
                 return
             stream_ptr += word
-        print("Failed to find the correct stream! Attempting fallback scan...")
+    # Fallback scan if PDB integrity checks fail
     for page in range(pages):
         file.seek(page * page_size)
         if (int.from_bytes(file.read(0x4), "little") == c_date):
             print_time("PDB")
-            return
+            break
 
 if (magic[:2] == b"MZ"):
     file.seek(0x3C)
