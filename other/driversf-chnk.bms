@@ -1,0 +1,63 @@
+# Driver: San Francisco .DNGC, .FCHUNK, .SP CHNK extract
+# Edness   2021-12-05   v1.0
+
+idstring "CHNK"
+get SIZE long
+
+callfunction CHUNK 0 0 ""
+
+startfunction CHUNK # GLOBALPOS CURNAME
+	#log MEMORY_FILE CHUNK_ARG1 CHUNK_ARG4
+	goto CHUNK_ARG1
+	idstring "CHNK"
+	get SIZE long
+	get FILES long
+	get DUMMY long # 3
+
+	string CALLNAME == CHUNK_ARG2
+	for i = 0 < FILES
+		getdstring IDENT 4
+		get OFFSET long
+		get DUMMY byte # bool?
+		get EXTLEN byte
+		get DUMMY short # 4, 12 ?
+		get SIZE long
+		math OFFSET += CHUNK_ARG1
+		math FOOTER == OFFSET
+		math FOOTER += SIZE
+
+		string CHUNK_ARG2 == CALLNAME
+		string CURNAME p "%04d_%s" i IDENT
+		string CHUNK_ARG2 += CURNAME
+
+		savepos CURPOS
+		goto FOOTER
+		getdstring FOOTER EXTLEN
+		goto OFFSET
+		getdstring SUBID 4
+
+		string NAME = CHUNK_ARG2
+		if SUBID == "CHNK"
+			if EXTLEN != 0
+				string FOOTER P " - %FOOTER%\"
+			else
+				string FOOTER P "\"
+			endif
+			string NAME += FOOTER
+			#print "CALLDEBUG: %NAME%"
+			callfunction CHUNK 0 OFFSET NAME
+		else
+			if EXTLEN != 0
+				if EXTLEN < 5
+					string FOOTER P ".%FOOTER%"
+				else
+					string FOOTER P " - %FOOTER%"
+				endif
+				string NAME += FOOTER
+			endif
+			#print "NAMEDEBUG: %NAME%"
+			log NAME OFFSET SIZE
+		endif
+		goto CURPOS
+	next i
+endfunction
