@@ -27,6 +27,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
+- driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has filenames unlike *sru-mst.bms*)
 - sru-mst.bms &mdash; **Saints Row Undercover** .MST files.  (Has no filenames unlike *sdwww-mst.bms*)
