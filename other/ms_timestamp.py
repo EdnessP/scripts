@@ -36,7 +36,7 @@ def parse_pdb(word, c_date):
                 print_time("PDB")
                 return
             stream_ptr += word
-    print("Info: PDB integrity check failed! Using fallback scan.")
+    print("Info: PDB integrity check failed! Attempting fallback scan...")
     for page in range(pages):
         file.seek(page * page_size)
         if (read_int(0x4) == c_date):
