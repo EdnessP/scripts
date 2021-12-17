@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Python reimplementation of xbexexmzpe.bms with extra features
-# Written by jason098 & Edness   2021-10-23 - 2021-12-17   v1.4
+# Python reimplementation of  xbexexmzpe.bms  with extra features
+# Written by jason098 & Edness   2021-10-23 - 2021-12-17   v1.4.1
 
 import argparse, os
 from datetime import datetime
@@ -17,7 +17,7 @@ def read_int(bytes):
     return int.from_bytes(file.read(bytes), endian)
 
 def print_time(type):
-    time = divmod(read_int(0x8) - 0x19DB1DED53E8000, 10000000)[0] if (type == "XVD") else read_int(0x4)
+    time = (read_int(0x8) - 0x19DB1DED53E8000) // 10000000 if (type == "XVD") else read_int(0x4)
     print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
 def parse_pdb(word, c_date):
@@ -53,14 +53,14 @@ if (magic[:0x2] == b"MZ"):
     else: # NE, LE, LX have no timestamp
         print(f"Unsupported {magic} file.")
 
-elif (magic[:0x4] == b"XE\x00\x00"): # alpha
+elif (magic[:0x4] == b"XE\x00\x00"):
     file.seek(0x1C)
     print_time("XE")
     file.seek(0x24)
     file.seek(read_int(0x4) + 0x3C)
     print_time("PE")
 
-elif (magic[:0x4] == b"XBEH"): # final
+elif (magic[:0x4] == b"XBEH"):
     file.seek(0x114)
     print_time("XBE")
     file.seek(0x148)
@@ -69,12 +69,12 @@ elif (magic[:0x4] == b"XBEH"): # final
     file.seek(read_int(0x2) + 0x4)
     print_time("Cert")
 
-elif (magic[:0x4] == b"XEX?" or magic[:0x4] == b"XEX0"): # alpha
+elif (magic[:0x4] == b"XEX?" or magic[:0x4] == b"XEX0"):
     file.seek(0x103C)
     file.seek(read_int(0x4) + 0x1008)
     print_time("PE")
 
-elif (magic[:0x4] == b"XEX-" or magic[:0x4] == b"XEX1" or magic[:0x4] == b"XEX2"): # beta, final
+elif (magic[:0x4] == b"XEX-" or magic[:0x4] == b"XEX1" or magic[:0x4] == b"XEX2"):
     endian = "big"
     file.seek(0x14)
     sections = read_int(0x4)
