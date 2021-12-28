@@ -24,11 +24,13 @@ def print_time(type):
 def parse_pdb(word, c_dates):
     # Normally it's supposed to always be Stream 2, but a few edge cases have arisen
     # where this isn't the case and instead it's stored in seemingly random streams.
+    # And there's still other known issues with few PDBs pointing to a faked stream
+    # timestamp with the real stream being elsewhere and never directly pointed to.
     if (streams < pages and streams != 0 and stream_dir < pages * page_size and
         stream_dir != 0 and os.path.getsize(args.file) == pages * page_size):
         global stream_ptr
-        while True: # Exact amount of pointers is not specified
-            file.seek(stream_dir + stream_ptr)
+        while True:
+            file.seek(stream_ptr)
             stream = read_int(word)
             if (stream == 0 or stream > pages):
                 break
@@ -51,7 +53,7 @@ if (magic[:0x2] == b"MZ"):
     if (magic == "PE"):
         file.seek(0x6, 1)
         print_time(magic)
-    else: # NE, LE, LX have no timestamp
+    else: # NE, LE, LX have no timestamp.
         print(f"Unsupported {magic} file.")
 
 elif (magic[:0x4] == b"XE\x00\x00"): # Xbox (Alpha)
@@ -64,11 +66,10 @@ elif (magic[:0x4] == b"XE\x00\x00"): # Xbox (Alpha)
 elif (magic[:0x4] == b"XBEH"): # Xbox (Final)
     file.seek(0x114)
     print_time("XBE")
-    file.seek(0x148)
-    print_time("PE")
-    file.seek(0x118)
     file.seek(read_int(0x2) + 0x4)
     print_time("Cert")
+    file.seek(0x148)
+    print_time("PE")
 
 elif (magic[:0x4] in (b"XEX?", b"XEX0")): # Xbox 360 (Alpha)
     file.seek(0x103C)
@@ -105,7 +106,7 @@ elif (magic[:0x2C] == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"
     stream_dir = read_int(0x2) * page_size
     file.seek(stream_dir)
     streams = read_int(0x2)
-    stream_ptr = streams * 8 + 4
+    stream_ptr = streams * 8 + 4 + stream_dir
     parse_pdb(0x2, (19950814, 19960307, 19970604))
 
 elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
@@ -118,7 +119,7 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     stream_dir = read_int(0x4) * page_size
     file.seek(stream_dir)
     streams = read_int(0x4)
-    stream_ptr = streams * 4 + 4
+    stream_ptr = streams * 4 + 4 + stream_dir
     parse_pdb(0x4, (20000404,))
 
 else:
