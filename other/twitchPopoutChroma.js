@@ -3,7 +3,7 @@
 // @description  Adds a black outline to white text, and makes the background blue (had the best results chroma keying blue in OBS than any other color.)
 // @include      https://www.twitch.tv/popout/*
 // @namespace    Edness
-// @version      1.0 (2021-07-19)
+// @version      1.1 (2021-07-19 - 2022-02-01)
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -25,18 +25,19 @@ if (typeof GM_addStyle == "undefined") {
 }
 
 GM_addStyle ( `
-  .chat-line__message, .chat-line__status {
+  .chat-line__message, .chat-line__status, .user-notice-line {
     text-shadow:  1px  3px 0px #000,  2px  2px 0px #000,  3px  1px 0px #000,  3px  0px 0px #000,  3px -1px 0px #000,  2px -2px 0px #000,  1px -3px 0px #000,
                  -1px  3px 0px #000, -2px  2px 0px #000, -3px  1px 0px #000, -3px  0px 0px #000, -3px -1px 0px #000, -2px -2px 0px #000, -1px -3px 0px #000,
                   3px  1px 0px #000,  2px  2px 0px #000,  1px  3px 0px #000,  0px  3px 0px #000, -1px  3px 0px #000, -2px  2px 0px #000, -3px  1px 0px #000,
                   3px -1px 0px #000,  2px -2px 0px #000,  1px -3px 0px #000,  0px -3px 0px #000, -1px -3px 0px #000, -2px -2px 0px #000, -3px -1px 0px #000
                  !important;
-    font-size: 18px
+    font-size: 18px;
+    font-weight: bold
     }
   .chat-line__timestamp {
     font-size: 12px
     }
-  .chat-room__content {
+  .chat-room__content, .user-notice-line {
     background-color: #00f !important;
     }
 ` );
