@@ -71,12 +71,12 @@ elif (magic[:0x4] == b"XBEH"): # Xbox (Final)
     file.seek(0x148)
     print_time("PE")
 
-elif (magic[:0x4] in (b"XEX?", b"XEX0")): # Xbox 360 (Alpha)
+elif (magic[:0x4] in {b"XEX?", b"XEX0"}): # Xbox 360 (Alpha)
     file.seek(0x103C)
     file.seek(read_int(0x4) + 0x1008)
     print_time("PE")
 
-elif (magic[:0x4] in (b"XEX-", b"XEX1", b"XEX2")): # Xbox 360 (Beta, Final)
+elif (magic[:0x4] in {b"XEX-", b"XEX1", b"XEX2"}): # Xbox 360 (Beta, Final)
     endian = "big"
     file.seek(0x14)
     sections = read_int(0x4)
@@ -107,7 +107,7 @@ elif (magic[:0x2C] == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"
     file.seek(stream_dir)
     streams = read_int(0x2)
     stream_ptr = streams * 8 + 4 + stream_dir
-    parse_pdb(0x2, (19950814, 19960307, 19970604))
+    parse_pdb(0x2, {19950814, 19960307, 19970604})
 
 elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(0x20)
@@ -120,7 +120,7 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(stream_dir)
     streams = read_int(0x4)
     stream_ptr = streams * 4 + 4 + stream_dir
-    parse_pdb(0x4, (20000404,))
+    parse_pdb(0x4, {20000404})
 
 else:
     print("Couldn't determine file type!")
