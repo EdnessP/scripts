@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness   2021-10-23 - 2021-12-20   v1.4.2
+# Written by jason098 & Edness   2021-10-23 - 2022-03-12   v1.4.5
 
 import argparse, os
 from datetime import datetime
@@ -21,7 +21,7 @@ def print_time(type):
     time = read_int(0x4) if (time_t == True) else (read_int(0x8) - 0x19DB1DED53E8000) // 10000000
     print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
 
-def parse_pdb(word, c_dates):
+def parse_pdb(word, *c_dates):
     # Normally it's supposed to always be Stream 2, but a few edge cases have arisen
     # where this isn't the case and instead it's stored in seemingly random streams.
     # And there's still other known issues with few PDBs pointing to a faked stream
@@ -93,7 +93,7 @@ elif (magic[0x200:0x208] == b"msft-xvd"): # Xbox One
     file.seek(0x210)
     print_time("XVD")
 
-elif (magic[:0x2] == b"DI"):
+elif (magic[:0x2] == b"DI"): # DBG - PDB predecessor?
     file.seek(0x8)
     print_time("DI")
 
@@ -107,7 +107,7 @@ elif (magic[:0x2C] == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"
     file.seek(stream_dir)
     streams = read_int(0x2)
     stream_ptr = streams * 8 + 4 + stream_dir
-    parse_pdb(0x2, {19950814, 19960307, 19970604})
+    parse_pdb(0x2, 19950814, 19960307, 19970604)
 
 elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(0x20)
@@ -120,7 +120,7 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(stream_dir)
     streams = read_int(0x4)
     stream_ptr = streams * 4 + 4 + stream_dir
-    parse_pdb(0x4, {20000404})
+    parse_pdb(0x4, 20000404)
 
 else:
     print("Couldn't determine file type!")
