@@ -3,7 +3,7 @@
 #   * Weird edge case models (e.g. dduvet.msh)
 #   * Remaining mesh type assignments
 #       * Especially Normals
-#       * I've only seen Assignment 7 once so far in cube.msh
+#       * I've only seen mshAssign 7 once so far - in cube.msh
 #   * Handle duplicate textures/materials (?)
 
 # Written by Edness
@@ -317,7 +317,6 @@ def aeMshLoadModel(data, mdlList):
         for j in range(mshCnt):
             strSize = msh.readUInt()
             mshName = noeStrFromBytes(msh.readBytes(strSize))
-            rapi.rpgSetName(mshName)
             msh.seek(0x2, 1)
             vertCnt = msh.readUInt()
             # most of the times varying amounts of null, occasionally floats
