@@ -5,9 +5,19 @@ If any problems arise, contact Edness#2203 on Discord.
 
 ## Script list
 <details>
-<summary>burnout\</summary>
+<summary>bully\</summary>
 
 - BLegendsDS.bms &mdash; Decompress LZSS compressed files in **Burnout Legends** NDS.
+- BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
+- BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
+- fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
+
+</details>
+
+<details>
+<summary>burnout\</summary>
+
+- BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
 - bxv_palsplit.bms &mdash; Split and re-merge interleaved-grouped palettes from .BGV and .BTV files.
 - fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).  Currently only supports textures.
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
@@ -24,7 +34,6 @@ If any problems arise, contact Edness#2203 on Discord.
 - activisionRPF.bms &mdash; **Activision Anthology** .RPF archives.
 - atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
-- BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
@@ -42,7 +51,6 @@ If any problems arise, contact Edness#2203 on Discord.
 ### MISCELLANEOUS
 
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
-- BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
 - DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
