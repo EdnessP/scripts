@@ -1,463 +1,461 @@
-# This script currently supports PS2, PSP, Xbox and Xbox 360 texture extraction from:
-# Burnout 3: Takedown,  Burnout Legends,  Burnout Revenge,  Burnout Dominator,  Black
+# This Noesis plugin currently supports:
+#
+#   Textures:
+#       Burnout 3: Takedown     (PS2, Xbox)
+#       Burnout Legends         (PSP)
+#       Burnout Revenge         (PS2, Xbox, X360)
+#       Burnout Dominator       (PS2, PSP)
+#       Black                   (PS2, Xbox)
+#       Need for Speed: Shift   (PSP)
+#
+#   Archives:
+#       Burnout Dominator DLC   (PSP)
+#       Need for Speed: Shift   (PSP)
+#
+#   Models:
+#       WIP
 
-# And due to being almost identical, Need for Speed: Shift (PSP) is also supported.
+# This plugin is brought to you by the Burnout Modding community.
+#           burnout.miraheze.org  |  discord.gg/8zxbb4x          
 
-# Written by Edness
-boVer = "v0.5e"
-boDate = "2021-10-11"
-boDebug = 0
+# Written by Edness   v0.6   2021-06-23 - 2022-04-25
+
+boDebug = False
+boModels = False
 
 from inc_noesis import *
-import noewin
+import zlib
 
 def registerNoesisTypes():
-    handleBxv = noesis.register("Burnout 3T, BLeg, BRev, BDom, NFS Shift",".bgv;.btv")
-    noesis.setHandlerTypeCheck(handleBxv,boCheckBxv)
-    noesis.setHandlerLoadRGBA(handleBxv,boArcGetTexBxv)
-    #noesis.setHandlerLoadModel(handleBxv,boArcGetMdlBxv)
+    handleBxv = noesis.register("Burnout 3Td, Leg, Rev, Dom, NFS Shift - Vehicles", ".bgv;.btv")
+    noesis.setHandlerTypeCheck(handleBxv, boChkBxv)
+    noesis.setHandlerLoadModel(handleBxv, boArcMdlBxv)
 
-    handleBinFE = noesis.register("Burnout Rev, BDom, Black FE",".bin")
-    noesis.setHandlerTypeCheck(handleBinFE,boCheckBinFE)
-    noesis.setHandlerLoadRGBA(handleBinFE,boArcGetTexBinFE)
+    handleDatStat = noesis.register("Burnout 3Td, Leg, Rev, Dom, NFS Shift - Static", ".dat")
+    noesis.setHandlerTypeCheck(handleDatStat, boChkDatStatic)
+    noesis.setHandlerLoadModel(handleDatStat, boArcMdlDatStatic)
 
-    handleBinLoad = noesis.register("Burnout 3T, BLeg, BRev, BDom, Black Loadsc",".bin")
-    noesis.setHandlerTypeCheck(handleBinLoad,boCheckBinLoad)
-    noesis.setHandlerLoadRGBA(handleBinLoad,boArcGetTexBinLoad)
+    handleDatEnv = noesis.register("Burnout 3Td, Leg, Rev, Dom, NFS Shift - Enviro", ".dat")
+    noesis.setHandlerTypeCheck(handleDatEnv, boChkDatEnviro)
+    noesis.setHandlerLoadRGBA(handleDatEnv, boArcTexDatEnviro)
 
-    handleBinFont = noesis.register("Burnout 3T, BLeg, BRev, BDom, Black Font",".bin")
-    noesis.setHandlerTypeCheck(handleBinFont,boCheckBinFont)
-    noesis.setHandlerLoadRGBA(handleBinFont,boArcGetTexBinFont)
+    handleBinFE = noesis.register("Burnout Rev, Dom, Black - Frontend", ".bin")
+    noesis.setHandlerTypeCheck(handleBinFE, boChkBinFE)
+    noesis.setHandlerLoadRGBA(handleBinFE, boArcTexBinFE)
 
-    handleTxd = noesis.register("Burnout 3T, BLeg, BRev, BDom, NFS Shift",".txd")
-    noesis.setHandlerTypeCheck(handleTxd,boCheckTxd)
-    noesis.setHandlerLoadRGBA(handleTxd,boArcGetTexTxd)
+    handleBinLoad = noesis.register("Burnout 3Td, Leg - LoadScrn", ".bin")
+    noesis.setHandlerTypeCheck(handleBinLoad, boChkBinLoad)
+    noesis.setHandlerLoadRGBA(handleBinLoad, boArcTexBinLoad)
 
-    handleDatEnv = noesis.register("Burnout 3T, BLeg, BRev, BDom, NFS Shift Enviro",".dat")
-    noesis.setHandlerTypeCheck(handleDatEnv,boCheckDatEnviro)
-    noesis.setHandlerLoadRGBA(handleDatEnv,boArcGetTexDatEnviro)
+    handleBinFont = noesis.register("Burnout Rev, Dom, Black - Font", ".bin")
+    noesis.setHandlerTypeCheck(handleBinFont, boChkBinFont)
+    noesis.setHandlerLoadRGBA(handleBinFont, boArcTexBinFont)
 
-    handleDatStat = noesis.register("Burnout 3T, BLeg, BRev, BDom, NFS Shift Static",".dat")
-    noesis.setHandlerTypeCheck(handleDatStat,boCheckDatStatic)
-    noesis.setHandlerLoadRGBA(handleDatStat,boArcGetTexDatStatic)
-    #noesis.setHandlerLoadModel(handleDatStat,boArcGetMdlDatStatic)
+    handleTxd = noesis.register("Burnout 3Td, Leg, Rev, Dom, NFS Shift - TXD", ".txd")
+    noesis.setHandlerTypeCheck(handleTxd, boChkTxd)
+    noesis.setHandlerLoadRGBA(handleTxd, boArcTexTxd)
 
-    handleArena = noesis.register("Burnout Dominator, NFS Shift PSP",".arena")
-    noesis.setHandlerTypeCheck(handleArena,boCheckArena)
-    noesis.setHandlerLoadRGBA(handleArena,boArcGetTexArena)
+    handleArena = noesis.register("Burnout Dominator, NFS Shift - ARENA [PSP]", ".arena")
+    noesis.setHandlerTypeCheck(handleArena, boChkArena)
+    noesis.setHandlerLoadRGBA(handleArena, boArcTexArena)
 
-    handleBinDb = noesis.register("Black GlobData, CharData",".bin;.db")
-    noesis.setHandlerTypeCheck(handleBinDb,blkCheckBinGlobAndDbChar)
-    noesis.setHandlerLoadRGBA(handleBinDb,blkArcGetTexBinGlobAndDbChar)
+    handleFxp = noesis.register("Burnout Dominator DLC, NFS Shift - FXP [PSP]", ".fxp")
+    noesis.setHandlerExtractArc(handleFxp, boArcFxp)
 
-    handleBinUnit = noesis.register("Black Unit",".bin")
-    noesis.setHandlerTypeCheck(handleBinUnit,blkCheckBinUnit)
-    noesis.setHandlerLoadRGBA(handleBinUnit,blkArcGetTexBinUnit)
+    ### BLACK ###
 
-    handleBinLvl = noesis.register("Black LevelDat",".bin")
-    noesis.setHandlerTypeCheck(handleBinLvl,blkCheckBinLevelDat)
-    noesis.setHandlerLoadRGBA(handleBinLvl,blkArcGetTexBinLevelDat)
+    handleBinDb = noesis.register("Black - DB", ".db")
+    noesis.setHandlerTypeCheck(handleBinDb, blkChkDb)
+    noesis.setHandlerLoadRGBA(handleBinDb, blkArcTexDb)
 
-    handleBinStLvl = noesis.register("Black StLevel",".bin")
-    noesis.setHandlerTypeCheck(handleBinStLvl,blkCheckBinStLevel)
-    noesis.setHandlerLoadRGBA(handleBinStLvl,blkArcGetTexBinStLevel)
+    handleBinGlob = noesis.register("Black - GlobData", ".bin")
+    noesis.setHandlerTypeCheck(handleBinGlob, blkChkBinGlob)
+    noesis.setHandlerLoadRGBA(handleBinGlob, blkArcTexBinGlob)
 
-    handleBinStUnit = noesis.register("Black StUnit",".bin")
-    noesis.setHandlerTypeCheck(handleBinStUnit,blkCheckBinStUnit)
-    noesis.setHandlerLoadRGBA(handleBinStUnit,blkArcGetTexBinStUnit)
+    handleBinUnit = noesis.register("Black - Unit", ".bin")
+    noesis.setHandlerTypeCheck(handleBinUnit, blkChkBinUnit)
+    noesis.setHandlerLoadRGBA(handleBinUnit, blkArcTexBinUnit)
 
-    handleBinGuns = noesis.register("Black Guns",".bin")
-    noesis.setHandlerTypeCheck(handleBinGuns,blkCheckBinGuns)
-    noesis.setHandlerLoadRGBA(handleBinGuns,blkArcGetTexBinGuns)
+    handleBinLvl = noesis.register("Black - LevelDat", ".bin")
+    noesis.setHandlerTypeCheck(handleBinLvl, blkChkBinLevel)
+    noesis.setHandlerLoadRGBA(handleBinLvl, blkArcTexBinLevel)
+
+    handleBinStLvl = noesis.register("Black - StLevel", ".bin")
+    noesis.setHandlerTypeCheck(handleBinStLvl, blkChkBinStLevel)
+    noesis.setHandlerLoadRGBA(handleBinStLvl, blkArcTexBinStLevel)
+
+    handleBinStUnit = noesis.register("Black - StUnit", ".bin")
+    noesis.setHandlerTypeCheck(handleBinStUnit, blkChkBinStUnit)
+    noesis.setHandlerLoadRGBA(handleBinStUnit, blkArcTexBinStUnit)
+
+    handleBinGuns = noesis.register("Black - Guns", ".bin")
+    noesis.setHandlerTypeCheck(handleBinGuns, blkChkBinGuns)
+    noesis.setHandlerLoadRGBA(handleBinGuns, blkArcTexBinGuns)
 
     if boDebug:
         noesis.logPopup()
-    return 1
+    return True
 
-def boCheckBxv(data):
-    bs = NoeBitStream(data)
-    try: bs = boToolDecZlib(bs,data)
-    except: bs.seek(0)
-    fileVer = bs.readUInt()
-    fileSize = bs.readUInt()
-    if fileVer >= 0x14 and fileVer <= 0x25 or fileVer == 0x25000000:
-        if fileSize == bs.getSize() or fileSize == 0:
-            return 1
-    return 0
+def boCalcAlign(padFrom, padTo):
+    return (padFrom // padTo + 1) * padTo
 
-def boCheckBinFE(data):
-    bs = NoeBitStream(data)
-    magic = bs.readUInt64()
-    if magic == 0x9592E53726307940 or magic == 0x4079302637E59295: # MOVIEARRAY GtID
-        return 1
-    return 0
+def boConvToInt(data, endian):
+    return int.from_bytes(data, endian)
 
-def boCheckBinLoad(data):
-    bs = NoeBitStream(data)
-    texCount = bs.readUInt64()
-    #print(hex(texCount),hex(fontMagic))
-    if texCount < 100 and texCount != 0 and bs.getSize() > 0x810: # B3/BL loadscrn
-        bs.seek(0x800)
-        if bs.readUInt64() == 0xBCDEED81543C0000:
-            return 1
-    return 0
+def boDecGtID(cGtID):
+    # Decompresses GtID strings
+    char = " -/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+    decStr = ""
+    for chr in range(12):
+        decStr += char[cGtID % len(char)]
+        cGtID //= len(char)
+    return decStr[::-1].strip()
 
-def boCheckBinFont(data):
-    bs = NoeBitStream(data)
-    fileSize = bs.getSize()
-    fontMagic = bs.readBytes(4)
-    if fontMagic == b"4.1v" or fontMagic == b"v1.4":
-        return 1 # Rev font file
-    if fileSize > 0x2000: # see boCheckDatEnviro
-        bs.seek(0x70)
-        texOffset = bs.readUInt()
-        if texOffset < (fileSize // 2):
-            bs.seek(texOffset)
-            if bs.readUInt64() == 0x000025000000000:
-                return 1 # Dom PS2 font file
-    return 0
+def boDecZlib(data):
+    # Not using Noesis' rapi.decompInflate() because it doesn't support partial decompression
+    return zlib.decompressobj().decompress(data)
 
-def boCheckArena(data):
-    bs = NoeBitStream(data)
-    if bs.readBytes(4) == b"Neko":
-        return 1
-    return 0
+def boEncGtHash(str):
+    # Calculates strings into GtHash values
+    hashTable = (
+        0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
+        0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD, 0xE7B82D07, 0x90BF1D91,
+        0x1DB71064, 0x6AB020F2, 0xF3B97148, 0x84BE41DE, 0x1ADAD47D, 0x6DDDE4EB, 0xF4D4B551, 0x83D385C7,
+        0x136C9856, 0x646BA8C0, 0xFD62F97A, 0x8A65C9EC, 0x14015C4F, 0x63066CD9, 0xFA0F3D63, 0x8D080DF5,
+        0x3B6E20C8, 0x4C69105E, 0xD56041E4, 0xA2677172, 0x3C03E4D1, 0x4B04D447, 0xD20D85FD, 0xA50AB56B,
+        0x35B5A8FA, 0x42B2986C, 0xDBBBC9D6, 0xACBCF940, 0x32D86CE3, 0x45DF5C75, 0xDCD60DCF, 0xABD13D59,
+        0x26D930AC, 0x51DE003A, 0xC8D75180, 0xBFD06116, 0x21B4F4B5, 0x56B3C423, 0xCFBA9599, 0xB8BDA50F,
+        0x2802B89E, 0x5F058808, 0xC60CD9B2, 0xB10BE924, 0x2F6F7C87, 0x58684C11, 0xC1611DAB, 0xB6662D3D,
+        0x76DC4190, 0x01DB7106, 0x98D220BC, 0xEFD5102A, 0x71B18589, 0x06B6B51F, 0x9FBFE4A5, 0xE8B8D433,
+        0x7807C9A2, 0x0F00F934, 0x9609A88E, 0xE10E9818, 0x7F6A0DBB, 0x086D3D2D, 0x91646C97, 0xE6635C01,
+        0x6B6B51F4, 0x1C6C6162, 0x856530D8, 0xF262004E, 0x6C0695ED, 0x1B01A57B, 0x8208F4C1, 0xF50FC457,
+        0x65B0D9C6, 0x12B7E950, 0x8BBEB8EA, 0xFCB9887C, 0x62DD1DDF, 0x15DA2D49, 0x8CD37CF3, 0xFBD44C65,
+        0x4DB26158, 0x3AB551CE, 0xA3BC0074, 0xD4BB30E2, 0x4ADFA541, 0x3DD895D7, 0xA4D1C46D, 0xD3D6F4FB,
+        0x4369E96A, 0x346ED9FC, 0xAD678846, 0xDA60B8D0, 0x44042D73, 0x33031DE5, 0xAA0A4C5F, 0xDD0D7CC9,
+        0x5005713C, 0x270241AA, 0xBE0B1010, 0xC90C2086, 0x5768B525, 0x206F85B3, 0xB966D409, 0xCE61E49F,
+        0x5EDEF90E, 0x29D9C998, 0xB0D09822, 0xC7D7A8B4, 0x59B33D17, 0x2EB40D81, 0xB7BD5C3B, 0xC0BA6CAD,
+        0xEDB88320, 0x9ABFB3B6, 0x03B6E20C, 0x74B1D29A, 0xEAD54739, 0x9DD277AF, 0x04DB2615, 0x73DC1683,
+        0xE3630B12, 0x94643B84, 0x0D6D6A3E, 0x7A6A5AA8, 0xE40ECF0B, 0x9309FF9D, 0x0A00AE27, 0x7D079EB1,
+        0xF00F9344, 0x8708A3D2, 0x1E01F268, 0x6906C2FE, 0xF762575D, 0x806567CB, 0x196C3671, 0x6E6B06E7,
+        0xFED41B76, 0x89D32BE0, 0x10DA7A5A, 0x67DD4ACC, 0xF9B9DF6F, 0x8EBEEFF9, 0x17B7BE43, 0x60B08ED5,
+        0xD6D6A3E8, 0xA1D1937E, 0x38D8C2C4, 0x4FDFF252, 0xD1BB67F1, 0xA6BC5767, 0x3FB506DD, 0x48B2364B,
+        0xD80D2BDA, 0xAF0A1B4C, 0x36034AF6, 0x41047A60, 0xDF60EFC3, 0xA867DF55, 0x316E8EEF, 0x4669BE79,
+        0xCB61B38C, 0xBC66831A, 0x256FD2A0, 0x5268E236, 0xCC0C7795, 0xBB0B4703, 0x220216B9, 0x5505262F,
+        0xC5BA3BBE, 0xB2BD0B28, 0x2BB45A92, 0x5CB36A04, 0xC2D7FFA7, 0xB5D0CF31, 0x2CD99E8B, 0x5BDEAE1D,
+        0x9B64C2B0, 0xEC63F226, 0x756AA39C, 0x026D930A, 0x9C0906A9, 0xEB0E363F, 0x72076785, 0x05005713,
+        0x95BF4A82, 0xE2B87A14, 0x7BB12BAE, 0x0CB61B38, 0x92D28E9B, 0xE5D5BE0D, 0x7CDCEFB7, 0x0BDBDF21,
+        0x86D3D2D4, 0xF1D4E242, 0x68DDB3F8, 0x1FDA836E, 0x81BE16CD, 0xF6B9265B, 0x6FB077E1, 0x18B74777,
+        0x88085AE6, 0xFF0F6A70, 0x66063BCA, 0x11010B5C, 0x8F659EFF, 0xF862AE69, 0x616BFFD3, 0x166CCF45,
+        0xA00AE278, 0xD70DD2EE, 0x4E048354, 0x3903B3C2, 0xA7672661, 0xD06016F7, 0x4969474D, 0x3E6E77DB,
+        0xAED16A4A, 0xD9D65ADC, 0x40DF0B66, 0x37D83BF0, 0xA9BCAE53, 0xDEBB9EC5, 0x47B2CF7F, 0x30B5FFE9,
+        0xBDBDF21C, 0xCABAC28A, 0x53B39330, 0x24B4A3A6, 0xBAD03605, 0xCDD70693, 0x54DE5729, 0x23D967BF,
+        0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
+    )
+    cGtHash = 0xFFFFFFFF
+    for chr in range(len(str)):
+        cGtHash = cGtHash - ((cGtHash & 0x80000000) << 1) >> 8 & 0xFFFFFFFF ^ hashTable[ord(str[chr]) ^ cGtHash & 0xFF]
+    return cGtHash
 
-def boCheckTxd(data):
-    bs = NoeBitStream(data)
-    magic = bs.readUInt64()
-    if magic == 0xBCDEED81543C0000 or magic == 0x00003C5481EDDEBC: # TEXDIC GtID
-        return 1
-    return 0
+def boGetVerEndian(data):
+    # Expects to be a byte form int that's < 256 for version checks
+    bLen = len(data) - 1
+    if data.startswith(bytes(bLen)):
+        return "big"
+    if data.endswith(bytes(bLen)):
+        return "little"
+    return None
 
-def boCheckDatStatic(data):
-    bs = NoeBitStream(data)
-    fileSize = bs.getSize()
-    if fileSize < 0x3200000: # 50 MiB limit for zlib check
-        try: bs = boToolDecZlib(bs,data)
-        except: bs.seek(0)
-    fileVer = bs.readUInt()
-    storeSize = bs.readUInt()
-    if fileVer >= 0x21 and fileVer <= 0x3E or fileVer == 0x3C000000:
-        if storeSize == fileSize or storeSize == 0:
-            return 1
-    return 0
-
-def boCheckDatEnviro(data):
-    bs = NoeBitStream(data)
-    fileSize = bs.getSize()
-    if fileSize > 0x300: # to not break burnout paradise .dats
-        bs.seek(0xA8)
-        someID = bs.readUInt()
-        storeSize = bs.readUInt()
-        if (storeSize == fileSize or storeSize == 0) and someID == 0x45440002: # ps2 & xbox
-            return 1
-        bs.seek(0xB8)
-        if bs.readUInt() == 0x03004445 and bs.readUInt() == 0: # 360 rev
-            return 1
-        bs.seek(0x1C8)
-        if bs.readUInt() == 0x45440003 and bs.readUInt() == fileSize: # psp leg
-            return 1
-        bs.seek(0x1D8)
-        if bs.readUInt() == 0x45440004 and bs.readUInt() == fileSize: # psp dom
-            return 1
-        bs.seek(0x2D4)
-        if bs.readUInt() == 0x45440004 and bs.readUInt() == fileSize: # psp nfs shift
-            return 1
-    return 0
-
-def blkCheckBinGlobAndDbChar(data):
-    bs = NoeBitStream(data)
-    fileVer = bs.readUInt()
-    if fileVer > 0x100000:
-        bs.seek(0x18)
-        fileVer = bs.readUInt()
-    txdOffset = bs.readUInt()
-    if (fileVer >= 4 or fileVer <= 9) and txdOffset == 0x80:
-        bs.seek(txdOffset)
-        magic = bs.readUInt64()
-        if magic == 0xBCDEED81543C0000 or magic == 0xBCDF4EB7DD9A8000: # TEXDIC / TEXTURE GtID
-            return 1
-    return 0
-
-def blkCheckBinUnit(data):
-    bs = NoeBitStream(data)
-    fileVer = bs.readUInt()
-    if fileVer == 0xC:
-        bs.seek(0x18)
-    elif fileVer >= 0x16 and fileVer <= 0x18:
-        bs.seek(0x24)
-    else:
-        return 0
-    bs.seek(bs.readUInt())
-    if bs.readUInt64() == 0xBCDF4EB7E02064D5: # TEXTUREDICTI GtID
-        return 1
-    return 0
-
-def blkCheckBinLevelDat(data):
-    bs = NoeBitStream(data)
-    if bs.getSize() > 0x500:
-        fileVer = bs.readUInt()
-        if fileVer == 0xA:
-            bs.seek(0x2BC) # -> 0x300
-        elif fileVer == 0x11:
-            bs.seek(0x390) # -> 0x400
-        else: # filever 0x1 has no textures
-            return 0
-        bs.seek(bs.readUInt())
-        if bs.readUInt64() == 0xBCDEED81543C0000: # TEXDIC GtID
-            return 1
-    return 0
-
-def blkCheckBinStLevel(data):
-    bs = NoeBitStream(data)
-    fileVer = bs.readUInt()
-    texOffset = bs.readUInt()
-    if fileVer >= 0x9 and fileVer <= 0xA and texOffset == 0x80:
-        bs.seek(4,1)
-        hdrOffset = bs.readUInt()
-        if hdrOffset < bs.getSize()-8:
-            bs.seek(hdrOffset+texOffset)
-            if bs.readUInt64() == 0xBCDF4EB7DD9A8000: # TEXTURE GtID
-                return 1
-    return 0
-
-def blkCheckBinStUnit(data):
-    bs = NoeBitStream(data)
-    if bs.readUInt() == 3 and bs.getSize() > 0x108:
-        bs.seek(0x100)
-        if bs.readUInt64() == 0xBCDF4EB7DD9A8000: # TEXTURE GtID
-            return 1
-    return 0
-
-def blkCheckBinGuns(data):
-    bs = NoeBitStream(data)
-    txdOffset = bs.readUInt()
-    #mdlOffset = bs.readUInt() # -> MODELS GtID
-    if txdOffset < bs.getSize()-8:
-        bs.seek(txdOffset)
-        if bs.readUInt64() == 0xBCDF4EB7DD9A8000: # TEXTURE GtID
-            return 1
-    return 0
-
-
-
-
-#   ######  #######  ######  ##   ##  ######   
-#  ##       ##         ##    ##   ##  ##   ##  
-#   #####   #####      ##    ##   ##  ######   
-#       ##  ##         ##    ##   ##  ##       
-#  ######   #######    ##     #####   ##       
-
-
-def boSetupLockSystem(boWindow,cID,wParam,lParam):
-    global boSysLock
-    #print(cID)
-    checkBoxLck = boWindow.getControlById(cID)
-    checkBoxLck.setChecked(1 if not checkBoxLck.isChecked() else 0)
-    if not checkBoxLck.isChecked():
-        boSysLock = 0
-    else:
-        boSysLock = 1
-
-def boSetupSetSystem(boWindow,cID,wParam,lParam):
-    global boSystem
-    boSystem = cID - 100
-    checkBoxPS2 = boWindow.getControlById(101)
-    checkBoxPSP = boWindow.getControlById(102)
-    checkBoxXbx = boWindow.getControlById(103)
-    checkBox360 = boWindow.getControlById(104)
-    # tfw no radio buttons
-    if cID == 101:
-        checkBoxPS2.setChecked(1)
-        checkBoxPSP.setChecked(0)
-        checkBoxXbx.setChecked(0)
-        checkBox360.setChecked(0)
-    elif cID == 102:
-        checkBoxPS2.setChecked(0)
-        checkBoxPSP.setChecked(1)
-        checkBoxXbx.setChecked(0)
-        checkBox360.setChecked(0)
-    elif cID == 103:
-        checkBoxPS2.setChecked(0)
-        checkBoxPSP.setChecked(0)
-        checkBoxXbx.setChecked(1)
-        checkBox360.setChecked(0)
-    elif cID == 104:
-        checkBoxPS2.setChecked(0)
-        checkBoxPSP.setChecked(0)
-        checkBoxXbx.setChecked(0)
-        checkBox360.setChecked(1)
-
-def boSetupCloseWindow(boWindow,cID,wParam,lParam):
-    boWindow.closeWindow()
-
-def boSetupVersionWarning():
-    boWindow = noewin.NoeUserWindow("Warning","BOToolWarningClass",286,139) # 280x110
-    boWindowRect = noewin.getNoesisWindowRect()
-    boWindow.x = boWindowRect[0]+444
-    boWindow.y = boWindowRect[1]+313
-
-    boWindow.createWindow()
-    boWindow.setFont("Segoe UI",12)
-    boWindow.createStatic("Outdated version detected!\nPlease update Noesis to v4.453 or newer!",16,16,248,32)
-    boWindow.createButton("OK",168,62,96,32,boSetupCloseWindow)
-    boWindow.doModal()
-
-def boSetupPlatformCheck():
-    boLang = 0 # some translation test idk if i'll use it
-    boStr = [["Please select which platform this file is from:",
-              "Lūdzu izvēlieties, no kuŗas sistēmas ir šis fails:"],
-
-             ["Remember your current choice?",
-              "Atcerēties jūsu pašreizējo izvēli?"],
-
-             ["(Until Noesis is restarted or reloaded with Alt+T+R.)",
-              "(Līdz Noesis ir pārsākts vai pārlādēts ar Alt+T+R.)"],
-
-             ["This plugin is brought to you by the Burnout Modding community.",
-              "Šo spraudni jums piedāvā Burnout Modding kopiena."],
-
-             ["Written by Edness",
-              "Sarakstījis Edness"],
-
-             ["Opening",
-              "Tiek atvērts"]]
-
-    boWindow = noewin.NoeUserWindow("Burnout Tool  –  "+boStr[5][boLang]+" "+os.path.split(rapi.getInputName())[1],"BOToolPlatformClass",406,253) # 400x224
-    boWindowRect = noewin.getNoesisWindowRect()
-    boWindow.x = boWindowRect[0]+384
-    boWindow.y = boWindowRect[1]+256
-
-    boWindow.createWindow()
-    boWindow.setFont("Segoe UI",12) # linux/wine will default to Arial
-    boWindow.createStatic(boStr[0][boLang],16,16,368,16)
-    boWindow.createCheckBox("PlayStation 2",32,40,90,16,boSetupSetSystem)
-    boWindow.createCheckBox("PlayStation Portable",32,58,130,16,boSetupSetSystem)
-    boWindow.createCheckBox("Xbox",32,76,45,16,boSetupSetSystem)
-    boWindow.createCheckBox("Xbox 360",32,94,72,16,boSetupSetSystem)
-    boWindow.createCheckBox(boStr[1][boLang],16,120,195,16,boSetupLockSystem)
-    boWindow.createButton("OK",288,96,96,32,boSetupCloseWindow)
-    boWindow.createStatic(boStr[2][boLang],32,138,336,16)
-    boWindow.createStatic("—————————————————————————————————",2,152,396,16)
-    boWindow.createStatic(boStr[3][boLang]+"\nwww.burnout.wiki  |  discord.gg/8zxbb4x",16,167,368,32)
-    boWindow.createStatic(boVer+"  –  "+boStr[4][boLang]+"  –  ("+boDate+")",32,200,336,16)
-    try: boSystem # check the previously selected system
-    except NameError: pass
-    else: boSetupSetSystem(boWindow,boSystem+100,0,0)
-    boWindow.doModal()
-
-def boSetup(data):
-    if noesis.getAPIVersion() < 78: # -nofslwr deprecated in 4.452 & 1px-24bpp preview fix in 4.453
-        boSetupVersionWarning()
-    rapi.processCommands("-texnorepfn")
-    try: boSysLock
-    except NameError:
-        boSetupPlatformCheck()
-    else: # can't elif
-        if boSysLock == 0:
-            boSetupPlatformCheck()
-    return NoeBitStream(data,NOE_LITTLEENDIAN if boSystem < 4 else NOE_BIGENDIAN)
-
-
-
-
-#  ##   ##  ##   ######   #####   
-#  ### ###  ##  ##       ##   ##  
-#  ## # ##  ##   #####   ##       
-#  ##   ##  ##       ##  ##   ##  
-#  ##   ##  ##  ######    #####   
-
-
-def boToolDecZlib(bs,data):
-    bs.seek(0)
-    cmpData = bs.readBytes(bs.getSize())
-    decData = rapi.decompInflate(cmpData,rapi.getInflatedSize(cmpData))
-    return NoeBitStream(decData,NOE_BIGENDIAN) # assume 360 only
-
-def boToolPadAlign(bs,padSize,padFrom):
-    if padFrom % padSize != 0:
-        bs.seek((padFrom//padSize+1)*padSize)
-
-def boToolGoToFirstTexIndex(bs,data,aptDataOffset,firstTex):
-    bs.seek(aptDataOffset)
-    while True: # may be unreliable? (especially for psp .arenas)
-        if bs.readUInt() == firstTex:
-            bs.seek(-8,1)
+def boGetTexAptIndex(arc, aptDataOffset, texIndex):
+    arc.seek(aptDataOffset)
+    while True:
+        if arc.readUInt() == texIndex:
+            arc.seek(-0x8, 1)
             break
 
-def boToolChar2UTF(cChar):
-    char = {
-        1: "-", 2: "/", 3: "0", 4: "1", 5: "2", 6: "3", 7: "4", 8: "5", 9: "6", 10: "7",
-        11: "8", 12: "9", 13: "A", 14: "B", 15: "C", 16: "D", 17: "E", 18: "F", 19: "G", 20: "H",
-        21: "I", 22: "J", 23: "K", 24: "L", 25: "M", 26: "N", 27: "O", 28: "P", 29: "Q", 30: "R",
-        31: "S", 32: "T", 33: "U", 34: "V", 35: "W", 36: "X", 37: "Y", 38: "Z", 39: "_"
-    }
-    return char.get(cChar,"")
+def boSetDummyMdl(mdlList, texList):
+    mdl = NoeModel()
+    mdl.setModelMaterials(NoeModelMaterials(texList, list()))
+    mdlList.append(mdl)
 
-def boToolDecGtID(cGtID):
-    decStr = ""
-    for i in range(12):
-        decStr += boToolChar2UTF(cGtID % 40)
-        cGtID //= 40
-    if boDebug:
-        print("Decompressed string:",decStr[::-1])
-    return decStr[::-1]
+def boSetPalName(texName, palCount, palNum):
+    # Used for PSP, Xbox and Xbox 360  -  PS2 has its own
+    return "{} (Palette {})".format(texName, palNum + 1) if palCount > 1 else texName
 
-def boToolGetTexName(bs,data,texOffset):
-    bs.seek(texOffset) # boSystem == 4
-    if boSystem == 1:
-        bs.seek(0xA8,1)
-    elif boSystem == 2:
-        bs.seek(0xAC,1)
-    elif boSystem == 3:
-        bs.seek(0x44,1)
-    return bs.readString()
+# Known GtID compressed header values in Little Endian
+gACTORDICTION = b"\x92\x37\x96\xA8\x73\xC0\xF8\x4D"
+gANIMDICTIONA = b"\xDD\xAE\x78\x82\x08\x3C\x88\x4F"
+gBNKS         = b"\x00\x00\x00\x57\xE5\x57\x5C\x55"
+gCHARACTERDIC = b"\x57\xC3\x41\x63\x03\x9D\x45\x5A"
+gMODELS       = b"\x00\x00\x5C\x48\xF2\x0A\x82\x95"
+gMOVIEARRAY   = b"\x40\x79\x30\x26\x37\xE5\x92\x95"
+gMYDICTIONARY = b"\x15\xEA\x44\x72\xE2\xA8\xF6\x96"
+gRCBS         = b"\x00\x00\x00\x2F\x94\x09\xDC\xB0"
+gSHAREDBNKS   = b"\xC0\xD7\x61\x81\x3C\x79\x67\xB7"
+gTEXDIC       = b"\x00\x00\x3C\x54\x81\xED\xDE\xBC"
+gTEXTURE      = b"\x00\x80\x9A\xDD\xB7\x4E\xDF\xBC"
+gTEXTUREDICTI = b"\xD5\x64\x20\xE0\xB7\x4E\xDF\xBC"
 
+# Global system variables
+boPS2 = 1
+boPSP = 2
+boXbox = 3
+boXbox360 = 4
 
-
-
-#  #######  ##  ##   ##  #######   ######  
-#  ##       ##   ## ##   ##       ##       
-#  #####    ##    ###    #####     #####   
-#  ##       ##   ## ##   ##            ##  
-#  ##       ##  ##   ##  #######  ######   
+# Global exception messages
+boExcSys = "Couldn't determine system!"
+boExcFmt = "Unsupported format! "
 
 
-def boFixTex1pxSkip(bs,data,texData,texHeight,readSize,skipSize):
-    for i in range(texHeight):
-        texData.extend(bs.readBytes(readSize))
-        bs.seek(skipSize,1)
 
-def boFixTexWidthDiv(bs,data,texData,texHeight,divSize):
-    for i in range(texHeight):
-        texData.extend(bs.readBytes(divSize))
-        bs.seek(divSize,1)
-    texData = bytes(texData)
-    return texData
 
-def boFixSmallTexCrop(bs,data,texData,texHeight,divCount):
-    divSize = 32
-    for i in range(divCount):
-        texData = list()
-        texData = boFixTexWidthDiv(bs,data,texData,texHeight,divSize)
-        bs = NoeBitStream(texData)
-        divSize //= 2
-    return texData
+#   #####   ##   ##  #######   #####   ##  ##   ######  
+#  ##   ##  ##   ##  ##       ##   ##  ## ##   ##       
+#  ##       #######  #####    ##       ####     #####   
+#  ##   ##  ##   ##  ##       ##   ##  ## ##        ##  
+#   #####   ##   ##  #######   #####   ##  ##  ######   
 
-def boFixPS2Alpha(bs,data,rColors,rData):
-    for i in range(rColors):
-        rData.extend(bs.readBytes(3))
-        rAlpha = bs.readUByte()
-        rAlpha *= 2
-        if rAlpha == 0x100:
-            rAlpha -= 1
-        rData.append(rAlpha)
 
-def boFixCvt4bitTo8bit(bs,data,rSize,rData):
-    for i in range(rSize):
-        rData.append(bs.readBits(4))
-        rData.append(bs.readBits(4))
+def boChkTxd(data):
+    chk = NoeBitStream(data)
+    if chk.readBytes(8) in {gTEXDIC, gTEXDIC[::-1]}:
+        return True
+    return False
+
+def boChkBxv(data):
+    chk = NoeBitStream(data)
+    chkVer = chk.readBytes(4)
+    if chkVer.startswith(b"\x78\xDA"):
+        chk = NoeBitStream(boDecZlib(data[:256]), NOE_BIGENDIAN)
+        chkVer = chk.readBytes(4)
+    chkEndian = boGetVerEndian(chkVer)
+    if chkEndian:
+        chkVer = boConvToInt(chkVer, chkEndian)
+        chkSize = chk.readUInt()
+        if 0x14 <= chkVer <= 0x25 and chkSize in {0, chk.getSize()}:
+            return True
+    return False
+
+def boChkDatStatic(data):
+    chk = NoeBitStream(data)
+    chkVer = chk.readBytes(4)
+    if chkVer.startswith(b"\x78\xDA"):
+        chk = NoeBitStream(boDecZlib(data[:256]), NOE_BIGENDIAN)
+        chkVer = chk.readBytes(4)
+    chkEndian = boGetVerEndian(chkVer)
+    if chkEndian:
+        chkVer = boConvToInt(chkVer, chkEndian)
+        chkSize = chk.readUInt()
+        if 0x21 <= chkVer <= 0x3E and chkSize in {0, chk.getSize()}:
+            return True
+    return False
+
+def boChkDatEnviro(data):
+    chk = NoeBitStream(data)
+    chkSize = chk.getSize()
+
+    # Minimum size check to not break Burnout Paradise .dats by seeking out of bounds
+    if chkSize > 0x300:
+        # Header values to check in Little Endian
+        chkED02 = b"\x02\x00\x44\x45"
+        chkED03 = b"\x03\x00\x44\x45"
+        chkED04 = b"\x04\x00\x44\x45"
+
+        chk.seek(0xA8)
+        if chk.readBytes(4) == chkED02 and chk.readUInt() in {0, chkSize}: # PS2 & Xbox
+            return True
+        chk.seek(0xB8)
+        if chk.readBytes(4) == chkED03[::-1] and chk.readUInt() == 0: # Xbox 360
+            return True
+        chk.seek(0x1C8)
+        if chk.readBytes(4) == chkED03 and chk.readUInt() == chkSize: # PSP (Legends)
+            return True
+        chk.seek(0x1D8)
+        if chk.readBytes(4) == chkED04 and chk.readUInt() == chkSize: # PSP (Dominator)
+            return True
+        chk.seek(0x2D4)
+        if chk.readBytes(4) == chkED04 and chk.readUInt() == chkSize: # PSP (NFS: Shift)
+            return True
+    return False
+
+def boChkBinFE(data):
+    chk = NoeBitStream(data)
+    if chk.readBytes(8) in {gMOVIEARRAY, gMOVIEARRAY[::-1]}:
+        return True
+    return False
+
+def boChkBinFont(data):
+    chk = NoeBitStream(data)
+    chkSize = chk.getSize()
+
+    fontMagic = chk.readBytes(4)
+    if fontMagic in {b"v1.4", b"4.1v"}:
+        return True # Revenge, Black
+    elif chkSize > 0x2000:
+        chk.seek(0x70)
+        texOffset = chk.readUInt()
+        if texOffset < (chkSize // 2):
+            chk.seek(texOffset)
+            if chk.readBytes(8) == bytes(4) + b"\x50\x02\x00\x00":
+                return True # Dominator (PS2)
+    return False
+
+def boChkBinLoad(data):
+    chk = NoeBitStream(data)
+    txdCount = chk.readUInt64()
+    chkAlign = boCalcAlign(txdCount * 0x10 + 8, 0x800)
+    if chkAlign < chk.getSize():
+        chk.seek(chkAlign)
+        if chk.readBytes(8) == gTEXDIC:
+            return True
+    return False
+
+def boChkArena(data):
+    chk = NoeBitStream(data)
+    if chk.readBytes(16) == b"Neko\x01" + bytes(11):
+        return True
+    return False
+
+def blkChkDb(data):
+    chk = NoeBitStream(data)
+
+    chkSize = chk.getSize()
+    chkVer = chk.readUInt()
+    if chkVer != 0x04:
+        chk.seek(0x18)
+        chkVer = chk.readUInt()
+    if chkVer in {0x04, 0x09}:
+        dctOrder = (gMODELS,
+                    gCHARACTERDIC,
+                    gACTORDICTION,
+                    gBNKS,
+                    gSHAREDBNKS,
+                    gRCBS)
+        txdOffset = chk.readUInt()
+        curChkOffset = chk.tell()
+        if txdOffset < chkSize:
+            chk.seek(txdOffset)
+            if chk.readBytes(8) not in {gTEXDIC, gTEXTURE}:
+                return False
+        for gtid in dctOrder:
+            chk.seek(curChkOffset)
+            dctOffset = chk.readUInt()
+            curChkOffset = chk.tell()
+            if dctOffset > chkSize:
+                return False
+            chk.seek(dctOffset)
+            if chk.readBytes(8) != gtid:
+                return False
+        return True
+    return False
+
+def blkChkBinGlob(data):
+    chk = NoeBitStream(data)
+
+    chkSize = chk.getSize()
+    if chk.readUInt() in {8, 9}:
+        txdOffset = chk.readUInt()
+        dctOffset = chk.readUInt()
+        if txdOffset > chkSize or dctOffset > chkSize:
+            return False
+        chk.seek(txdOffset)
+        if chk.readBytes(8) != gTEXDIC:
+            return False
+        chk.seek(dctOffset)
+        if chk.readBytes(8) != gMYDICTIONARY:
+            return False
+        return True
+    return False
+
+def blkChkBinUnit(data):
+    chk = NoeBitStream(data)
+
+    chkVer = chk.readUInt()
+    if chkVer == 0x0C:
+        chk.seek(0x18)
+    elif 0x16 <= chkVer <= 0x18:
+        chk.seek(0x24)
+    else:
+        return False
+    txdOffset = chk.readUInt()
+    chk.seek(txdOffset)
+    if chk.readBytes(8) == gTEXTUREDICTI:
+    # surrounded by gMYDICTIONARY and gANIMDICTIONA 
+        return True
+    return False
+
+def blkChkBinLevel(data):
+    chk = NoeBitStream(data)
+
+    if chk.getSize() > 0x500:
+        chkVer = chk.readUInt()
+        if chkVer == 0x0A:
+            chk.seek(0x2BC) # -> 0x300
+        elif chkVer == 0x11:
+            chk.seek(0x390) # -> 0x400
+        else: # chkVer 0x01 has no textures
+            return False
+        txdOffset = chk.readUInt()
+        chk.seek(txdOffset)
+        if chk.readBytes(8) == gTEXDIC:
+            return True
+    return False
+
+def blkChkBinStLevel(data):
+    chk = NoeBitStream(data)
+
+    chkVer = chk.readUInt()
+    txdOffset = chk.readUInt()
+    if chkVer in {0x09, 0x0A}:
+        chk.seek(0xC)
+        hdrOffset = chk.readUInt()
+        if hdrOffset < chk.getSize() - 8:
+            chk.seek(hdrOffset + txdOffset)
+            if chk.readBytes(8) == gTEXTURE:
+                return True
+    return False
+
+def blkChkBinStUnit(data):
+    chk = NoeBitStream(data)
+
+    chkSize = chk.getSize()
+    if chk.readUInt() == 0x03:
+        chk.seek(0x8)
+        hdrOffset = chk.readUInt()
+        chk.seek(hdrOffset + 0x18)
+        if chk.readUInt() == 0x09:
+            dctOrder = (gTEXTURE,
+                        gMODELS,
+                        gCHARACTERDIC,
+                        gACTORDICTION,
+                        gBNKS,
+                        gSHAREDBNKS,
+                        gRCBS)
+            for gtid in dctOrder:
+                dctOffset = chk.readUInt() + hdrOffset
+                curChkOffset = chk.tell()
+                if dctOffset > chkSize:
+                    return False
+                chk.seek(dctOffset)
+                if chk.readBytes(8) != gtid:
+                    return False
+                chk.seek(curChkOffset)
+            return True
+    return False
+
+def blkChkBinGuns(data):
+    chk = NoeBitStream(data)
+
+    chkSize = chk.getSize()
+    txdOffset = chk.readUInt()
+    mdlOffset = chk.readUInt()
+    if txdOffset > chkSize or mdlOffset > chkSize:
+        return False
+    chk.seek(txdOffset)
+    if chk.readBytes(8) == gTEXTURE:
+        chk.seek(mdlOffset)
+        if chk.readBytes(8) == gMODELS:
+            return True
+    return False
 
 
 
@@ -469,421 +467,424 @@ def boFixCvt4bitTo8bit(bs,data,rSize,rData):
 #    ##    #######  ##   ##    ##     #####   ##   ##  #######  ######   
 
 
-def boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData,texList):
-    texName += " (Palette "+str(nameCount)+")"
-    if boSystem == 1:
-        texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"R8G8B8A8",noesis.DECODEFLAG_PS2SHIFT)
-    elif boSystem == 2:
-        texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"R8G8B8A8")
-    elif boSystem == 3:
-        texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"B8G8R8A8")
-    elif boSystem == 4:
-        texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"A8R8G8B8")
-    texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32))
+def boTexGetSystem(tex, texEndian, texOffset):
+    tex.seek(texOffset)
+    texHeader = tex.readBytes(8)
+    if texEndian == "big":
+        return boXbox360
+    if texHeader.startswith(b"\x01\x00\x04\x00"):
+        return boXbox
+    if texHeader == bytes(8):
+        return boPSP
+    if texHeader.startswith(bytes(4)):
+        return boPS2
+    noesis.doException(boExcSys)
 
-def boTexPS2(bs,data,texOffset,fontName,texList,texName):
-    bs.seek(4,1)
-    bmpOffset = bs.readUInt()
-    palOffset = bs.readUInt()
-    texWidth = bs.readUInt()
-    texHeight = bs.readUInt()
-    bitDepth = bs.readUInt()
-    bs.seek(0xB,1)
-    texFmt = bs.readUByte()
-    # other stuff, unnecessary
-    bs.seek(0x7C,1)
-    palCount = bs.readUByte()
-    bs.seek(0x7,1)
-    if texName == 0:
-        texName = bs.readString()
-    elif texName == 1:
-        texName = bs.readString()
-        texName += " ("+fontName+")"
+def boTexGetName(tex, texEndian, texOffset):
+    # Used by PS2, Xbox, and Xbox 360 only
+    texSystem = boTexGetSystem(tex, texEndian, texOffset)
 
-    if boDebug:
-        print("DEBUG2:",hex(bmpOffset+texOffset),hex(palOffset+texOffset),texWidth,texHeight,bitDepth,hex(texFmt),palCount,texName)
+    texSeek = {
+        boPS2: 0xA8,
+        boXbox: 0x44
+    }.get(texSystem, 0x0)
+    tex.seek(texOffset + texSeek)
+    return tex.readString()
 
+def boTexPalRead(tex, bitDepth):
+    return tex.readBytes({
+        4: 0x40,
+        8: 0x400
+    }.get(bitDepth))
+
+def boTexFixWidth(tex, texWidth, padWidth, texHeight):
+    # Can fix by reading from a bit stream or from an existing bytearray
+    if type(tex) is bytearray:
+        tex = NoeBitStream(tex)
     texData = list()
-    bs.seek(bmpOffset + texOffset)
+    for byte in range(texHeight):
+        texData.extend(tex.readBytes(texWidth))
+        tex.seek(padWidth - texWidth, 1)
+    return bytearray(texData)
 
-    crop = 0
+def boTexPS2(tex, texList, texOffset, texName, fontName):
+    def boPS2Read4(rSize, rData=None):
+        # Converts 4-bit data to 8-bit
+        # Can be used for both existing data lists and returning new byte arrays
+        ret = False
+        if rData is None:
+            rData = list()
+            ret = True
+        for byte in range(rSize):
+            rData.append(tex.readBits(4))
+            rData.append(tex.readBits(4))
+        if ret:
+            return bytearray(rData)
+
+    def boPS2Read32(rColors, rData=None):
+        # Fixes alpha channel for 32-bit data
+        # Can be used for both existing data lists and returning new byte arrays
+        ret = False
+        if rData is None:
+            rData = list()
+            ret = True
+        for col in range(rColors):
+            rData.extend(tex.readBytes(3))
+            rAlpha = tex.readUByte() * 2
+            if rAlpha == 0x100:
+                rAlpha -= 1
+            rData.append(rAlpha)
+        if ret:
+            return bytearray(rData)
+
+    def boPS2TexPal(palData):
+        texPalData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "R8G8B8A8", noesis.DECODEFLAG_PS2SHIFT)
+        texList.append(NoeTexture("{} (Palette {})".format(texName, palNum), texWidth, texHeight, texPalData, texFmt))
+
+    tex.seek(texOffset + 0x4)
+    bmpOffset = tex.readUInt() + texOffset
+    palOffset = tex.readUInt() + texOffset
+    texWidth = tex.readUInt()
+    texHeight = tex.readUInt()
+    bitDepth = tex.readUInt()
+    tex.seek(texOffset + 0xA0)
+    palCount = tex.readUByte()
+    if not texName:
+        tex.seek(texOffset + 0xA8)
+        texName = tex.readString()
+    if fontName:
+        texName += " ({})".format(fontName)
+
+    if boDebug:
+        print("\nPlayStation 2 texture detected!"
+            + "\nTexture name: {}".format(texName.split(" - ")[-1])
+            + "\nTexture offset: 0x{:X}".format(texOffset)
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset)
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture bit depth: {}".format(bitDepth)
+            + "\nPalette amount: {}".format(palCount)
+            + "\nPalette data offset: 0x{:X}".format(palOffset))
+
+    tex.seek(bmpOffset)
+
+    wPad = 16 if texWidth < 16 else texWidth
+    hPad = 4 if texHeight < 4 else texHeight
+
+    texFmt = noesis.NOESISTEX_RGBA32
     if bitDepth == 4:
-        if texWidth == 2 and texHeight == 2:
-            texWidth = 16
-            texHeight = 4
-            crop = 4
-        if texWidth == 4:
-            texWidth = 16
-            crop = 2
-        elif texWidth == 8:
-            texWidth = 16
-            crop = 1
-        if texWidth == 16:
-            for i in range(texHeight//2):
-                boFixCvt4bitTo8bit(bs,data,16,texData)
-                bs.seek(16,1)
+        # Fix-up small textures with weird buffer sizes, pre-unswizzle
+        if wPad == 16:
+            texData = boPS2Read4(64 * hPad // 2)
+            texData = boTexFixWidth(texData, 32, 64, hPad)
         else:
-            boFixCvt4bitTo8bit(bs,data,texWidth*texHeight//2,texData)
+            texData = boPS2Read4(wPad * hPad // 2)
     elif bitDepth == 8:
-        if texWidth == 1:
-            texWidth = 16
-            crop = 3
-        if texWidth == 4:
-            texWidth = 16
-            crop = 2
-        texData = bs.readBytes(texWidth*texHeight)
+        texData = tex.readBytes(wPad * texHeight)
     elif bitDepth == 24:
-        if texWidth == 1:
-            boFixTex1pxSkip(bs,data,texData,texHeight,3,21)
-        else:
-            texData = bs.readBytes(texWidth*texHeight*3)
+        texData = boTexFixWidth(tex, 3, 24, texHeight) if texWidth == 1 else tex.readBytes(texWidth * texHeight * 3)
+        texFmt = noesis.NOESISTEX_RGB24
     elif bitDepth == 32:
-        boFixPS2Alpha(bs,data,texWidth*texHeight,texData)
-    texData = bytes(texData)
+        texData = boPS2Read32(texWidth * texHeight)
+    else:
+        noesis.doException(boExcFmt + "{} bpp".format(bitDepth))
 
-    if bitDepth <= 8:
-        texData = rapi.imageUntwiddlePS2(texData,texWidth,texHeight,8)
+    if bitDepth in {4, 8}:
+        texData = rapi.imageUntwiddlePS2(texData, wPad, texHeight, 8)
+        # Fix-up small textures with weird buffer sizes, post-unswizzle
+        if texWidth < 16:
+            texData = boTexFixWidth(texData, texWidth, 16, hPad)
 
-        bs.seek(palOffset + texOffset)
+        tex.seek(palOffset)
         if palCount == 1:
-            palData = list()
-            if bitDepth == 8:
-                palColors = 256
-            elif bitDepth == 4:
-                palColors = 16
-            boFixPS2Alpha(bs,data,palColors,palData)
-            palData = bytes(palData)
-            texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"R8G8B8A8",noesis.DECODEFLAG_PS2SHIFT if bitDepth != 4 else noesis.NOESISTEX_UNKNOWN) # ??
-
-            bs = NoeBitStream(texData)
-            if crop == 1: # janky fixes tbh
-                texWidth = 8
-                texData = list()
-                texData = boFixTexWidthDiv(bs,data,texData,texHeight,32)
-            elif crop == 2:
-                texWidth = 4
-                texData = boFixSmallTexCrop(bs,data,texData,texHeight,2)
-            elif crop == 3:
-                texWidth = 1
-                texData = list()
-                boFixTex1pxSkip(bs,data,texData,texHeight,4,60)
-                texData = bytes(texData)
-            elif crop == 4:
-                texWidth = 2
-                texHeight = 2
-                texData = boFixSmallTexCrop(bs,data,texData,texHeight,3)
+            palData = boPS2Read32({4: 16, 8: 256}.get(bitDepth))
+            texData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "R8G8B8A8", noesis.DECODEFLAG_PS2SHIFT if bitDepth == 8 else 0)
         else:
-            # interleaved & grouped palette splitter; supports up to 8
-            palData0 = list()
-            palData1 = list()
-            palData2 = list()
-            palData3 = list()
-            palData4 = list()
-            palData5 = list()
-            palData6 = list()
-            palData7 = list()
-            for i in range(16):
-                boFixPS2Alpha(bs,data,16,palData0)
-                boFixPS2Alpha(bs,data,16,palData1)
+            # Interleaved-grouped palette splitter
+            palData = [list() for pal in range(8)]
+            for pal in range(16):
+                boPS2Read32(16, palData[0])
+                boPS2Read32(16, palData[1])
                 if palCount == 3 or palCount >= 5:
-                    boFixPS2Alpha(bs,data,16,palData2)
-                if palCount >= 7:
-                    boFixPS2Alpha(bs,data,16,palData3)
-            for i in range(16):
-                if palCount >= 4:
-                    boFixPS2Alpha(bs,data,16,palData4)
-                    boFixPS2Alpha(bs,data,16,palData5)
-                if palCount >= 5:
-                    boFixPS2Alpha(bs,data,16,palData6)
-                if palCount >= 7:
-                    boFixPS2Alpha(bs,data,16,palData7)
-            palData0 = bytes(palData0)
-            palData1 = bytes(palData1)
-            palData2 = bytes(palData2)
-            palData3 = bytes(palData3)
-            palData4 = bytes(palData4)
-            palData5 = bytes(palData5)
-            palData6 = bytes(palData6)
-            palData7 = bytes(palData7)
-
-            nameCount = 1
-            boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData0,texList)
-            nameCount = 2
-            boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData1,texList)
-            if palCount == 3 or palCount >= 5:
-                nameCount += 1
-                boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData2,texList)
-            if palCount >= 7:
-                nameCount += 1
-                boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData3,texList)
+                    boPS2Read32(16, palData[2])
+                    if palCount >= 7:
+                        boPS2Read32(16, palData[3])
             if palCount >= 4:
-                nameCount += 1
-                boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData4,texList)
-                nameCount += 1
-                boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData5,texList)
-            if palCount >= 6:
-                nameCount += 1
-                boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData6,texList)
-            if palCount == 8:
-                nameCount += 1
-                boTexPalCount(data,nameCount,texName,texWidth,texHeight,texData,palData7,texList)
-            return
-    texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32 if bitDepth != 24 else noesis.NOESISTEX_RGB24))
+                for pal in range(16):
+                    boPS2Read32(16, palData[4])
+                    boPS2Read32(16, palData[5])
+                    if palCount >= 5:
+                        boPS2Read32(16, palData[6])
+                        if palCount >= 7:
+                            boPS2Read32(16, palData[7])
+            palData = [bytearray(palData[pal]) for pal in range(8)]
 
-def boTexPSP(bs,data,texOffset,texList):
-    bs.seek(8,1)
-    palOffset = bs.readUInt()
-    texWidth = bs.readUInt()
-    texHeight = bs.readUInt()
-    bitDepth = bs.readUInt()
-    bs.seek(0x20,1)
-    bmpOffset = bs.readUInt()
-    bs.seek(0x72,1)
-    if bs.readUShort() == 0:
-        bs.seek(4,1) # nfs shift psp fix, might break if texname too long
-    palCount = bs.readUByte()
-    bs.seek(-0x25,1)
-    texName = bs.readString()
+            palNum = 1
+            boPS2TexPal(palData[0])
+            palNum = 2
+            boPS2TexPal(palData[1])
+            if palCount == 3 or palCount >= 5:
+                palNum += 1
+                boPS2TexPal(palData[2])
+                if palCount >= 7:
+                    palNum += 1
+                    boPS2TexPal(palData[3])
+            if palCount >= 4:
+                palNum += 1
+                boPS2TexPal(palData[4])
+                palNum += 1
+                boPS2TexPal(palData[5])
+                if palCount >= 6:
+                    palNum += 1
+                    boPS2TexPal(palData[6])
+                    if palCount == 8:
+                        palNum += 1
+                        boPS2TexPal(palData[7])
+            return
+    texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
+
+def boTexPSP(tex, texList, texOffset):
+    tex.seek(texOffset + 0x8)
+    palOffset = tex.readUInt() + texOffset
+    texWidth = tex.readUInt()
+    texHeight = tex.readUInt()
+    bitDepth = tex.readUInt()
+    tex.seek(texOffset + 0x38)
+    bmpOffset = tex.readUInt() + texOffset
+    tex.seek(texOffset + 0xB0)
+    palCount = tex.readUShort()
+    if 1 <= palCount <= 8:
+        newFmtNfs = False
+    else:
+        newFmtNfs = True
+        tex.seek(texOffset + 0xB4)
+        palCount = tex.readUShort()
+    tex.seek(texOffset + 0x8C)
+    if newFmtNfs:
+        texSize = tex.readUInt()
+    texName = tex.readString()
 
     if boDebug:
-        print("DEBUG5:",hex(bmpOffset+texOffset),hex(palOffset+texOffset),texWidth,texHeight,bitDepth,palCount,texName)
+        print("\nPlayStation Portable texture detected! ({}er revision)".format("New" if newFmtNfs else "Old")
+            + "\nTexture name: {}".format(texName)
+            +("\nTexture size: 0x{:X}".format(texSize) if newFmtNfs else "")
+            + "\nTexture offset: 0x{:X}".format(texOffset)
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset)
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture bit depth: {}".format(bitDepth)
+            + "\nPalette amount: {}".format(palCount)
+            + "\nPalette data offset: 0x{:X}".format(palOffset))
 
-    bs.seek(bmpOffset + texOffset)
+    tex.seek(bmpOffset)
     if bitDepth == 4:
-        texData = bs.readBytes(texWidth*texHeight//2)
+        wPad = texWidth * 2 if texWidth <= 16 else texWidth
+        texData = tex.readBytes(wPad * texHeight // 2)
     elif bitDepth == 8:
-        texData = bs.readBytes(texWidth*texHeight)
+        wPad = texWidth * 2 if texWidth <= 8 else texWidth
+        texData = tex.readBytes(wPad * texHeight)
     elif bitDepth == 32:
-        texData = bs.readBytes(texWidth*texHeight*4)
+        texData = tex.readBytes(texWidth * texHeight * 4)
     else:
-        print("HEY!!!!!!!!!",bitDepth)
+        noesis.doException(boExcFmt + "{} bpp".format(bitDepth))
+    texData = rapi.imageUntwiddlePSP(texData, texWidth, texHeight, bitDepth)
 
-    if bitDepth <= 8:
-        bs.seek(palOffset + texOffset)
-        texData = rapi.imageUntwiddlePSP(texData,texWidth,texHeight,bitDepth)
-        if palCount == 1:
-            if bitDepth == 8:
-                palData = bs.readBytes(0x400)
-            elif bitDepth == 4:
-                palData = bs.readBytes(0x40)
-            texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,bitDepth,"R8G8B8A8")
-        elif bitDepth == 8 and palCount > 1:
-            for i in range(palCount):
-                palData = bs.readBytes(0x400)
-                boTexPalCount(data,i+1,texName,texWidth,texHeight,texData,palData,texList)
-            return
-    texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32))
+    if bitDepth in {4, 8}:
+        tex.seek(palOffset)
+        for pal in range(palCount):
+            palData = boTexPalRead(tex, bitDepth)
+            texPalData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, bitDepth, "R8G8B8A8")
+            texList.append(NoeTexture(boSetPalName(texName, palCount, pal), texWidth, texHeight, texPalData, noesis.NOESISTEX_RGBA32))
+        return
+    texList.append(NoeTexture(texName, texWidth, texHeight, texData, noesis.NOESISTEX_RGBA32))
 
-def boTexPSPArena(bs,data,texOffset,texName,arenaName,texList):
-    bs.seek(texOffset)
-    if arenaName != 0:
-        texName = bs.readString()
-        texName += " ("+arenaName+")"
-    if texName == 0:
-        texName = bs.readString()
-    bs.seek(texOffset + 0x40)
-    palCount = bs.readUByte()
-    bs.seek(3,1)
-    texWidth = bs.readUShort()
-    texHeight = bs.readUShort()
-    texFmt = bs.readUByte()
-    if texFmt == 2:
-        bitDepth = 4
-    elif texFmt == 3:
-        bitDepth = 8
-    else:
-        print("STOP RIGHT THERE!",texFmt)
-    bs.seek(0x37,1)
-    bmpOffset = bs.readUInt()
-    bs.seek(0x1C,1)
-    palOffset = bs.readUInt()
+def boTexPSPArena(tex, texList, texOffset, texName=None, fontName=None):
+    # This isn't called through boTexParse, it's exclusively used by boArcTexArena
+    tex.seek(texOffset)
+    if not texName:
+        texName = tex.readString()
+    if fontName:
+        texName += " ({})".format(fontName)
+    tex.seek(texOffset + 0x44)
+    texWidth = tex.readUShort()
+    texHeight = tex.readUShort()
+    texFmt = tex.readUInt()
+
+    bitDepth = {
+        2: 4,
+        3: 8
+    }.get(texFmt)
+    if not bitDepth:
+        noesis.doException(boExcFmt + hex(texFmt))
+
+    tex.seek(texOffset + 0x80)
+    bmpOffset = tex.readUInt() + texOffset
+    tex.seek(texOffset + 0xA0)
+    palOffset = tex.readUInt() + texOffset
+
     if boDebug:
-        print("DEBUG6:",hex(bmpOffset+texOffset),hex(palOffset+texOffset),texWidth,texHeight,palCount,texName)
+        print("\nPlayStation Portable arena texture detected!"
+            + "\nTexture name: {}".format(texName.replace(" - ", "/"))
+            + "\nTexture offset: 0x{:X}".format(texOffset + 16)
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset + 16)
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture bit depth: {}".format(bitDepth)
+            + "\nPalette data offset: 0x{:X}".format(palOffset + 16))
 
-    bs.seek(bmpOffset + texOffset)
-    if texFmt == 2:
-        texData = bs.readBytes(texWidth*texHeight//2)
-    elif texFmt == 3:
-        texData = bs.readBytes(texWidth*texHeight)
-    bs.seek(palOffset + texOffset)
-    if texFmt == 2:
-        palData = bs.readBytes(0x40)
-    elif texFmt == 3:
-        palData = bs.readBytes(0x400)
+    tex.seek(bmpOffset)
+    if texFmt == 0x02:
+        texData = tex.readBytes(texWidth * texHeight // 2)
+    if texFmt == 0x03:
+        texData = tex.readBytes(texWidth * texHeight)
 
-    texData = rapi.imageUntwiddlePSP(texData,texWidth,texHeight,bitDepth)
-    texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,bitDepth,"R8G8B8A8")
-    texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32))
+    tex.seek(palOffset)
+    palData = boTexPalRead(tex, bitDepth)
 
-def boTexXbox(bs,data,texOffset,fontName,texList,texName):
-    bs.seek(4,1) # 40001
-    bmpOffset = bs.readUInt()
-    bs.seek(0x2C,1)
-    texFmt = bs.readUInt()
-    texWidth = bs.readUInt()
-    texHeight = bs.readUInt()
-    bitDepth = bs.readUInt()
-    bs.seek(0x24,1)
-    if bitDepth >= 4 and bitDepth <= 32:
-        chkGame = 0 # B3T
+    texData = rapi.imageUntwiddlePSP(texData, texWidth, texHeight, bitDepth)
+    texData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, bitDepth, "R8G8B8A8")
+    texList.append(NoeTexture(texName, texWidth, texHeight, texData, noesis.NOESISTEX_RGBA32))
+
+def boTexXbox(tex, texList, texOffset, texName):
+    tex.seek(texOffset + 0x4)
+    bmpOffset = tex.readUInt() + texOffset
+    tex.seek(texOffset + 0x34)
+    texFmt = tex.readUInt()
+    texWidth = tex.readUInt()
+    texHeight = tex.readUInt()
+    bitDepth = tex.readUInt()
+    if bitDepth in {4, 8, 32}:
+        newFmtRev = False
+        tex.seek(texOffset + 0x68)
     else:
-        chkGame = 1 # Rev
-        bs.seek(-4,1)
-        bitDepth = bs.readUByte()
-    bs.seek(1,1)
-    palCount = bs.readUByte()
+        newFmtRev = True
+        tex.seek(texOffset + 0x64)
+        bitDepth = tex.readUByte()
+    tex.seek(0x1, 1)
+    palCount = tex.readUByte()
+    if not texName:
+        tex.seek(texOffset + (0x44 if newFmtRev else 0x48))
+        texName = tex.readString()
 
-    bs.seek(-0x22,1)
-    if chkGame == 1:
-        bs.seek(-1,1)
-    if texName == 0:
-        texName = bs.readString()
-    bs.seek(texOffset+bmpOffset)
     if boDebug:
-        print("DEBUG7:",texWidth,texHeight,bitDepth,palCount,hex(texFmt),texName)
+        print("\nXbox texture detected! ({}er revision)".format("New" if newFmtRev else "Old")
+            + "\nTexture name: {}".format(texName.split(" - ")[-1])
+            + "\nTexture offset: 0x{:X}".format(texOffset)
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset)
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture bit depth: {}".format(bitDepth)
+            + "\nTexture format: 0x{:X}".format(texFmt)
+            + "\nPalette amount: {}".format(palCount))
 
-    wCrop = 0
-    hCrop = 0
-    if texWidth < 4:
-        wCrop = texWidth
-        texWidth = 4
-    if texHeight < 4:
-        hCrop = texHeight
-        texHeight = 4
+    tex.seek(bmpOffset)
 
-    if texFmt == 0xB:
-        texData = bs.readBytes(texWidth*texHeight)
-        texData = rapi.imageFromMortonOrder(texData,texWidth,texHeight,1)
-        bs.seek(texOffset+0x14)
-        for i in range(palCount):
-            palOffset = bs.readUInt()
-            curPalOffset = bs.tell()
-            bs.seek(texOffset+palOffset+4) # 30001
-            palOffset = bs.readUInt()
-            bs.seek(texOffset+palOffset)
-            if bitDepth == 4:
-                palData = bs.readBytes(0x40)
-            elif bitDepth == 8:
-                palData = bs.readBytes(0x400)
-            if palCount > 1:
-                boTexPalCount(data,i+1,texName,texWidth,texHeight,texData,palData,texList)
-            else:
-                texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"B8G8R8A8")
-                texList.append(NoeTexture(texName,texWidth,texHeight,texData,noesis.NOESISTEX_RGBA32))
-            bs.seek(curPalOffset)
+    wPad = boCalcAlign(texWidth, 4) if texWidth % 4 != 0 else texWidth
+    hPad = boCalcAlign(texHeight, 4) if texHeight % 4 != 0 else texHeight
+
+    if texFmt == 0x0B:
+        texData = rapi.imageFromMortonOrder(tex.readBytes(texWidth * texHeight), texWidth, texHeight, 1)
+        tex.seek(texOffset + 0x14)
+        for pal in range(palCount):
+            palOffset = tex.readUInt() + texOffset
+            curPalOffset = tex.tell()
+            tex.seek(palOffset)
+            if not tex.readBytes(4) in {b"\x01\x00\x03\x00", b"\x01\x00\x03\xC0"}:
+                noesis.doException(boExcFmt + "Invalid palette header!")
+            palDataOffset = tex.readUInt() + texOffset
+
+            if boDebug:
+                print("Palette {} offset: 0x{:X}".format(pal + 1, palOffset)
+                    + "\nPalette {} data offset: 0x{:X}".format(pal + 1, palDataOffset))
+
+            tex.seek(palDataOffset)
+            palData = boTexPalRead(tex, bitDepth)
+            texPalData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "B8G8R8A8")
+            texList.append(NoeTexture(boSetPalName(texName, palCount, pal), texWidth, texHeight, texPalData, noesis.NOESISTEX_RGBA32))
+            tex.seek(curPalOffset)
         return
 
-    elif texFmt == 0xC:
+    elif texFmt == 0x0C:
         texFmt = noesis.NOESISTEX_DXT1
-        texData = bs.readBytes(texWidth*texHeight//2)
-    elif texFmt == 0xE:
+        texData = tex.readBytes(wPad * hPad // 2)
+    elif texFmt == 0x0E:
         texFmt = noesis.NOESISTEX_DXT3
-        texData = bs.readBytes(texWidth*texHeight)
-    elif texFmt == 0xF:
+        texData = tex.readBytes(wPad * hPad)
+    elif texFmt == 0x0F:
         texFmt = noesis.NOESISTEX_DXT5
-        texData = bs.readBytes(texWidth*texHeight)
+        texData = tex.readBytes(wPad * hPad)
     elif texFmt == 0x3A:
         texFmt = noesis.NOESISTEX_RGBA32
-        texData = bs.readBytes(texWidth*texHeight*4)
-        texData = rapi.imageFromMortonOrder(texData,texWidth,texHeight,4)
+        texData = rapi.imageFromMortonOrder(tex.readBytes(texWidth * texHeight * 4), texWidth, texHeight, 4)
     else:
-        print("UNKNOWN!!!",hex(texFmt))
+        noesis.doException(boExcFmt + hex(texFmt))
 
-    if wCrop: # janky fixes, the sequel.  only works with dxt
-        texWidth = wCrop
-    if hCrop:
-        texHeight = hCrop
-    texList.append(NoeTexture(texName,texWidth,texHeight,texData,texFmt))
+    texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
-def boTex360(bs,data,texOffset,palOffset,texList,texName):
-    if texName == 0:
-        texName = bs.readString()
-        boToolPadAlign(bs,32,bs.tell())
-    else:
-        bs.seek(32,1)
-    texWidth = bs.readUShort()
-    texHeight = bs.readUShort()
-    bs.seek(2,1)
-    palCount = bs.readUByte()
-    bs.seek(5,1)
-    texSize = bs.readUInt()
-    # other stuff, unnecessary
-    bs.seek(0x18,1)
-    texFmt = bs.readUInt()
+def boTexXbox360(tex, texList, texOffset, texName, palOffset):
+    if not texName:
+        texName = tex.readString()
+    tex.seek(texOffset + 0x20)
+    texWidth = tex.readUShort()
+    texHeight = tex.readUShort()
+    tex.seek(texOffset + 0x26)
+    palCount = tex.readUByte()
+    tex.seek(texOffset + 0x2C)
+    texSize = tex.readUInt()
+    tex.seek(texOffset + 0x48)
+    texFmt = tex.readUInt()
+
     if boDebug:
-        print("DEBUG4:",hex(texOffset),hex(palOffset),texWidth,texHeight,palCount,hex(texSize),hex(texFmt),texName)
-    boToolPadAlign(bs,0x1000,bs.tell())
+        print("\nXbox 360 texture detected!"
+            + "\nTexture name: {}".format(texName.split(" - ")[-1])
+            + "\nTexture size: 0x{:X}".format(texSize)
+            + "\nTexture offset: 0x{:X}".format(texOffset)
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture format: 0x{:X}".format(texFmt))
+        if palOffset:
+            print("Palette offset: 0x{:X}".format(palOffset)
+                + "\nPalette amount: {}".format(palCount))
 
-    if texFmt == 2 and texWidth == 128:
-        texData = list()
-        texData = boFixTexWidthDiv(bs,data,texData,texHeight,texWidth)
-    else:
-        texData = bs.readBytes(texSize - 0x1000)
+    tex.seek(texOffset + 0x1000)
+    texData = boTexFixWidth(tex, texWidth, 256, texHeight) if texFmt == 0x02 and texWidth < 256 else tex.readBytes(texSize - 0x1000)
 
-    wCrop = 0
-    hCrop = 0
-    if boDebug == 2:
-        if texFmt != 2 and texWidth <= 16: # assume dxt3 or dxt5
-            wCrop = texWidth
-            hCrop = texHeight
-            texWidth = 128
-            texHeight = 128
-
-    if texFmt == 2:
-        bs.seek(palOffset + 0x1000)
-        if palCount == 1:
-            palData = bs.readBytes(0x400)
-            texData = rapi.imageDecodeRawPal(texData,palData,texWidth,texHeight,8,"A8R8G8B8")
+    if texFmt == 0x02:
+        texFmt = noesis.NOESISTEX_RGBA32
+        if not palCount:
+            texData = rapi.imageDecodeRaw(texData, texWidth, texHeight, "A8")
         else:
-            for i in range(palCount):
-                palData = bs.readBytes(0x400)
-                boTexPalCount(data,i+1,texName,texWidth,texHeight,texData,palData,texList)
+            tex.seek(palOffset + 0x1000)
+            for pal in range(palCount):
+                palData = tex.readBytes(0x400)
+                texPalData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "A8R8G8B8")
+                texList.append(NoeTexture(boSetPalName(texName, palCount, pal), texWidth, texHeight, texPalData, texFmt))
             return
-        texFmt = noesis.NOESISTEX_RGBA32
+
     elif texFmt == 0x52:
-        texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData,2),texWidth,texHeight,8)
         texFmt = noesis.NOESISTEX_DXT1
+        texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData, 2), texWidth, texHeight, 8)
     elif texFmt == 0x53:
-        texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData,2),texWidth,texHeight,16)
         texFmt = noesis.NOESISTEX_DXT3
+        texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData, 2), texWidth, texHeight, 16)
     elif texFmt == 0x54:
-        texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData,2),texWidth,texHeight,16)
         texFmt = noesis.NOESISTEX_DXT5
+        texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData, 2), texWidth, texHeight, 16)
     elif texFmt == 0x86:
-        texData = rapi.imageUntile360Raw(texData,texWidth,texHeight,4)
-        texData = rapi.imageDecodeRaw(texData,texWidth,texHeight,"A8R8G8B8")
         texFmt = noesis.NOESISTEX_RGBA32
+        texData = rapi.imageDecodeRaw(rapi.imageUntile360Raw(texData, texWidth, texHeight, 4), texWidth, texHeight, "A8R8G8B8")
+    else:
+        noesis.doException(boExcFmt + hex(texFmt))
 
-    if wCrop: # janky experimental fix, not active by default
-        texWidth = wCrop
-        texHeight = hCrop
-        bs = NoeBitStream(texData)
-        texData = list()
+    texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
-        weirdAlign = 1
-        for i in range(texHeight//4):
-            bs.seek(0x1A0,1)
-            texData.extend(bs.readBytes((texWidth//4)*16))
-            bs.seek(0x20,1)
-            if texWidth == 8:
-                bs.seek(0x20,1)
-            if weirdAlign == 8:
-                bs.seek(0x20,1)
-            weirdAlign += 1
-        texData = bytes(texData)
-    texList.append(NoeTexture(texName,texWidth,texHeight,texData,texFmt))
+def boTexParse(tex, texEndian, texList, texOffset, texName=None, texExtra=None):
+    texSystem = boTexGetSystem(tex, texEndian, texOffset)
 
-def boTexParse(bs,data,texOffset,fontNameOrPalOffset,texList,texName):
-    bs.seek(texOffset)
-    if boSystem == 1:
-        boTexPS2(bs,data,texOffset,fontNameOrPalOffset,texList,texName)
-    elif boSystem == 2:
-        boTexPSP(bs,data,texOffset,texList)
-    elif boSystem == 3:
-        boTexXbox(bs,data,texOffset,fontNameOrPalOffset,texList,texName)
-    elif boSystem == 4:
-        boTex360(bs,data,texOffset,fontNameOrPalOffset,texList,texName)
-
+    tex.seek(texOffset)
+    if texSystem == boPS2:
+        boTexPS2(tex, texList, texOffset, texName, texExtra)
+    elif texSystem == boPSP:
+        boTexPSP(tex, texList, texOffset)
+    elif texSystem == boXbox:
+        boTexXbox(tex, texList, texOffset, texName)
+    elif texSystem == boXbox360:
+        boTexXbox360(tex, texList, texOffset, texName, texExtra)
 
 
 
@@ -895,287 +896,447 @@ def boTexParse(bs,data,texOffset,fontNameOrPalOffset,texList,texName):
 #  ##   ##  ##   ##   #####   ##   ##  ##    ###    #######  ######   
 
 
-def boArcTxdParse(bs,data,startOffset,texList):
-    bs.seek(startOffset + 8)
-    texCount = bs.readUInt()
-    offStart = bs.readUInt() + startOffset
-    bs.seek(offStart)
-    for i in range(texCount):
-        texNum = bs.readUInt64()
-        texOffset = bs.readUInt() + startOffset
-        bs.seek(4,1)
-        curOffset = bs.tell()
-        if boDebug:
-            print("DEBUG1:",hex(curOffset),hex(texOffset),texNum,"/",texCount)
-        boTexParse(bs,data,texOffset,0,texList,0)
-        bs.seek(curOffset)
-
-def boArcGetTexTxd(data,texList):
-    bs = boSetup(data)
-    boArcTxdParse(bs,data,0,texList)
-    return 1
-
-def blkArcGetTexBinGlobAndDbChar(data,texList):
-    bs = boSetup(data)
-    if bs.readUInt() > 0x100000:
-        bs.seek(0x1C)
-    boArcTxdParse(bs,data,bs.readUInt(),texList)
-    return 1
-
-def blkArcGetTexBinUnit(data,texList):
-    bs = boSetup(data)
-    if bs.readUInt() == 0xC:
-        bs.seek(0x18)
+def boArcTxdParse(arc, texList, startOffset=0x0):
+    arc.seek(startOffset)
+    if arc.readBytes(8) == gTEXDIC[::-1]:
+        arc.setEndian(NOE_BIGENDIAN)
+        arcEndian = "big"
     else:
-        bs.seek(0x24)
-    boArcTxdParse(bs,data,bs.readUInt(),texList)
-    return 1
+        arcEndian = "little"
 
-def blkArcGetTexBinLevelDat(data,texList):
-    bs = boSetup(data)
-    if bs.readUInt() == 0xA:
-        bs.seek(0x2BC)
-    else: # 0x11
-        bs.seek(0x390)
-    boArcTxdParse(bs,data,bs.readUInt(),texList)
-    return 1
+    texCount = arc.readUInt()
+    offStart = arc.readUInt() + startOffset
+    arc.seek(offStart)
+    for tex in range(texCount):
+        texNum = arc.readUInt64()
+        texOffset = arc.readUInt() + startOffset
+        curOffset = arc.tell() + 0x4
+        boTexParse(arc, arcEndian, texList, texOffset)
+        if boDebug:
+            print("Texture {} of {}".format(texNum, texCount))
+        arc.seek(curOffset)
 
-def blkArcGetTexBinStLevel(data,texList):
-    bs = boSetup(data)
-    bs.seek(4)
-    texOffset = bs.readUInt()
-    bs.seek(4,1)
-    boArcTxdParse(bs,data,bs.readUInt()+texOffset,texList)
-    return 1
+def boArcMdlBxv(data, mdlList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+    matList = list()
+    texList = list()
 
-def blkArcGetTexBinStUnit(data,texList):
-    bs = boSetup(data)
-    boArcTxdParse(bs,data,0x100,texList)
-    return 1
+    arcVer = arc.readBytes(4)
+    if arcVer.startswith(b"\x78\xDA"):
+        arc = NoeBitStream(boDecZlib(data))
+        arcVer = arc.readBytes(4)
+    arcEndian = boGetVerEndian(arcVer)
+    if arcEndian == "big":
+        arc.setEndian(NOE_BIGENDIAN)
+    arcVer = boConvToInt(arcVer, arcEndian)
 
-def blkArcGetTexBinGuns(data,texList):
-    bs = boSetup(data)
-    boArcTxdParse(bs,data,bs.readUInt(),texList)
-    return 1
+    arc.seek(0x60)
+    if arcVer < 0x20:
+        texOffset = arc.readUInt()
+        boTexParse(arc, arcEndian, texList, texOffset)
 
-def boArcGetTexBinFE(data,texList):
-    bs = boSetup(data)
+    else: # Xbox 360 only
+        for tex in range(19):
+            texOffset = arc.readUInt()
+            if texOffset != 0:
+                curTexOffset = arc.tell()
+                arc.seek(texOffset + 0x48)
+                if arc.readUInt() != 2:
+                    # Non-paletted texture
+                    boTexParse(arc, arcEndian, texList, texOffset)
 
-    bs.seek(8)
-    dirCount = bs.readUInt()
-    dirOffset = bs.readUInt()
-    bs.seek(dirOffset)
-    for i in range(dirCount):
-        dirInfoOffset = bs.readUInt()
-        curHdrOffset = bs.tell()
-        bs.seek(dirInfoOffset)
+                else:
+                    texName = boTexGetName(arc, arcEndian, texOffset)
+                    arc.seek(curTexOffset)
+                    for pal in range(19 - tex):
+                        palOffset = arc.readUInt()
+                        if palOffset != 0:
+                            curPalOffset = arc.tell()
+                            palName = boTexGetName(arc, arcEndian, palOffset)
 
-        dirNameOffset = bs.readUInt()
-        dirDataOffset = bs.readUInt()
-        bs.seek(dirNameOffset)
-        dirName = bs.readString()
-        bs.seek(dirDataOffset)
+                            arc.seek(palOffset + 0x48)
+                            if palName == texName and arc.readUInt() == 0x86:
+                                boTexParse(arc, arcEndian, texList, texOffset, texExtra=palOffset)
+                                # Remove entry in memory to avoid being picked up as a texture
+                                arc.seek(curPalOffset - 4)
+                                arc.writeUInt(0)
+                                break
 
-        bs.seek(4,1)
-        texCount = bs.readUInt()
+                            arc.seek(curPalOffset)
+                arc.seek(curTexOffset)
+
+    if not boModels:
+        boSetDummyMdl(mdlList, texList)
+    return True
+
+def boArcMdlDatStatic(data, mdlList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+    matList = list()
+    texList = list()
+
+    arcVer = arc.readBytes(4)
+    if arcVer.startswith(b"\x78\xDA"):
+        arc = NoeBitStream(boDecZlib(data))
+        arcVer = arc.readBytes(4)
+    arcEndian = boGetVerEndian(arcVer)
+    if arcEndian == "big":
+        arc.setEndian(NOE_BIGENDIAN)
+    arcVer = boConvToInt(arcVer, arcEndian)
+
+    if arcVer <= 0x25: # B3 demo
+        arc.seek(0x14)
+        texCount = arc.readUInt()
+    else:
+        arc.seek(0x16)
+        texCount = arc.readUShort()
+    texArrayOffset = arc.readUInt()
+
+    arc.seek(texArrayOffset)
+    for tex in range(texCount):
+        texOffset = arc.readUInt()
+        curTexOffset = arc.tell()
+        boTexParse(arc, arcEndian, texList, texOffset)
+        arc.seek(curTexOffset)
+
+        if boDebug:
+            print("Texture {} of {}".format(tex + 1, texCount))
+
+    if not boModels:
+        boSetDummyMdl(mdlList, texList)
+    return True
+
+def boArcTexDatEnviro(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arc.seek(0xB8)
+    if arc.readBytes(4) == b"\x45\x44\x00\x03":
+        arc.setEndian(NOE_BIGENDIAN)
+        arcEndian = "big"
+    else:
+        arcEndian = "little"
+
+    arcSize = arc.getSize()
+    arc.seek(0x98)
+    while True:
+        texOffset = arc.readUInt()
+        if not 0xB0 <= texOffset <= arcSize:
+            break
+        curTexOffset = arc.tell()
+        boTexParse(arc, arcEndian, texList, texOffset)
+        arc.seek(curTexOffset)
+    return True
+
+def boArcTexBinFE(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    if arc.readBytes(8) == gMOVIEARRAY:
+        arcEndian = "little"
+    else:
+        arc.setEndian(NOE_BIGENDIAN)
+        arcEndian = "big"
+
+    dirCount = arc.readUInt()
+    dirOffset = arc.readUInt()
+
+    arc.seek(dirOffset)
+    for dir in range(dirCount):
+        dirInfoOffset = arc.readUInt()
+        curHdrOffset = arc.tell()
+
+        arc.seek(dirInfoOffset)
+        dirNameOffset = arc.readUInt()
+        dirDataOffset = arc.readUInt()
+        arc.seek(dirNameOffset)
+        dirName = arc.readString()
+
+        arc.seek(dirDataOffset + 0x4)
+        texCount = arc.readUInt()
         if texCount != 0:
-            #if rapi.noesisIsExporting():
-                #expDir = os.path.split(rapi.getOutputName())
-                #os.chdir(expDir[0])
-                #if not os.path.exists(dirName):
-                    #os.makedirs(dirName)
+            texArrayOffset = arc.readUInt() + dirDataOffset
+            aptDataOffset = arc.readUInt() + dirDataOffset
+            aptConstOffset = arc.readUInt() + dirDataOffset
 
-            texArrayOffset = bs.readUInt() + dirDataOffset
-            aptDataOffset = bs.readUInt() + dirDataOffset
-            aptConstOffset = bs.readUInt() + dirDataOffset
+            arc.seek(texArrayOffset)
+            texOffset = arc.readUInt() + dirDataOffset
+            texNameChk = boTexGetName(arc, arcEndian, texOffset)
+            boGetTexAptIndex(arc, aptDataOffset, int(texNameChk[11:]) + 1 if texNameChk.startswith("TexturePage") else int(texNameChk))
 
-            bs.seek(texArrayOffset)
-            texOffset = bs.readUInt() + dirDataOffset
-            texNameChk = boToolGetTexName(bs,data,texOffset)
-            boToolGoToFirstTexIndex(bs,data,aptDataOffset,int(texNameChk[11:])+1 if texNameChk.startswith("TexturePage") else int(texNameChk))
-            for j in range(texCount):
-                texNameOffset = bs.readUInt()
-                texNameIndex = bs.readUInt()
-                curAptOffset = bs.tell()
-                bs.seek(texNameOffset + aptDataOffset)
-                texName = bs.readString()
-                texNameWDir = dirName+" - "+texName
-                bs.seek(texArrayOffset)
-                for k in range(texCount):
-                    texOffset = bs.readUInt() + dirDataOffset
-                    curTexPtrOffset = bs.tell()
+            for name in range(texCount):
+                texNameOffset = arc.readUInt() + aptDataOffset
+                texNameIndex = arc.readUInt()
+                curAptOffset = arc.tell()
+                arc.seek(texNameOffset)
+                texName = "{} - {}".format(dirName, arc.readString())
 
-                    texNameChk = boToolGetTexName(bs,data,texOffset)
-                    if texNameChk == str(texNameIndex) or texNameChk[11:] == str(texNameIndex-1):
-                        boTexParse(bs,data,texOffset,0,texList,texNameWDir)
-                        #if rapi.noesisIsExporting():
-                            #curDir = expDir[0] + "\\" + texName + expDir[1]
-                            #movDir = expDir[0] + "\\" + dirName + "\\" + texName + expDir[1]
-                            #print(curDir," -> ",movDir)
-                            #os.rename(curDir,movDir)
+                arc.seek(texArrayOffset)
+                for tex in range(texCount):
+                    texOffset = arc.readUInt() + dirDataOffset
+                    curTexPtrOffset = arc.tell()
+
+                    texNameChk = boTexGetName(arc, arcEndian, texOffset)
+                    if texNameChk == str(texNameIndex) or texNameChk[11:] == str(texNameIndex - 1):
+                        boTexParse(arc, arcEndian, texList, texOffset, texName=texName)
                         break
-                    bs.seek(curTexPtrOffset)
+                    arc.seek(curTexPtrOffset)
 
                 if boDebug:
-                    print("DEBUG3:",hex(dirDataOffset),dirName+"\\"+texName,texNameIndex,"/",texCount)
-                bs.seek(curAptOffset)
-        bs.seek(curHdrOffset)
-    return 1
+                    print("Directory name: {}".format(dirName)
+                        + "\nDirectory offset: 0x{:X}".format(dirDataOffset)
+                        + "\nApt Data offset: 0x{:X}".format(aptDataOffset)
+                        + "\nApt constant file offset: 0x{:X}".format(aptConstOffset)
+                        + "\nTexture array offset: 0x{:X}".format(texArrayOffset)
+                        + "\nTexture {} of {}".format(texNameIndex, texCount))
 
-def boArcGetTexBinLoad(data,texList):
-    bs = boSetup(data)
+                arc.seek(curAptOffset)
+        arc.seek(curHdrOffset)
+    return True
 
-    txdCount = bs.readUInt64()
-    for i in range(txdCount):
-        txdNameGtID = boToolDecGtID(bs.readUInt64()) # check if matches texname[:12]?
-        txdSize = bs.readUInt()
-        txdOffset = bs.readUInt()+0x800 # aligned to 0x800 but never long enough to be elsewhere?
-        curOffset = bs.tell()
-        boArcTxdParse(bs,data,txdOffset,texList)
-        bs.seek(curOffset)
-    return 1
-
-def boArcGetTexBinFont(data,texList):
-    bs = boSetup(data)
-
-    fontMagic = bs.readUInt()
-    texOffset = bs.readUInt()
-    if fontMagic == 0x76312E34: # v1.4
-        # assume Rev font file
-        boTexParse(bs,data,texOffset,0,texList,0)
-    else:
-        # assume Dom PS2 font file
-        bs.seek(0)
-        fontName = bs.readString()
-        bs.seek(0x70)
-        texOffset = bs.readUInt()
-        boTexParse(bs,data,texOffset,fontName,texList,1)
-    return 1
-
-def boArcGetTexArenaAlt(bs,data,texArrayOffset,texCount,texList):
-    bs.seek(texArrayOffset)
-    for i in range(texCount):
-        texOffsetIndex = bs.readUInt()
-        texOffset = bs.readUInt()+16
-        texArrayOffset = bs.tell()
-        boTexPSPArena(bs,data,texOffset,0,0,texList)
-        bs.seek(texArrayOffset)
-
-def boArcGetTexArena(data,texList):
-    bs = NoeBitStream(data)
+def boArcTexBinLoad(data, texList):
     rapi.processCommands("-texnorepfn")
-    # special case scenario where the platform selection is ignored
+    arc = NoeBitStream(data)
 
-    bs.seek(0x10)
-    arenaName = bs.readString()
-    bs.seek(0x50)
-    texOffset = bs.readUInt()
-    if arenaName.lower().endswith(".msh"):
-        boTexPSPArena(bs,data,16,arenaName,0,texList)
-    elif texOffset != 0:
-        boTexPSPArena(bs,data,texOffset+16,0,arenaName,texList)
+    txdCount = arc.readUInt64()
+    arcAlign = boCalcAlign(txdCount * 0x10 + 8, 0x800)
+    for txd in range(txdCount):
+        txdName = boDecGtID(arc.readUInt64())
+        txdSize = arc.readUInt()
+        txdOffset = arc.readUInt() + arcAlign
+        curOffset = arc.tell()
+        boArcTxdParse(arc, texList, txdOffset)
+        if boDebug:
+            print("Texture dictionary name: {}".format(txdName)
+                + "\nTexture dictionary offset: 0x{:X}".format(txdOffset))
+        arc.seek(curOffset)
+    return True
+
+def boArcTexBinFont(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arcEndian = "little"
+    fontMagic = arc.readBytes(4)
+    if fontMagic in {b"v1.4", b"4.1v"}:
+        if fontMagic == b"v1.4":
+            arc.setEndian(NOE_BIGENDIAN)
+            arcEndian = "big"
+        texOffset = arc.readUInt()
+        boTexParse(arc, arcEndian, texList, texOffset)
     else:
-        bs.seek(0x90)
-        aptDataOffset = bs.readUInt()+16
-        aptConstOffset = bs.readUInt()+16
-        unkPtrOffset = bs.readUInt()+16 # anims?
-        texPtrOffset = bs.readUInt()+16
+        arc.seek(0x0)
+        fontName = arc.readString()
+        arc.seek(0x70)
+        texOffset = arc.readUInt()
+        boTexParse(arc, arcEndian, texList, texOffset, texExtra=fontName)
+    return True
 
-        bs.seek(texPtrOffset)
-        texCount = bs.readUInt()
+def boArcTexTxd(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+    boArcTxdParse(arc, texList)
+    return True
+
+def boArcTexArena(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data[16:])
+
+    arenaName = arc.readString()
+    arc.seek(0x40)
+    texOffset = arc.readUInt()
+
+    if arenaName.lower().endswith(".msh"): # Texture
+        boTexPSPArena(arc, texList, 0x0)
+
+    elif texOffset != 0: # Font
+        boTexPSPArena(arc, texList, texOffset, fontName=arenaName)
+
+    else: # Frontend
+        arc.seek(0x80)
+        aptDataOffset = arc.readUInt()
+        aptConstOffset = arc.readUInt()
+        unkPtrOffset = arc.readUInt()
+        texPtrOffset = arc.readUInt()
+
+        arc.seek(texPtrOffset)
+        texCount = arc.readUInt()
         if texCount != 0:
-            texArrayOffset = bs.readUInt()+16
-            if bs.readUInt() == 1: # this can probably be done better now with the improved texindex but im too scared to touch this nightmare
-                boToolGoToFirstTexIndex(bs,data,aptDataOffset,1)
-                texNameOffset = bs.readUInt()
+            texArrayOffset = arc.readUInt()
+
+            # For various complicated reasons I won't search for the texture name if the first texture index isn't 1
+            if arc.readUInt() == 1:
+                boGetTexAptIndex(arc, aptDataOffset, 1)
+                texNameOffset = arc.readUInt()
                 if texNameOffset < texArrayOffset:
-                    bs.seek(-4,1)
-                    for i in range(texCount):
-                        texNameOffset = bs.readUInt()
-                        texNameIndex = bs.readUInt()
-                        curAptOffset = bs.tell()
-                        bs.seek(texNameOffset + aptDataOffset)
-                        texName = bs.readString()
-                        bs.seek(texArrayOffset)
-                        texOffsetIndex = bs.readUInt()
-                        texOffset = bs.readUInt()+16
-                        #if texNameIndex == texOffsetIndex:
-                        texArrayOffset = bs.tell()
-                        boTexPSPArena(bs,data,texOffset,texName,0,texList)
-                        bs.seek(curAptOffset)
-                    return 1
-            boArcGetTexArenaAlt(bs,data,texArrayOffset,texCount,texList)
-    return 1
+                    arc.seek(-0x4, 1)
 
-def boArcGetTexDatEnviro(data,texList):
-    bs = boSetup(data)
+                    for tex in range(texCount):
+                        texNameOffset = arc.readUInt() + aptDataOffset
+                        texNameIndex = arc.readUInt()
+                        curAptOffset = arc.tell()
 
-    bs.seek(0x98)
-    while True:
-        texOffset = bs.readUInt()
-        if texOffset < 0x100 or texOffset >= bs.getSize():
-            break
-        curTexOffset = bs.tell()
-        boTexParse(bs,data,texOffset,0,texList,0)
-        bs.seek(curTexOffset)
-    return 1
+                        arc.seek(texNameOffset)
+                        texName = arc.readString().replace("/", " - ")
+                        arc.seek(texArrayOffset)
+                        texOffsetIndex = arc.readUInt()
+                        texOffset = arc.readUInt()
+                        texArrayOffset = arc.tell()
+                        boTexPSPArena(arc, texList, texOffset, texName=texName if texNameIndex == texOffsetIndex else None)
 
-def boArcGetTexDatStatic(data,texList):
-    bs = boSetup(data)
+                        if boDebug:
+                            print("Texture {} of {} (Index: {})".format(tex + 1, texCount, texOffsetIndex))
+                        arc.seek(curAptOffset)
+                    return True
 
-    try: bs = boToolDecZlib(bs,data)
-    except: bs.seek(0)
-    fileVer = bs.readUInt()
+            # Fallback without texture names
+            arc.seek(texArrayOffset)
+            for tex in range(texCount):
+                texOffsetIndex = arc.readUInt()
+                texOffset = arc.readUInt()
+                texArrayOffset = arc.tell()
+                boTexPSPArena(arc, texList, texOffset)
 
-    if fileVer < 0x26: # B3 demo
-        bs.seek(0x14)
-        texCount = bs.readUInt()
+                if boDebug:
+                    print("Texture {} of {} (Index: {})".format(tex + 1, texCount, texOffsetIndex))
+                arc.seek(texArrayOffset)
+
+        if boDebug:
+            print("\nApt Data offset: 0x{:X}".format(aptDataOffset + 16)
+                + "\nApt constant file offset: 0x{:X}".format(aptConstOffset + 16)
+                + "\nTexture pointer offset: 0x{:X}".format(texPtrOffset + 16))
+    return True
+
+def boArcFxp(fileName, fileLen, isChk):
+    with open(fileName, "rb") as chk:
+        if chk.read(0xC) != b"FX1?\x03" + bytes(7):
+            return False
+        if isChk:
+            return True
+
+    arc = NoeBitStream(rapi.loadIntoByteArray(fileName))
+
+    arc.seek(0xC)
+    fileCount = arc.readUInt()
+    arcSize = arc.readUInt64()
+    nameData = arc.readUInt()
+    infoSize = arc.readUInt()
+    if arcSize != fileLen:
+        arcCount = arc.readUInt()
     else:
-        bs.seek(0x16)
-        texCount = bs.readUShort()
-    texArrayOffset = bs.readUInt()
-    bs.seek(texArrayOffset)
-    for i in range(texCount):
-        texOffset = bs.readUInt()
-        curTexOffset = bs.tell()
-        boTexParse(bs,data,texOffset,0,texList,0)
-        bs.seek(curTexOffset)
-    return 1
+        arcIdx = 0
+        arcCount = 1
+    arc.seek(0x80, 1)
+    nameData += arc.tell()
 
-def boArcGetTexBxv(data,texList):
-    bs = boSetup(data)
+    arc = [arc]
+    arcRoot, arcExt = os.path.splitext(fileName)
+    for fxp in range(1, arcCount):
+        fileName = arcRoot + str(fxp) + arcExt
+        arc.append(NoeBitStream(rapi.loadIntoByteArray(fileName)))
 
-    try: bs = boToolDecZlib(bs,data)
-    except: bs.seek(0)
-    fileVer = bs.readUInt()
-    bs.seek(0x60)
-    if fileVer < 0x25:
-        texOffset = bs.readUInt()
-        boTexParse(bs,data,texOffset,0,texList,0)
-    else: # XBOX360
-        # i hate this whole section
-        for i in range(19): # i think?
-            texOffset = bs.readUInt()
-            if texOffset != 0:
-                curTexOffset = bs.tell()
-                bs.seek(texOffset + 0x48)
-                if bs.readUInt() != 2:
-                    boTexParse(bs,data,texOffset,0,texList,0)
-                else: # search through the array for matching filenames (palette)
-                    texName = boToolGetTexName(bs,data,texOffset)
-                    bs.seek(0x60)
-                    for j in range(19): # i think? pt2
-                        palOffset = bs.readUInt()
-                        if palOffset != 0:
-                            curPalOffset = bs.tell()
-                            palName = boToolGetTexName(bs,data,palOffset)
-                            bs.seek(palOffset + 0x48)
-                            #print(hex(curPalOffset))
-                            if palName == texName and bs.readUInt() == 0x86:
-                                boTexParse(bs,data,texOffset,palOffset,texList,0)
-                                bs.seek(curPalOffset - 4)
-                                bs.writeUInt(0) # to avoid being picked up by the tex scanner
-                                break
-                            bs.seek(curPalOffset)
-                bs.seek(curTexOffset)
-    return 1
+    for sub in range(fileCount):
+        nameOfs = arc[0].readUInt() + nameData
+        fileSize = arc[0].readUInt()
+        fileOfs = arc[0].readUInt() * 0x800
+        if arcSize != fileLen:
+            arcIdx = arc[0].readUByte()
+            arc[0].seek(0x3, 1)
+        else:
+            arc[0].seek(0x18, 1)
+        curArcPos = arc[0].tell()
+
+        arc[0].seek(nameOfs)
+        fileName = arc[0].readString()
+        arc[arcIdx].seek(fileOfs)
+        rapi.exportArchiveFile(fileName, arc[arcIdx].readBytes(fileSize))
+
+        if boDebug:
+            print("\nFXP archive file detected! (Version 3)"
+                + "\nFile name: {}".format(fileName)
+                + "\nFile name offset: 0x{:X}".format(nameOfs)
+                + "\nFile size: 0x{:X}".format(fileSize)
+                + "\nFile offset: 0x{:X}".format(fileOfs)
+                + "\nArchive part index: {}".format(arcIdx)
+                + "\nFile {} of {}".format(sub + 1, fileCount))
+        else:
+            print("Extracted", fileName)
+        arc[0].seek(curArcPos)
+    return True
+
+def blkArcTexDb(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arcVer = arc.readUInt()
+    if arcVer != 4:
+        arc.seek(0x1C)
+    txdOffset = arc.readUInt()
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
+
+def blkArcTexBinGlob(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arc.seek(0x4)
+    txdOffset = arc.readUInt()
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
+
+def blkArcTexBinUnit(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arcVer = arc.readUInt()
+    if arcVer == 0x0C:
+        arc.seek(0x18)
+    elif 0x16 <= arcVer <= 0x18:
+        arc.seek(0x24)
+    txdOffset = arc.readUInt()
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
+
+def blkArcTexBinLevel(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    chkVer = arc.readUInt()
+    arc.seek({
+        0x0A: 0x2BC,
+        0x11: 0x390
+    }.get(chkVer))
+    txdOffset = arc.readUInt()
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
+
+def blkArcTexBinStLevel(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arc.seek(0xC)
+    hdrOffset = arc.readUInt()
+    arc.seek(0x4)
+    txdOffset = arc.readUInt() + hdrOffset
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
+
+def blkArcTexBinStUnit(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    arc.seek(0x8)
+    hdrOffset = arc.readUInt()
+    arc.seek(hdrOffset + 0x1C)
+    txdOffset = arc.readUInt() + hdrOffset
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
+
+def blkArcTexBinGuns(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data)
+
+    txdOffset = arc.readUInt()
+    boArcTxdParse(arc, texList, txdOffset)
+    return True
