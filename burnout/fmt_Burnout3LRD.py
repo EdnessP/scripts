@@ -510,7 +510,7 @@ def boTexFixWidth(tex, texWidth, padWidth, texHeight):
 def boTexPS2(tex, texList, texOffset, texName, fontName):
     def boPS2Read4(rSize, rData=None):
         # Converts 4-bit data to 8-bit
-        # Can be used for both existing data lists and returning new byte arrays
+        # Can be used for both existing data lists and returning new bytearrays
         ret = False
         if rData is None:
             rData = list()
@@ -523,7 +523,7 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
 
     def boPS2Read32(rColors, rData=None):
         # Fixes alpha channel for 32-bit data
-        # Can be used for both existing data lists and returning new byte arrays
+        # Can be used for both existing data lists and returning new bytearrays
         ret = False
         if rData is None:
             rData = list()
@@ -597,7 +597,6 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
         tex.seek(palOffset)
         if palCount == 1:
             palData = boPS2Read32({4: 16, 8: 256}.get(bitDepth))
-            texData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "R8G8B8A8", noesis.DECODEFLAG_PS2SHIFT if bitDepth == 8 else 0)
         else:
             # Interleaved-grouped palette splitter
             palData = [list() for pal in range(8)]
@@ -640,6 +639,7 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
                         palNum += 1
                         boPS2TexPal(palData[7])
             return
+        texData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "R8G8B8A8", noesis.DECODEFLAG_PS2SHIFT if bitDepth == 8 else 0)
     texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
 def boTexPSP(tex, texList, texOffset):
@@ -1232,6 +1232,7 @@ def boArcFxp(fileName, fileLen, isChk):
 
     arc = [arc]
     arcRoot, arcExt = os.path.splitext(fileName)
+    print("Loading archive parts...")
     for fxp in range(1, arcCount):
         fileName = arcRoot + str(fxp) + arcExt
         arc.append(NoeBitStream(rapi.loadIntoByteArray(fileName)))
