@@ -1,3 +1,17 @@
+2022-04-25  -  v0.6
+    Added features:
+     * Automatic system detection for textures.
+     * Large parts of the script were rewritten.
+     * Slightly more strict ARENA texture name linking with their indexes.
+     * Added Burnout Dominator DLC and Need for Speed: Shift PSP FXP support.
+    Fixed issues:
+     * Enviro DAT exporter only finding up one texture from Burnout 3 Xbox Alpha builds.
+     * Improved various Black BIN and DB detection methods.
+     * Small PSP textures with larger buffers that export incorrectly.
+    Removed features:
+     * Platform select window - redundant.
+
+
 2021-10-11  -  v0.5e
     Added features:
      * Reorganised just about everything.
