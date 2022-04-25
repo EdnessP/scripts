@@ -8,6 +8,7 @@
      * Enviro DAT exporter only finding up one texture from Burnout 3 Xbox Alpha builds.
      * Improved various Black BIN and DB detection methods.
      * Small PSP textures with larger buffers that export incorrectly.
+     * Unhandled Xbox 360 A8 texture type.
     Removed features:
      * Platform select window - redundant.
 
