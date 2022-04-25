@@ -16,7 +16,7 @@
 #       WIP
 
 # This plugin is brought to you by the Burnout Modding community.
-#           burnout.miraheze.org  |  discord.gg/8zxbb4x          
+#               burnout.wiki  |  discord.gg/8zxbb4x              
 
 # Written by Edness   v0.6   2021-06-23 - 2022-04-25
 
