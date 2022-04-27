@@ -6,8 +6,9 @@
 #       * I've only seen mshAssign 7 once so far - in cube.msh
 #   * Handle duplicate textures/materials (?)
 
-# Written by Edness
-# 2022-04-08   v1.0
+# Bully Modding community: discord.gg/Xbrr72EsvK
+
+# Written by Edness   2022-04-08 - 2022-04-27   v1.1
 
 from inc_noesis import *
 
@@ -19,6 +20,8 @@ def registerNoesisTypes():
     handleMsh = noesis.register("Bully: Anniversary Edition Models", ".msh")
     noesis.setHandlerTypeCheck(handleMsh, aeMshCheckType)
     noesis.setHandlerLoadModel(handleMsh, aeMshLoadModel)
+    
+    #noesis.logPopup()
     return 1
 
 def aeTexCheckType(data):
@@ -383,27 +386,29 @@ def aeMshLoadModel(data, mdlList):
                         print("Successfully loaded {}.mtl".format(mtlNames[mtlIdx]))
                 except Exception as aeExc:
                     print("Failed loading {}.mtl: {}".format(mtlNames[mtlIdx], aeExc))
-                    continue
-
-                texType = mtlInfo.get("effect(effect)")
-                texNames = mtlInfo.get("textures(orderedarray<texture2d>)")
-                print(texType, texNames)
+                    mtlInfo = None
 
                 rapi.rpgSetMaterial(mtlNames[mtlIdx])
                 rapi.rpgSetName(mshName + mtlNames[mtlIdx][3:])
-                mat = NoeMaterial(mtlNames[mtlIdx], mshTexLoad(0))
-                texIdx = 1
-                if "normal" in texType:
-                    # is it  setBumpTexture  or  setNormalTexture?
-                    mat.setBumpTexture(mshTexLoad(1))
-                    texIdx += 1
-                if "spec" in texType:
-                    mat.setSpecularTexture(mshTexLoad(texIdx))
-                if mtlInfo.get("doublesided(bool)") == True:
-                    mat.setFlags(noesis.NMATFLAG_TWOSIDED)
-                #if mtlInfo.get("alphatest(bool)"):
-                #    mat.setAlphaTest(0)
-                matList.append(mat)
+
+                if mtlInfo is not None:
+                    texType = mtlInfo.get("effect(effect)")
+                    texNames = mtlInfo.get("textures(orderedarray<texture2d>)")
+                    print(texType, texNames)
+
+                    mat = NoeMaterial(mtlNames[mtlIdx], mshTexLoad(0))
+                    texIdx = 1
+                    if "normal" in texType:
+                        # is it  setBumpTexture  or  setNormalTexture?
+                        mat.setBumpTexture(mshTexLoad(1))
+                        texIdx += 1
+                    if "spec" in texType:
+                        mat.setSpecularTexture(mshTexLoad(texIdx))
+                    if mtlInfo.get("doublesided(bool)") == True:
+                        mat.setFlags(noesis.NMATFLAG_TWOSIDED)
+                    #if mtlInfo.get("alphatest(bool)"):
+                    #    mat.setAlphaTest(0)
+                    matList.append(mat)
 
                 rapi.rpgCommitTriangles(triData[mshSubStart:][:mshSubSize * 2], noesis.RPGEODATA_USHORT, mshSubSize, noesis.RPGEO_TRIANGLE)
 
