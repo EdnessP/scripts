@@ -7,7 +7,7 @@ If any problems arise, contact Edness#2203 on Discord.
 <details>
 <summary>bully\</summary>
 
-- BLegendsDS.bms &mdash; Decompress LZSS compressed files in **Burnout Legends** NDS.
+- BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
@@ -17,7 +17,7 @@ If any problems arise, contact Edness#2203 on Discord.
 <details>
 <summary>burnout\</summary>
 
-- BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
+- BLegendsDS.bms &mdash; Decompress LZSS compressed files in **Burnout Legends** NDS.
 - bxv_palsplit.bms &mdash; Split and re-merge interleaved-grouped palettes from .BGV and .BTV files.
 - fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).  Currently only supports textures.
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
