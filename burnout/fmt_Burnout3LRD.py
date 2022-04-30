@@ -20,8 +20,8 @@
 
 # Written by Edness   v0.6b   2021-06-23 - 2022-04-30
 
-boDebug = False
-boModels = False
+BoDebug = True
+BoModels = False
 
 from inc_noesis import *
 import zlib
@@ -92,7 +92,7 @@ def registerNoesisTypes():
     noesis.setHandlerTypeCheck(handleBinGuns, blkChkBinGuns)
     noesis.setHandlerLoadRGBA(handleBinGuns, blkArcTexBinGuns)
 
-    if boDebug:
+    if BoDebug:
         noesis.logPopup()
     return True
 
@@ -183,28 +183,28 @@ def boSetPalName(texName, palCount, palNum):
     return "{} (Palette {})".format(texName, palNum + 1) if palCount > 1 else texName
 
 # Known GtID compressed header values in Little Endian
-gACTORDICTION = b"\x92\x37\x96\xA8\x73\xC0\xF8\x4D"
-gANIMDICTIONA = b"\xDD\xAE\x78\x82\x08\x3C\x88\x4F"
-gBNKS         = b"\x00\x00\x00\x57\xE5\x57\x5C\x55"
-gCHARACTERDIC = b"\x57\xC3\x41\x63\x03\x9D\x45\x5A"
-gMODELS       = b"\x00\x00\x5C\x48\xF2\x0A\x82\x95"
-gMOVIEARRAY   = b"\x40\x79\x30\x26\x37\xE5\x92\x95"
-gMYDICTIONARY = b"\x15\xEA\x44\x72\xE2\xA8\xF6\x96"
-gRCBS         = b"\x00\x00\x00\x2F\x94\x09\xDC\xB0"
-gSHAREDBNKS   = b"\xC0\xD7\x61\x81\x3C\x79\x67\xB7"
-gTEXDIC       = b"\x00\x00\x3C\x54\x81\xED\xDE\xBC"
-gTEXTURE      = b"\x00\x80\x9A\xDD\xB7\x4E\xDF\xBC"
-gTEXTUREDICTI = b"\xD5\x64\x20\xE0\xB7\x4E\xDF\xBC"
+G_ACTORDICTION = b"\x92\x37\x96\xA8\x73\xC0\xF8\x4D"
+G_ANIMDICTIONA = b"\xDD\xAE\x78\x82\x08\x3C\x88\x4F"
+G_BNKS         = b"\x00\x00\x00\x57\xE5\x57\x5C\x55"
+G_CHARACTERDIC = b"\x57\xC3\x41\x63\x03\x9D\x45\x5A"
+G_MODELS       = b"\x00\x00\x5C\x48\xF2\x0A\x82\x95"
+G_MOVIEARRAY   = b"\x40\x79\x30\x26\x37\xE5\x92\x95"
+G_MYDICTIONARY = b"\x15\xEA\x44\x72\xE2\xA8\xF6\x96"
+G_RCBS         = b"\x00\x00\x00\x2F\x94\x09\xDC\xB0"
+G_SHAREDBNKS   = b"\xC0\xD7\x61\x81\x3C\x79\x67\xB7"
+G_TEXDIC       = b"\x00\x00\x3C\x54\x81\xED\xDE\xBC"
+G_TEXTURE      = b"\x00\x80\x9A\xDD\xB7\x4E\xDF\xBC"
+G_TEXTUREDICTI = b"\xD5\x64\x20\xE0\xB7\x4E\xDF\xBC"
 
 # Global system variables
-boPS2 = 1
-boPSP = 2
-boXbox = 3
-boXbox360 = 4
+BoPS2 = 1
+BoPSP = 2
+BoXbox = 3
+BoXbox360 = 4
 
 # Global exception messages
-boExcSys = "Couldn't determine system!"
-boExcFmt = "Unsupported format! "
+BoExcSys = "Couldn't determine system!"
+BoExcFmt = "Unsupported format! "
 
 
 
@@ -218,7 +218,7 @@ boExcFmt = "Unsupported format! "
 
 def boChkTxd(data):
     chk = NoeBitStream(data)
-    if chk.readBytes(8) in {gTEXDIC, gTEXDIC[::-1]}:
+    if chk.readBytes(8) in {G_TEXDIC, G_TEXDIC[::-1]}:
         return True
     return False
 
@@ -280,7 +280,7 @@ def boChkDatEnviro(data):
 
 def boChkBinFE(data):
     chk = NoeBitStream(data)
-    if chk.readBytes(8) in {gMOVIEARRAY, gMOVIEARRAY[::-1]}:
+    if chk.readBytes(8) in {G_MOVIEARRAY, G_MOVIEARRAY[::-1]}:
         return True
     return False
 
@@ -306,7 +306,7 @@ def boChkBinLoad(data):
     chkAlign = boCalcAlign(txdCount * 0x10 + 8, 0x800)
     if chkAlign < chk.getSize():
         chk.seek(chkAlign)
-        if chk.readBytes(8) == gTEXDIC:
+        if chk.readBytes(8) == G_TEXDIC:
             return True
     return False
 
@@ -325,17 +325,17 @@ def blkChkDb(data):
         chk.seek(0x18)
         chkVer = chk.readUInt()
     if chkVer in {0x04, 0x09}:
-        dctOrder = (gMODELS,
-                    gCHARACTERDIC,
-                    gACTORDICTION,
-                    gBNKS,
-                    gSHAREDBNKS,
-                    gRCBS)
+        dctOrder = (G_MODELS,
+                    G_CHARACTERDIC,
+                    G_ACTORDICTION,
+                    G_BNKS,
+                    G_SHAREDBNKS,
+                    G_RCBS)
         txdOffset = chk.readUInt()
         curChkOffset = chk.tell()
         if txdOffset < chkSize:
             chk.seek(txdOffset)
-            if chk.readBytes(8) not in {gTEXDIC, gTEXTURE}:
+            if chk.readBytes(8) not in {G_TEXDIC, G_TEXTURE}:
                 return False
         for gtid in dctOrder:
             chk.seek(curChkOffset)
@@ -359,10 +359,10 @@ def blkChkBinGlob(data):
         if txdOffset > chkSize or dctOffset > chkSize:
             return False
         chk.seek(txdOffset)
-        if chk.readBytes(8) != gTEXDIC:
+        if chk.readBytes(8) != G_TEXDIC:
             return False
         chk.seek(dctOffset)
-        if chk.readBytes(8) != gMYDICTIONARY:
+        if chk.readBytes(8) != G_MYDICTIONARY:
             return False
         return True
     return False
@@ -379,8 +379,8 @@ def blkChkBinUnit(data):
         return False
     txdOffset = chk.readUInt()
     chk.seek(txdOffset)
-    if chk.readBytes(8) == gTEXTUREDICTI:
-    # surrounded by gMYDICTIONARY and gANIMDICTIONA 
+    if chk.readBytes(8) == G_TEXTUREDICTI:
+    # surrounded by G_MYDICTIONARY and G_ANIMDICTIONA 
         return True
     return False
 
@@ -397,7 +397,7 @@ def blkChkBinLevel(data):
             return False
         txdOffset = chk.readUInt()
         chk.seek(txdOffset)
-        if chk.readBytes(8) == gTEXDIC:
+        if chk.readBytes(8) == G_TEXDIC:
             return True
     return False
 
@@ -411,7 +411,7 @@ def blkChkBinStLevel(data):
         hdrOffset = chk.readUInt()
         if hdrOffset < chk.getSize() - 8:
             chk.seek(hdrOffset + txdOffset)
-            if chk.readBytes(8) == gTEXTURE:
+            if chk.readBytes(8) == G_TEXTURE:
                 return True
     return False
 
@@ -424,13 +424,13 @@ def blkChkBinStUnit(data):
         hdrOffset = chk.readUInt()
         chk.seek(hdrOffset + 0x18)
         if chk.readUInt() == 0x09:
-            dctOrder = (gTEXTURE,
-                        gMODELS,
-                        gCHARACTERDIC,
-                        gACTORDICTION,
-                        gBNKS,
-                        gSHAREDBNKS,
-                        gRCBS)
+            dctOrder = (G_TEXTURE,
+                        G_MODELS,
+                        G_CHARACTERDIC,
+                        G_ACTORDICTION,
+                        G_BNKS,
+                        G_SHAREDBNKS,
+                        G_RCBS)
             for gtid in dctOrder:
                 dctOffset = chk.readUInt() + hdrOffset
                 curChkOffset = chk.tell()
@@ -452,9 +452,9 @@ def blkChkBinGuns(data):
     if txdOffset > chkSize or mdlOffset > chkSize:
         return False
     chk.seek(txdOffset)
-    if chk.readBytes(8) == gTEXTURE:
+    if chk.readBytes(8) == G_TEXTURE:
         chk.seek(mdlOffset)
-        if chk.readBytes(8) == gMODELS:
+        if chk.readBytes(8) == G_MODELS:
             return True
     return False
 
@@ -472,22 +472,22 @@ def boTexGetSystem(tex, texEndian, texOffset):
     tex.seek(texOffset)
     texHeader = tex.readBytes(8)
     if texEndian == "big":
-        return boXbox360
+        return BoXbox360
     if texHeader.startswith(b"\x01\x00\x04\x00"):
-        return boXbox
+        return BoXbox
     if texHeader == bytes(8):
-        return boPSP
+        return BoPSP
     if texHeader.startswith(bytes(4)):
-        return boPS2
-    noesis.doException(boExcSys)
+        return BoPS2
+    noesis.doException(BoExcSys)
 
 def boTexGetName(tex, texEndian, texOffset):
     # Used by PS2, Xbox, and Xbox 360 only
     texSystem = boTexGetSystem(tex, texEndian, texOffset)
 
     texSeek = {
-        boPS2: 0xA8,
-        boXbox: 0x44
+        BoPS2: 0xA8,
+        BoXbox: 0x44
     }.get(texSystem, 0x0)
     tex.seek(texOffset + texSeek)
     return tex.readString()
@@ -557,7 +557,7 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
     if fontName:
         texName += " ({})".format(fontName)
 
-    if boDebug:
+    if BoDebug:
         print("\nPlayStation 2 texture detected!"
             + "\nTexture name: {}".format(texName.split(" - ")[-1])
             + "\nTexture offset: 0x{:X}".format(texOffset)
@@ -588,7 +588,7 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
     elif bitDepth == 32:
         texData = boPS2Read32(texWidth * texHeight)
     else:
-        noesis.doException(boExcFmt + "{} bpp".format(bitDepth))
+        noesis.doException(BoExcFmt + "{} bpp".format(bitDepth))
 
     if bitDepth in {4, 8}:
         texData = rapi.imageUntwiddlePS2(texData, wPad, texHeight, 8)
@@ -665,7 +665,7 @@ def boTexPSP(tex, texList, texOffset):
         texSize = tex.readUInt()
     texName = tex.readString()
 
-    if boDebug:
+    if BoDebug:
         print("\nPlayStation Portable texture detected! ({}er revision)".format("New" if newFmtNfs else "Old")
             + "\nTexture name: {}".format(texName)
             +("\nTexture size: 0x{:X}".format(texSize) if newFmtNfs else "")
@@ -686,7 +686,7 @@ def boTexPSP(tex, texList, texOffset):
     elif bitDepth == 32:
         texData = tex.readBytes(texWidth * texHeight * 4)
     else:
-        noesis.doException(boExcFmt + "{} bpp".format(bitDepth))
+        noesis.doException(BoExcFmt + "{} bpp".format(bitDepth))
     texData = rapi.imageUntwiddlePSP(texData, texWidth, texHeight, bitDepth)
 
     if bitDepth in {4, 8}:
@@ -715,14 +715,14 @@ def boTexPSPArena(tex, texList, texOffset, texName=None, fontName=None):
         3: 8
     }.get(texFmt)
     if not bitDepth:
-        noesis.doException(boExcFmt + hex(texFmt))
+        noesis.doException(BoExcFmt + hex(texFmt))
 
     tex.seek(texOffset + 0x80)
     bmpOffset = tex.readUInt() + texOffset
     tex.seek(texOffset + 0xA0)
     palOffset = tex.readUInt() + texOffset
 
-    if boDebug:
+    if BoDebug:
         print("\nPlayStation Portable arena texture detected!"
             + "\nTexture name: {}".format(texName.replace(" - ", "/"))
             + "\nTexture offset: 0x{:X}".format(texOffset + 16)
@@ -765,7 +765,7 @@ def boTexXbox(tex, texList, texOffset, texName):
         tex.seek(texOffset + (0x44 if newFmtRev else 0x48))
         texName = tex.readString()
 
-    if boDebug:
+    if BoDebug:
         print("\nXbox texture detected! ({}er revision)".format("New" if newFmtRev else "Old")
             + "\nTexture name: {}".format(texName.split(" - ")[-1])
             + "\nTexture offset: 0x{:X}".format(texOffset)
@@ -790,10 +790,10 @@ def boTexXbox(tex, texList, texOffset, texName):
             curPalOffset = tex.tell()
             tex.seek(palOffset)
             if not tex.readBytes(4) in {b"\x01\x00\x03\x00", b"\x01\x00\x03\xC0"}:
-                noesis.doException(boExcFmt + "Invalid palette header!")
+                noesis.doException(BoExcFmt + "Invalid palette header!")
             palDataOffset = tex.readUInt() + texOffset
 
-            if boDebug:
+            if BoDebug:
                 print("Palette {} offset: 0x{:X}".format(pal + 1, palOffset)
                     + "\nPalette {} data offset: 0x{:X}".format(pal + 1, palDataOffset))
 
@@ -817,7 +817,7 @@ def boTexXbox(tex, texList, texOffset, texName):
         texFmt = noesis.NOESISTEX_RGBA32
         texData = rapi.imageFromMortonOrder(tex.readBytes(texWidth * texHeight * 4), texWidth, texHeight, 4)
     else:
-        noesis.doException(boExcFmt + hex(texFmt))
+        noesis.doException(BoExcFmt + hex(texFmt))
 
     texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
@@ -835,7 +835,7 @@ def boTexXbox360(tex, texList, texOffset, texName, palOffset):
     tex.seek(texOffset + 0x48)
     texFmt = tex.readUInt()
 
-    if boDebug:
+    if BoDebug:
         print("\nXbox 360 texture detected!"
             + "\nTexture name: {}".format(texName.split(" - ")[-1])
             + "\nTexture size: 0x{:X}".format(texSize)
@@ -876,20 +876,20 @@ def boTexXbox360(tex, texList, texOffset, texName, palOffset):
         texFmt = noesis.NOESISTEX_RGBA32
         texData = rapi.imageDecodeRaw(rapi.imageUntile360Raw(texData, texWidth, texHeight, 4), texWidth, texHeight, "A8R8G8B8")
     else:
-        noesis.doException(boExcFmt + hex(texFmt))
+        noesis.doException(BoExcFmt + hex(texFmt))
 
     texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
 def boTexParse(tex, texEndian, texList, texOffset, texName=None, texExtra=None):
     texSystem = boTexGetSystem(tex, texEndian, texOffset)
 
-    if texSystem == boPS2:
+    if texSystem == BoPS2:
         boTexPS2(tex, texList, texOffset, texName, texExtra)
-    elif texSystem == boPSP:
+    elif texSystem == BoPSP:
         boTexPSP(tex, texList, texOffset)
-    elif texSystem == boXbox:
+    elif texSystem == BoXbox:
         boTexXbox(tex, texList, texOffset, texName)
-    elif texSystem == boXbox360:
+    elif texSystem == BoXbox360:
         boTexXbox360(tex, texList, texOffset, texName, texExtra)
 
 
@@ -904,7 +904,7 @@ def boTexParse(tex, texEndian, texList, texOffset, texName=None, texExtra=None):
 
 def boArcTxdParse(arc, texList, startOffset=0x0):
     arc.seek(startOffset)
-    if arc.readBytes(8) == gTEXDIC[::-1]:
+    if arc.readBytes(8) == G_TEXDIC[::-1]:
         arc.setEndian(NOE_BIGENDIAN)
         arcEndian = "big"
     else:
@@ -918,7 +918,7 @@ def boArcTxdParse(arc, texList, startOffset=0x0):
         texOffset = arc.readUInt() + startOffset
         curOffset = arc.tell() + 0x4
         boTexParse(arc, arcEndian, texList, texOffset)
-        if boDebug:
+        if BoDebug:
             print("Texture {} of {}".format(texNum, texCount))
         arc.seek(curOffset)
 
@@ -970,7 +970,7 @@ def boArcMdlBxv(data, mdlList):
                             arc.seek(curPalOffset)
                 arc.seek(curTexOffset)
 
-    if not boModels:
+    if not BoModels:
         boSetDummyMdl(mdlList, texList)
     return True
 
@@ -1002,10 +1002,10 @@ def boArcMdlDatStatic(data, mdlList):
         boTexParse(arc, arcEndian, texList, texOffset)
         arc.seek(curTexOffset)
 
-        if boDebug:
+        if BoDebug:
             print("Texture {} of {}".format(tex + 1, texCount))
 
-    if not boModels:
+    if not BoModels:
         boSetDummyMdl(mdlList, texList)
     return True
 
@@ -1035,7 +1035,7 @@ def boArcTexBinFE(data, texList):
     rapi.processCommands("-texnorepfn")
     arc = NoeBitStream(data)
 
-    if arc.readBytes(8) == gMOVIEARRAY:
+    if arc.readBytes(8) == G_MOVIEARRAY:
         arcEndian = "little"
     else:
         arc.setEndian(NOE_BIGENDIAN)
@@ -1085,7 +1085,7 @@ def boArcTexBinFE(data, texList):
                         break
                     arc.seek(curTexPtrOffset)
 
-                if boDebug:
+                if BoDebug:
                     print("Directory name: {}".format(dirName)
                         + "\nDirectory offset: 0x{:X}".format(dirDataOffset)
                         + "\nApt Data offset: 0x{:X}".format(aptDataOffset)
@@ -1109,7 +1109,7 @@ def boArcTexBinLoad(data, texList):
         txdOffset = arc.readUInt() + arcAlign
         curOffset = arc.tell()
         boArcTxdParse(arc, texList, txdOffset)
-        if boDebug:
+        if BoDebug:
             print("Texture dictionary name: {}".format(txdName)
                 + "\nTexture dictionary offset: 0x{:X}".format(txdOffset))
         arc.seek(curOffset)
@@ -1187,7 +1187,7 @@ def boArcTexArena(data, texList):
                         texArrayOffset = arc.tell()
                         boTexPSPArena(arc, texList, texOffset, texName=texName if texNameIndex == texOffsetIndex else None)
 
-                        if boDebug:
+                        if BoDebug:
                             print("Texture {} of {} (Index: {})".format(tex + 1, texCount, texOffsetIndex))
                         arc.seek(curAptOffset)
                     return True
@@ -1200,11 +1200,11 @@ def boArcTexArena(data, texList):
                 texArrayOffset = arc.tell()
                 boTexPSPArena(arc, texList, texOffset)
 
-                if boDebug:
+                if BoDebug:
                     print("Texture {} of {} (Index: {})".format(tex + 1, texCount, texOffsetIndex))
                 arc.seek(texArrayOffset)
 
-        if boDebug:
+        if BoDebug:
             print("\nApt Data offset: 0x{:X}".format(aptDataOffset + 16)
                 + "\nApt constant file offset: 0x{:X}".format(aptConstOffset + 16)
                 + "\nTexture pointer offset: 0x{:X}".format(texPtrOffset + 16))
@@ -1255,7 +1255,7 @@ def boArcFxp(fileName, fileLen, isChk):
         arc[arcIdx].seek(fileOfs)
         rapi.exportArchiveFile(fileName, arc[arcIdx].readBytes(fileSize))
 
-        if boDebug:
+        if BoDebug:
             print("\nFXP archive file detected! (Version 3)"
                 + "\nFile name: {}".format(fileName)
                 + "\nFile name offset: 0x{:X}".format(nameOfs)
