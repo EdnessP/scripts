@@ -20,7 +20,7 @@
 
 # Written by Edness   v0.6b   2021-06-23 - 2022-04-30
 
-BoDebug = True
+BoDebug = False
 BoModels = False
 
 from inc_noesis import *
