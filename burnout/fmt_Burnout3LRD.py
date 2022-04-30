@@ -18,7 +18,7 @@
 # This plugin is brought to you by the Burnout Modding community.
 #               burnout.wiki  |  discord.gg/8zxbb4x              
 
-# Written by Edness   v0.6   2021-06-23 - 2022-04-25
+# Written by Edness   v0.6b   2021-06-23 - 2022-04-29
 
 boDebug = False
 boModels = False
@@ -156,10 +156,11 @@ def boEncGtHash(str):
         cGtHash = cGtHash - ((cGtHash & 0x80000000) << 1) >> 8 & 0xFFFFFFFF ^ hashTable[ord(str[chr]) ^ cGtHash & 0xFF]
     return cGtHash
 
-def boGetVerEndian(data):
+def boGetVerEndian(noe, data):
     # Expects to be a byte form int that's < 256 for version checks
     bLen = len(data) - 1
     if data.startswith(bytes(bLen)):
+        noe.setEndian(NOE_BIGENDIAN)
         return "big"
     if data.endswith(bytes(bLen)):
         return "little"
@@ -227,7 +228,7 @@ def boChkBxv(data):
     if chkVer.startswith(b"\x78\xDA"):
         chk = NoeBitStream(boDecZlib(data[:256]), NOE_BIGENDIAN)
         chkVer = chk.readBytes(4)
-    chkEndian = boGetVerEndian(chkVer)
+    chkEndian = boGetVerEndian(chk, chkVer)
     if chkEndian:
         chkVer = boConvToInt(chkVer, chkEndian)
         chkSize = chk.readUInt()
@@ -241,7 +242,7 @@ def boChkDatStatic(data):
     if chkVer.startswith(b"\x78\xDA"):
         chk = NoeBitStream(boDecZlib(data[:256]), NOE_BIGENDIAN)
         chkVer = chk.readBytes(4)
-    chkEndian = boGetVerEndian(chkVer)
+    chkEndian = boGetVerEndian(chk, chkVer)
     if chkEndian:
         chkVer = boConvToInt(chkVer, chkEndian)
         chkSize = chk.readUInt()
@@ -516,8 +517,9 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
             rData = list()
             ret = True
         for byte in range(rSize):
-            rData.append(tex.readBits(4))
-            rData.append(tex.readBits(4))
+            # Not using Noesis' tex.readBits() because it is very slow
+            rByte = tex.readUByte()
+            rData.extend((rByte & 0xF, rByte >> 4))
         if ret:
             return bytearray(rData)
 
@@ -732,7 +734,7 @@ def boTexPSPArena(tex, texList, texOffset, texName=None, fontName=None):
     tex.seek(bmpOffset)
     if texFmt == 0x02:
         texData = tex.readBytes(texWidth * texHeight // 2)
-    if texFmt == 0x03:
+    elif texFmt == 0x03:
         texData = tex.readBytes(texWidth * texHeight)
 
     tex.seek(palOffset)
@@ -770,7 +772,9 @@ def boTexXbox(tex, texList, texOffset, texName):
             + "\nTexture data offset: 0x{:X}".format(bmpOffset)
             + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
             + "\nTexture bit depth: {}".format(bitDepth)
-            + "\nTexture format: 0x{:X}".format(texFmt)
+            + "\nTexture format: 0x{:X} ({})".format(texFmt, {0xB: "Paletted", 0xC: "DXT1",
+                                                              0xE: "DXT3", 0xF: "DXT5",
+                                                              0x3A: "RGBA"}.get(texFmt))
             + "\nPalette amount: {}".format(palCount))
 
     tex.seek(bmpOffset)
@@ -818,6 +822,7 @@ def boTexXbox(tex, texList, texOffset, texName):
     texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
 def boTexXbox360(tex, texList, texOffset, texName, palOffset):
+    tex.seek(texOffset)
     if not texName:
         texName = tex.readString()
     tex.seek(texOffset + 0x20)
@@ -836,7 +841,9 @@ def boTexXbox360(tex, texList, texOffset, texName, palOffset):
             + "\nTexture size: 0x{:X}".format(texSize)
             + "\nTexture offset: 0x{:X}".format(texOffset)
             + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
-            + "\nTexture format: 0x{:X}".format(texFmt))
+            + "\nTexture format: 0x{:X} ({})".format(texFmt, {0x2: "8-bit", 0x52: "DXT1",
+                                                              0x53: "DXT3", 0x54: "DXT5",
+                                                              0x86: "ARGB"}.get(texFmt)))
         if palOffset:
             print("Palette offset: 0x{:X}".format(palOffset)
                 + "\nPalette amount: {}".format(palCount))
@@ -876,7 +883,6 @@ def boTexXbox360(tex, texList, texOffset, texName, palOffset):
 def boTexParse(tex, texEndian, texList, texOffset, texName=None, texExtra=None):
     texSystem = boTexGetSystem(tex, texEndian, texOffset)
 
-    tex.seek(texOffset)
     if texSystem == boPS2:
         boTexPS2(tex, texList, texOffset, texName, texExtra)
     elif texSystem == boPSP:
@@ -926,9 +932,7 @@ def boArcMdlBxv(data, mdlList):
     if arcVer.startswith(b"\x78\xDA"):
         arc = NoeBitStream(boDecZlib(data))
         arcVer = arc.readBytes(4)
-    arcEndian = boGetVerEndian(arcVer)
-    if arcEndian == "big":
-        arc.setEndian(NOE_BIGENDIAN)
+    arcEndian = boGetVerEndian(arc, arcVer)
     arcVer = boConvToInt(arcVer, arcEndian)
 
     arc.seek(0x60)
@@ -980,9 +984,7 @@ def boArcMdlDatStatic(data, mdlList):
     if arcVer.startswith(b"\x78\xDA"):
         arc = NoeBitStream(boDecZlib(data))
         arcVer = arc.readBytes(4)
-    arcEndian = boGetVerEndian(arcVer)
-    if arcEndian == "big":
-        arc.setEndian(NOE_BIGENDIAN)
+    arcEndian = boGetVerEndian(arc, arcVer)
     arcVer = boConvToInt(arcVer, arcEndian)
 
     if arcVer <= 0x25: # B3 demo
@@ -1215,6 +1217,7 @@ def boArcFxp(fileName, fileLen, isChk):
         if isChk:
             return True
 
+    print("Loading archive parts...")
     arc = NoeBitStream(rapi.loadIntoByteArray(fileName))
 
     arc.seek(0xC)
@@ -1232,7 +1235,6 @@ def boArcFxp(fileName, fileLen, isChk):
 
     arc = [arc]
     arcRoot, arcExt = os.path.splitext(fileName)
-    print("Loading archive parts...")
     for fxp in range(1, arcCount):
         fileName = arcRoot + str(fxp) + arcExt
         arc.append(NoeBitStream(rapi.loadIntoByteArray(fileName)))
