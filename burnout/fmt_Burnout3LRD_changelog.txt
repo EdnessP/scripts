@@ -1,3 +1,13 @@
+2022-04-30  -  v0.6b
+    Bugfix release!
+    Added features:
+     * Print "Loading archive parts..." when loading FXPs.
+     * Print Texture Format names for Xbox and Xbox 360.
+    Fixed issues:
+     * Removed the use of Noesis' readBits() function because it is very slow.
+        * Now instead reads a whole byte and splits into 4 bits using maths.
+
+
 2022-04-25  -  v0.6
     Added features:
      * Automatic system detection for textures.
