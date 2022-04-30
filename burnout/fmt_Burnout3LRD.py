@@ -517,7 +517,7 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
             rData = list()
             ret = True
         for byte in range(rSize):
-            # Not using Noesis' tex.readBits() because it is very slow
+            # Not using Noesis' readBits() because it is very slow
             rByte = tex.readUByte()
             rData.extend((rByte & 0xF, rByte >> 4))
         if ret:
