@@ -39,10 +39,9 @@ hash_table = (
 )
 
 def calc_gthash(str):
-    # Calculates strings into GtHash values
     gt_hash = 0xFFFFFFFF
-    for i in range(len(str)):
-        gt_hash = gt_hash - ((gt_hash & 0x80000000) << 1) >> 8 & 0xFFFFFFFF ^ hash_table[ord(str[i]) ^ gt_hash & 0xFF]
+    for char in str:
+        gt_hash = gt_hash - ((gt_hash & 0x80000000) << 1) >> 8 & 0xFFFFFFFF ^ hash_table[ord(char) ^ gt_hash & 0xFF]
     return gt_hash
 
 if __name__ == "__main__":
