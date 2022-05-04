@@ -21,6 +21,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - bxv_palsplit.bms &mdash; Split and re-merge interleaved-grouped palettes from .BGV and .BTV files.
 - fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).  Currently only supports textures.
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
+- GtHash.py &mdash; Python reimplementation of GtHash string hashing.
 - GtIDstr.py &mdash; Python reimplementation of GtID EA string compression and decompression.
 - txdscanner.bms &mdash; Extracts .TXDs from containers.  Only really needed for fonts stored in the executable.
 
