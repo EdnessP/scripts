@@ -1,7 +1,6 @@
+#!/usr/bin/env python3
 # Written by Edness
 # 2022-03-24   v1.0
-
-import argparse
 
 hash_table = (
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -45,6 +44,8 @@ def calc_gthash(str):
     return gt_hash
 
 if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser(description="Hashes strings into their GtHash values used by Burnout games.")
     parser.add_argument("string", type=str)
     args = parser.parse_args()
