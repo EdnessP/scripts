@@ -7,18 +7,18 @@ _c_char = list(bytes(256))
 for _idx in range(len(_char)):
     _c_char[ord(_char[_idx])] = _idx
 
-def decomp_gtid(c_str, id_len=12):
+def decomp_gtid(c_str: int, id_len=12):
     str = ""
     for i in range(id_len):
         str += _char[c_str % len(_char)]
         c_str //= len(_char)
     return str[::-1].strip()
 
-def comp_gtid(d_str, id_len=12):
+def comp_gtid(d_str: str, id_len=12):
     res = 0
     d_str = d_str.ljust(id_len)[::-1]
     for i in range(id_len):
-        res += _c_char[ord(str(d_str[i].upper()))] * (len(_char) ** i)
+        res += _c_char[ord(d_str[i].upper())] * (len(_char) ** i)
     return res
 
 if __name__ == "__main__":
