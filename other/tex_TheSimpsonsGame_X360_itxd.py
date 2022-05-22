@@ -1,5 +1,8 @@
 # Written by Edness   v1.0   2022-05-22
 
+# Also check out the PS3 version of this script at
+# https://forum.xentax.com/viewtopic.php?f=18&t=19360
+
 from inc_noesis import *
 
 def registerNoesisTypes():
