@@ -47,6 +47,7 @@ If any problems arise, contact Edness#2203 on Discord.
 
 - tex_HuneX_MF_PS2.py &mdash; PS2 Texture extraction for **HuneX** developed games. 
 - tex_SpongebobSurfnSkate.py &mdash; **SpongeBob's Surf & Skate Roadtrip** .XEN textures. May work on other Blitz Games archives too.
+- tex_TheSimpsonsGame_X360_itxd.py &mdash; **The Simpsons Game** Xbox 360 .ITXD Noesis texture plugin.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
 
 ### MISCELLANEOUS
