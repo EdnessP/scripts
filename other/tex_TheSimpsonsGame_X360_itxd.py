@@ -8,7 +8,7 @@ from inc_noesis import *
 def registerNoesisTypes():
     handle = noesis.register("The Simpsons Game [X360]", ".itxd")
     noesis.setHandlerTypeCheck(handle, tsgCheckType)
-    noesis.setHandlerLoadRGBA(handle, tsgLoadRGBA)
+    noesis.setHandlerLoadRGBA(handle, tsgLoadTexture)
     return True
 
 def tsgCheckType(data):
@@ -17,7 +17,7 @@ def tsgCheckType(data):
         return True
     return False
 
-def tsgLoadRGBA(data, texList):
+def tsgLoadTexture(data, texList):
     tex = NoeBitStream(data, NOE_BIGENDIAN)
     rapi.processCommands("-texnorepfn")
 
