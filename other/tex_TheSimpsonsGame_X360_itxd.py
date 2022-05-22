@@ -26,8 +26,6 @@ def tsgLoadTexture(data, texList):
     texInfoEnd = tex.readUInt()  # Offset of the last entry
 
     while texInfo <= texInfoEnd:
-        tex.seek(texInfo)
-
         tex.seek(texInfo + 0x8)
         texName = tex.readString()
         tex.seek(texInfo + 0x7C)
