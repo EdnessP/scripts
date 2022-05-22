@@ -1,4 +1,4 @@
-# Written by Edness   v1.0   2022-05-22
+# Written by Edness   v1.01   2022-05-22
 
 # Also check out the PS3 version of this script at
 # https://forum.xentax.com/viewtopic.php?f=18&t=19360
@@ -9,8 +9,6 @@ def registerNoesisTypes():
     handle = noesis.register("The Simpsons Game [X360]", ".itxd")
     noesis.setHandlerTypeCheck(handle, tsgCheckType)
     noesis.setHandlerLoadRGBA(handle, tsgLoadRGBA)
-
-    #noesis.logPopup()
     return True
 
 def tsgCheckType(data):
@@ -24,12 +22,11 @@ def tsgLoadRGBA(data, texList):
     rapi.processCommands("-texnorepfn")
 
     tex.seek(0x18)
-    texInfoStart = tex.readUInt()
+    texInfo = tex.readUInt()
     texInfoEnd = tex.readUInt()  # Offset of the last entry
 
-    tex.seek(texInfoStart)
-    while tex.tell() <= texInfoEnd:
-        texInfo = tex.tell()
+    while texInfo <= texInfoEnd:
+        tex.seek(texInfo)
 
         tex.seek(texInfo + 0x8)
         texName = tex.readString()
@@ -64,5 +61,5 @@ def tsgLoadRGBA(data, texList):
             noesis.doException("Unhandled format 0x{:02X}!".format(texFmt))
 
         texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
-        tex.seek(texInfo + 0x100)
+        texInfo += 0x100
     return True
