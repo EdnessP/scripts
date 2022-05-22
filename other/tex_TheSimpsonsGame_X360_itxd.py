@@ -7,19 +7,19 @@ from inc_noesis import *
 
 def registerNoesisTypes():
     handle = noesis.register("The Simpsons Game [X360]", ".itxd")
-    noesis.setHandlerTypeCheck(handle, noepyCheckType)
-    noesis.setHandlerLoadRGBA(handle, noepyLoadRGBA)
+    noesis.setHandlerTypeCheck(handle, tsgCheckType)
+    noesis.setHandlerLoadRGBA(handle, tsgLoadRGBA)
 
     #noesis.logPopup()
     return True
 
-def noepyCheckType(data):
+def tsgCheckType(data):
     chk = NoeBitStream(data)
     if chk.readBytes(4) == b"uz\x00\x03":
         return True
     return False
 
-def noepyLoadRGBA(data, texList):
+def tsgLoadRGBA(data, texList):
     tex = NoeBitStream(data, NOE_BIGENDIAN)
     rapi.processCommands("-texnorepfn")
 
