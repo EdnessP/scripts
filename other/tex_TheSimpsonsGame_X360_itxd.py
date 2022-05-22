@@ -6,7 +6,7 @@
 from inc_noesis import *
 
 def registerNoesisTypes():
-    handle = noesis.register("The Simpsons game [X360]", ".itxd")
+    handle = noesis.register("The Simpsons Game [X360]", ".itxd")
     noesis.setHandlerTypeCheck(handle, noepyCheckType)
     noesis.setHandlerLoadRGBA(handle, noepyLoadRGBA)
 
