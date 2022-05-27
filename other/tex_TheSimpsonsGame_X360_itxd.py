@@ -1,4 +1,5 @@
-# Written by Edness   v1.01   2022-05-22
+# Written by Edness    v1.1
+# 2022-05-22  -  2022-05-27
 
 # Also check out the PS3 version of this script at
 # https://forum.xentax.com/viewtopic.php?f=18&t=19360
@@ -9,6 +10,8 @@ def registerNoesisTypes():
     handle = noesis.register("The Simpsons Game [X360]", ".itxd")
     noesis.setHandlerTypeCheck(handle, tsgCheckType)
     noesis.setHandlerLoadRGBA(handle, tsgLoadTexture)
+
+    #noesis.logPopup()
     return True
 
 def tsgCheckType(data):
@@ -26,6 +29,7 @@ def tsgLoadTexture(data, texList):
     texInfoEnd = tex.readUInt()  # Offset of the last entry
 
     while texInfo <= texInfoEnd:
+        # 0x0, 0x4 = next, prev tex offset
         tex.seek(texInfo + 0x8)
         texName = tex.readString()
         tex.seek(texInfo + 0x7C)
@@ -36,6 +40,12 @@ def tsgLoadTexture(data, texList):
         texOffset = tex.readUInt()
         tex.seek(texInfo + 0xBF)
         texFmt = tex.readUByte()
+
+        print("\nTexture name: {}".format(texName)
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture offset: 0x{:X}".format(texOffset)
+            + "\nTexture size: 0x{:X}".format(texSize)
+            + "\nTexture format: 0x{:X}".format(texFmt))
 
         tex.seek(texOffset)
         texData = tex.readBytes(texSize)
