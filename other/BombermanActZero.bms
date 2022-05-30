@@ -1,0 +1,18 @@
+# Bomberman Act Zero .DAT files
+# Edness   2022-05-31   v1.0
+
+endian big
+
+do
+	get IDX long
+	get TOTALSIZE long
+	get FILESIZE long
+	get PADSIZE long
+
+	savepos OFFSET
+	math OFFSET += PADSIZE
+	if IDX != -1
+		log "" OFFSET FILESIZE
+		goto TOTALSIZE 0 SEEK_CUR
+	endif
+while IDX != -1
