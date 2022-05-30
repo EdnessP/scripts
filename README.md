@@ -8,7 +8,7 @@ If any problems arise, contact Edness#2203 on Discord.
 <summary>bully\</summary>
 
 - BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
-- BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive (jumptable.bin)
+- BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive. (jumptable.bin)
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
 
@@ -59,6 +59,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - ms_timestamp.py &mdash; Python reimplementation of *xbexexmzpe.bms* written by jason098.
 - sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
+- TheSimpsonsGame_NewGen_LH2.py &mdash; Exports and rebuilds .LH (2HCL) string files from **The Simpsons Game** (PS3, X360).
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
