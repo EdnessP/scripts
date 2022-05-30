@@ -35,6 +35,7 @@ If any problems arise, contact Edness#2203 on Discord.
 - activisionRPF.bms &mdash; **Activision Anthology** .RPF archives.
 - atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
+- BombermanActZero.bms &mdash; **Bomberman: Act Zero** .DAT files.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
