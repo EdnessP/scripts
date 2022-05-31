@@ -32,7 +32,6 @@ def xprCheckType(data, isLoad=False):
     while xprOffset < chk.getSize():
         chk.seek(xprOffset)
         if chk.readBytes(4) == b"XPR2":
-            chk.seek(0x8, 1)
             return True if not isLoad else xprOffset
         xprOffset += 0x1000
     return False
