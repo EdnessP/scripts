@@ -1,17 +1,19 @@
-# Bomberman: Act Zero (Xbox 360) XPR2 textures
+# Bomberman: Act Zero XPR2 textures (.XPR, .DAT)
 
 # There are other XPR2 plugins out there, but I couldn't be bothered
 # to debug them to find out why they refused to load these textures.
 
 # Written by Edness
-# 2022-05-31   v1.1
+# 2022-05-31   v1.2
 
+# Set SwizzleOverride to True if a texture looks garbled.
+SwizzleOverride = False
 XprDebug = False
 
 from inc_noesis import *
 
 def registerNoesisTypes():
-    handle = noesis.register("Bomberman: Act Zero [X360]", ".dat;.xpr")
+    handle = noesis.register("Bomberman: Act Zero Textures", ".dat;.xpr")
     noesis.setHandlerTypeCheck(handle, xprCheckType)
     noesis.setHandlerLoadRGBA(handle, xprLoadTexture)
 
@@ -31,8 +33,6 @@ def xprCheckType(data, isLoad=False):
         chk.seek(xprOffset)
         if chk.readBytes(4) == b"XPR2":
             chk.seek(0x8, 1)
-            if chk.readBytes(4) != b"FOfp":
-                return False
             return True if not isLoad else xprOffset
         xprOffset += 0x1000
     return False
@@ -45,16 +45,19 @@ def xprLoadTexture(data, texList):
     xpr.seek(0x4)
     xprHdrSize = xpr.readUInt()
     xprTexSize = xpr.readUInt()
+    if xpr.readBytes(4) != b"FOfp":
+        xpr.seek(-0x4, 1)
+    xprInfoSize = xpr.tell()
 
-    # Every pointer from here on is off by 16 bytes
-    xpr = NoeBitStream(data[16 + xprOffset:], NOE_BIGENDIAN)
+    # Every pointer from here on is off by the XPR2 info header
+    xpr = NoeBitStream(data[xprInfoSize + xprOffset:], NOE_BIGENDIAN)
     texCount = xpr.readUInt()
     for tex in range(texCount):
         if xpr.readBytes(4) != b"TX2D":
             noesis.doException("Unexpected header!")
 
         infoOffset = xpr.readUInt()
-        xpr.seek(0x4, 1)  # 0x34?
+        infoSize = xpr.readUInt()
         texSize = xpr.readUInt()
         texOffset = xpr.readUInt() + xprHdrSize
         texHeight = xpr.readUInt()
@@ -63,25 +66,20 @@ def xprLoadTexture(data, texList):
         nameOffset = xpr.readUInt()
         curHdrPos = xpr.tell()
 
+        xpr.seek(infoOffset + infoSize - 0x11)
+        texFmt = xpr.readUByte()
         xpr.seek(nameOffset)
         texName = xpr.readString()
-        xpr.seek(infoOffset)
-        # Sometimes they're 32-bit, sometimes they're 16-bit...
-        infoHdr = xpr.readUInt()
-        if infoHdr == 3:
-            xpr.seek(infoOffset + 0x23)
-        elif infoHdr >> 16 == 3:
-            xpr.seek(infoOffset + 0x17)
-        else:
-            noesis.doException("Unhandled info header!")
-        texFmt = xpr.readUByte()
+        if not texName:
+            texName = "UnnamedTexture{:02}".format(tex + 1)
 
-        # The one texture I saw that had an unusual width was also not tiled.
-        # It could also be the value at infoOffset + 0x1C (the 32-bit layout)
-        # which I saw was 0x2 specifically for that texture, but I'm unsure.
         xpr.seek(texOffset)
         if texWidth > 128 and texWidth % 128 != 0 and texFmt <= 0x54:
             # Fix textures with an unusual width and a larger buffer size.
+
+            # Usually if a texture has to go through this, it's not swizzled
+            # but I've seen two identical texture headers, neither of which
+            # would've had to go here but one was swizzled and one wasn't...
             padWidth = (texWidth // 128 + 1) * 128
             blockSize = 8 if texFmt == 0x52 else 16
             wPad = texWidth if texWidth % 4 == 0 else (texWidth // 4 + 1) * 4
@@ -96,14 +94,17 @@ def xprLoadTexture(data, texList):
             texData = xpr.readBytes(texSize)
             texUntile = True
 
+        if SwizzleOverride:
+            texUntile = not texUntile
+
         if XprDebug:
             print("\nTexture name: {}".format(texName)
                 + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
                 + "\nTexture format: 0x{:X}".format(texFmt)
                 + "\nTexture size: 0x{:X}".format(texSize)
-                + "\nTexture offset: 0x{:X}".format(texOffset + xprOffset + 16)
-                + "\nTexture name offset: 0x{:X}".format(nameOffset + xprOffset + 16)
-                + "\nTexture info offset: 0x{:X}".format(infoOffset + xprOffset + 16)
+                + "\nTexture offset: 0x{:X}".format(texOffset + xprOffset + xprInfoSize)
+                + "\nTexture name offset: 0x{:X}".format(nameOffset + xprOffset + xprInfoSize)
+                + "\nTexture info offset: 0x{:X}".format(infoOffset + xprOffset + xprInfoSize)
                 + "\nTexture {} of {}".format(tex + 1, texCount))
 
         if texFmt == 0x52:
@@ -121,6 +122,14 @@ def xprLoadTexture(data, texList):
             texData = rapi.swapEndianArray(texData, 2)
             if texUntile:
                 texData = rapi.imageUntile360DXT(texData, texWidth, texHeight, 16)
+        elif texFmt == 0x71:
+            texFmt = noesis.NOESISTEX_RGBA32
+            texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData, 2), texWidth, texHeight, 16)
+            texData = rapi.imageDecodeDXT(texData, texWidth, texHeight, noesis.FOURCC_ATI2)
+        elif texFmt == 0x7B:
+            texFmt = noesis.NOESISTEX_RGBA32
+            texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData, 2), texWidth, texHeight, 8)
+            texData = rapi.imageDecodeDXT(texData, texWidth, texHeight, noesis.FOURCC_BC4)
         elif texFmt == 0x7C:
             texFmt = noesis.NOESISTEX_RGBA32
             texData = rapi.imageUntile360DXT(rapi.swapEndianArray(texData, 2), texWidth, texHeight, 8)
