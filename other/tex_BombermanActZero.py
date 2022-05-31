@@ -35,6 +35,7 @@ def xprCheckType(data, isLoad=False):
     return False
 
 def xprLoadTexture(data, texList):
+    rapi.processCommands("-texnorepfn")
     xprOffset = xprCheckType(data, True)
     xpr = NoeBitStream(data[xprOffset:], NOE_BIGENDIAN)
 
