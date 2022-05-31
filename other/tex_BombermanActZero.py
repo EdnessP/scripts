@@ -145,6 +145,7 @@ def xprLoadTexture(data, texList):
 
     if XprDebug:
         print("\nXPR offset: 0x{:X}".format(xprOffset)
+            + "\nXPR info size: 0x{:X}".format(xprInfoSize)
             + "\nXPR header size: 0x{:X}".format(xprHdrSize)
             + "\nXPR data size: 0x{:X}".format(xprTexSize))
     return True
