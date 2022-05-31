@@ -104,6 +104,7 @@ def xprLoadTexture(data, texList):
                 + "\nTexture offset: 0x{:X}".format(texOffset + xprOffset + xprInfoSize)
                 + "\nTexture name offset: 0x{:X}".format(nameOffset + xprOffset + xprInfoSize)
                 + "\nTexture info offset: 0x{:X}".format(infoOffset + xprOffset + xprInfoSize)
+                + "\nTexture info size: 0x{:X}".format(infoSize)
                 + "\nTexture {} of {}".format(tex + 1, texCount))
 
         if texFmt == 0x52:
