@@ -1,4 +1,4 @@
-# Bomberman: Act Zero XPR2 textures (.XPR, .DAT)
+# Bomberman Act:Zero XPR2 textures (.XPR, .DAT)
 
 # There are other XPR2 plugins out there, but I couldn't be bothered
 # to debug them to find out why they refused to load these textures.
@@ -13,7 +13,7 @@ XprDebug = False
 from inc_noesis import *
 
 def registerNoesisTypes():
-    handle = noesis.register("Bomberman: Act Zero Textures", ".dat;.xpr")
+    handle = noesis.register("Bomberman Act:Zero Textures", ".dat;.xpr")
     noesis.setHandlerTypeCheck(handle, xprCheckType)
     noesis.setHandlerLoadRGBA(handle, xprLoadTexture)
 
