@@ -1,3 +1,12 @@
+2022-05-31  -  v0.6c
+    Cleanup release!
+     * Removed unused functions and/or parts of functions.
+     * Reorganized Black handles.
+     * Merged the two endian checking functions into one.
+     * Made some functions smaller and cleaner.
+     * Rewrote how Frontend .BINs check for textures.
+
+
 2022-04-30  -  v0.6b
     Bugfix release!
     Added features:
