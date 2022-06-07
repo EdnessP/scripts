@@ -354,7 +354,7 @@ def aeMshLoadModel(data, mdlList):
                     + "\nVertices offset: 0x{:X}".format(msh.tell())
                     + "\nVertices amount: {}".format(vertCnt)
                     + "\nBlock layout: {}".format(mshInfo)
-                    + "\nMesh {} of {}".format(i + 1, mshCnt))
+                    + "\nMesh {} of {}".format(j + 1, mshCnt))
 
             # DATA ASSIGNMENTS
             #  0  =  Vertices
@@ -389,8 +389,7 @@ def aeMshLoadModel(data, mdlList):
 
             rapi.rpgBindPositionBuffer(bytes(vertData), noesis.RPGEODATA_FLOAT, 12)
             for k in range(len(uvData)): 
-                if uvData[k]:
-                    rapi.rpgBindUVXBuffer(bytes(uvData[k]), noesis.RPGEODATA_FLOAT, 8, k, vertCnt)
+                rapi.rpgBindUVXBuffer(bytes(uvData[k]), noesis.RPGEODATA_FLOAT, 8, k, vertCnt)
             #if clrData:
             #    rapi.rpgBindColorBuffer(bytes(clrData), noesis.RPGEODATA_BYTE, 3, 3)
             #if nrmData:
