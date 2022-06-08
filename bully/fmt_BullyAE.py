@@ -1,15 +1,13 @@
 # Todo:
 #   * Bones
-#   * Weird edge case models (e.g. dduvet.msh)
 #   * Remaining mesh type assignments
-#       * Especially Normals
 #       * I've only seen mshAssign 7 once so far in cube.msh
 #   * Handle duplicate textures/materials (?)
 
 # Bully Modding community
 #  discord.gg/Xbrr72EsvK 
 
-# Written by Edness   2022-04-08 - 2022-06-07   v1.2
+# Written by Edness   2022-04-08 - 2022-06-08   v1.3
 
 AeDebug = False
 
@@ -46,19 +44,19 @@ def aeMshCheckType(data):
 class AeParseHeader:
     def __init__(self, hdr):
         self.fileVer = hdr.readUInt()
-        self.fileCnt = hdr.readUInt() - 1
+        self.fileCount = hdr.readUInt() - 1
         hdr.seek(0xC)
         self.infoOfs = hdr.readUInt()
 
         self.fileFmt = list()
         self.fileOfs = list()
-        for i in range(self.fileCnt):
+        for i in range(self.fileCount):
             self.fileFmt.append(hdr.readUInt())
             self.fileOfs.append(hdr.readUInt())
 
         if AeDebug:
             print("\nFile version: 0x{:X}".format(self.fileVer)
-                + "\nFile amount: {}".format(self.fileCnt)
+                + "\nFile amount: {}".format(self.fileCount)
                 + "\nFile info offset: 0x{:X}".format(self.infoOfs))
 
 def aeTxtParse(txt):
@@ -191,6 +189,7 @@ def aeTexLoadTexture(data, texList, extName=None):
     strSize = tex.readUInt()
     hdrInfo = aeTxtParse(noeStrFromBytes(tex.readBytes(strSize)))
 
+    texCompression = hdrInfo.get("compressondisk")
     intPath = hdrInfo.get("importfilepath")
     intName = os.path.splitext(os.path.basename(intPath))[0]
     if extName is None:
@@ -203,7 +202,7 @@ def aeTexLoadTexture(data, texList, extName=None):
     else:
         texName = extName
 
-    for i in range(hdr.fileCnt):
+    for i in range(hdr.fileCount):
         tex.seek(hdr.fileOfs[i])
         # partially taken, rewritten & improved upon AuraShadow's
         #  tex_BullyAnniversaryEdition_Android_iOS_tex.py  script
@@ -213,7 +212,7 @@ def aeTexLoadTexture(data, texList, extName=None):
         texHeight = tex.readUInt()
         texUnk = tex.readUInt()
         texSize = tex.readUInt()
-        if hdrInfo.get("compressondisk") == True:
+        if texCompression == True:
             decSize = tex.readUInt()
             texData = rapi.decompInflate(tex.readBytes(texSize - 4), decSize)
         else:
@@ -222,11 +221,13 @@ def aeTexLoadTexture(data, texList, extName=None):
         if AeDebug:
             print("\nTexture dimensions: {} x {}".format(texWidth, texHeight)
                 + "\nTexture offset: 0x{:X}".format(hdr.fileOfs[i])
-                + "\nTexture size: 0x{:X}".format(texSize)
-                +("\nTexture size (decompressed): 0x{:X}".format(decSize) if hdrInfo.get("compressondisk") else "")
-                + "\nTexture format: 0x{:X}".format(texFmt)
+                + "\nTexture size{}: 0x{:X}".format(" (compressed)" if texCompression else "", texSize)
+                +("\nTexture size (decompressed): 0x{:X}".format(decSize) if texCompression else "")
+                + "\nTexture format: 0x{:X} ({})".format(texFmt, {0: "RGBA32", 1: "RGB24", 3: "BGR16",
+                                                                  4: "ABGR16", 5: "DXT1", 6: "DXT3",
+                                                                  7: "DXT5", 8: "A8", 9: "PVRTC2"}.get(texFmt))
                 + "\nFile format: 0x{:X}".format(hdr.fileFmt[i])
-                + "\nTexture {} of {}".format(i + 1, hdr.fileCnt))
+                + "\nTexture {} of {}".format(i + 1, hdr.fileCount))
 
         # DATA TYPES
         #  0  =  RGBA-8888
@@ -258,12 +259,12 @@ def aeTexLoadTexture(data, texList, extName=None):
             texData = rapi.imageDecodePVRTC(texData, texWidth, texHeight, 4, noesis.PVRTC_DECODE_PVRTC2_ROTATE_BLOCK_PAL)
         elif texFmt:
             noesis.doException("Unhandled texture format {}".format(texFmt))
-        texList.append(NoeTexture(texName if hdr.fileCnt == 1 else "{} (Texture {})".format(texName, i + 1), texWidth, texHeight, texData, texType))
+        texList.append(NoeTexture(texName if hdr.fileCount == 1 else "{} (Texture {})".format(texName, i + 1), texWidth, texHeight, texData, texType))
 
     if AeDebug:
         if intPath:
             print("\nTexture internal name: {}".format(intPath))
-    return hdr.fileCnt, texName
+    return hdr.fileCount, texName
 
 def aeMshLoadModel(data, mdlList):
     msh = NoeBitStream(data)
@@ -297,9 +298,9 @@ def aeMshLoadModel(data, mdlList):
         texPath = basePath + texName + ".tex"
         try:
             with open(texPath, "rb") as tex:
-                texCnt, texName = aeTexLoadTexture(tex.read(), texList, texName)
+                texCount, texName = aeTexLoadTexture(tex.read(), texList, texName)
             print("Successfully loaded {}.tex".format(texName))
-            return texName + ("" if texCnt < 2 else " (Texture 2)")
+            return texName + ("" if texCount < 2 else " (Texture 2)")
         except Exception as aeExc:
             print("Failed loading {}.tex: {}".format(texName, aeExc))
             return ""
@@ -310,51 +311,56 @@ def aeMshLoadModel(data, mdlList):
     texList = list()
 
     msh.seek(hdr.infoOfs)
-    mtlCnt = msh.readUInt()
+    mtlCount = msh.readUInt()
     mtlNames = list()
-    for i in range(mtlCnt):
+    for i in range(mtlCount):
         strSize = msh.readUInt()
         mtlNames.append(noeStrFromBytes(msh.readBytes(strSize)))
-    boneCnt = msh.readUInt()
-    for i in range(boneCnt):
+    boneCount = msh.readUInt()
+    for i in range(boneCount):
         strSize = msh.readUInt()
         boneName = noeStrFromBytes(msh.readBytes(strSize))
         boneMat = NoeMat43.fromBytes(msh.readBytes(48))
         boneIdx = msh.readInt()
         #boneList.append(NoeBone(boneIdx, boneName, boneMat))
-    msh.seek(0x1, 1) # the size changes depending on hdr.fileVer
+    msh.seek(0x1, 1)  # the size changes depending on hdr.fileVer
 
-    for i in range(hdr.fileCnt):
+    for i in range(hdr.fileCount):
         msh.seek(hdr.fileOfs[i])
-        mshCnt = msh.readUInt()
-        if not mshCnt:
+        mshCount = msh.readUInt()
+        if not mshCount:
             continue
-        for j in range(mshCnt):
+
+        if AeDebug:
+            print("\nMesh offset: 0x{:X}".format(hdr.fileOfs[i])
+                + "\nMesh format: 0x{:X}".format(hdr.fileFmt[i]))
+
+        for j in range(mshCount):
             strSize = msh.readUInt()
             mshName = noeStrFromBytes(msh.readBytes(strSize))
             msh.seek(0x2, 1)
-            vertCnt = msh.readUInt()
+            vertCount = msh.readUInt()
             # most of the times varying amounts of null, occasionally floats
-            while not vertCnt or vertCnt > 0xFFFF:
-                vertCnt = msh.readUInt()
-            faceCnt = msh.readUInt()
+            while not vertCount or vertCount > 0xFFFF:
+                vertCount = msh.readUInt()
+            faceCount = msh.readUInt()
 
-            triData = msh.readBytes(faceCnt * 2)
+            triData = msh.readBytes(faceCount * 2)
 
-            mshInfoCnt = msh.readUInt()
+            mshInfoCount = msh.readUInt()
             mshInfo = list()
-            for k in range(mshInfoCnt):
+            for k in range(mshInfoCount):
                 mshInfo.append([msh.readUInt(), msh.readUInt()][::-1])
                 msh.seek(0x2, 1)
 
             if AeDebug:
                 print("\nMesh name: {}".format(mshName)
-                    + "\nFaces offset: 0x{:X}".format(msh.tell() - mshInfoCnt * 10 - 4 - faceCnt * 2)  # lol
-                    + "\nFaces amount: {} ({})".format(faceCnt, faceCnt // 3)
+                    + "\nFaces offset: 0x{:X}".format(msh.tell() - mshInfoCount * 10 - 4 - faceCount * 2)  # lol
+                    + "\nFaces amount: {} ({})".format(faceCount, faceCount // 3)
                     + "\nVertices offset: 0x{:X}".format(msh.tell())
-                    + "\nVertices amount: {}".format(vertCnt)
+                    + "\nVertices amount: {}".format(vertCount)
                     + "\nBlock layout: {}".format(mshInfo)
-                    + "\nMesh {} of {}".format(j + 1, mshCnt))
+                    + "\nMesh {} of {}\n".format(j + 1, mshCount))
 
             # DATA ASSIGNMENTS
             #  0  =  Vertices
@@ -371,7 +377,7 @@ def aeMshLoadModel(data, mdlList):
             vertData = list()
             uvData = [list() for k in mshInfo if k[0] == 4]
             uvIdx = 0
-            for k in range(vertCnt):
+            for k in range(vertCount):
                 for mshAssign, mshType in mshInfo:
                     if mshAssign == 0:
                         mshDataParse(vertData)
@@ -388,15 +394,18 @@ def aeMshLoadModel(data, mdlList):
                         noesis.doException("Unhandled mesh data assignment {}".format(mshAssign))
 
             rapi.rpgBindPositionBuffer(bytes(vertData), noesis.RPGEODATA_FLOAT, 12)
-            for k in range(len(uvData)): 
-                rapi.rpgBindUVXBuffer(bytes(uvData[k]), noesis.RPGEODATA_FLOAT, 8, k, vertCnt)
+            if uvData:
+                for k in range(len(uvData)): 
+                    rapi.rpgBindUVXBuffer(bytes(uvData[k]), noesis.RPGEODATA_FLOAT, 8, k, vertCount)
+            else:
+                rapi.rpgBindUV1Buffer(None, noesis.RPGEODATA_FLOAT, 8)
             #if clrData:
             #    rapi.rpgBindColorBuffer(bytes(clrData), noesis.RPGEODATA_BYTE, 3, 3)
             #if nrmData:
             #    rapi.rpgBindNormalBuffer(bytes(nrmData), noesis.RPGEODATA_FLOAT, 12)
 
-            mshSubCnt = msh.readUInt()
-            for k in range(mshSubCnt):
+            mshSubCount = msh.readUInt()
+            for k in range(mshSubCount):
                 mshSubStart = msh.readUInt() * 2
                 mshSubSize = msh.readUInt()
                 mtlIdx = msh.readUInt()
@@ -419,10 +428,10 @@ def aeMshLoadModel(data, mdlList):
                         + "\nMaterial name: {}".format(mtlNames[mtlIdx])
                         +("\nTexture type: {}".format(mtlInfo.get("effect(effect)")) if mtlInfo else "")
                         +("\nTexture list: {}".format(", ".join(mtlInfo.get("textures(orderedarray<texture2d>)"))) if mtlInfo else "")
-                        + "\nSubmesh {} of {}".format(k + 1, mshSubCnt))
+                        + "\nSubmesh {} of {}".format(k + 1, mshSubCount))
 
                 rapi.rpgSetMaterial(mtlNames[mtlIdx])
-                rapi.rpgSetName(mshName + mtlNames[mtlIdx][3:])
+                rapi.rpgSetName("{} {} {}".format(mshName, mtlIdx, mtlNames[mtlIdx].split("_", 1).pop()))
 
                 if mtlInfo is not None:
                     texType = mtlInfo.get("effect(effect)")
@@ -438,8 +447,8 @@ def aeMshLoadModel(data, mdlList):
                         mat.setSpecularTexture(mshTexLoad(texIdx))
                     if mtlInfo.get("doublesided(bool)") == True:
                         mat.setFlags(noesis.NMATFLAG_TWOSIDED)
-                    #if mtlInfo.get("alphatest(bool)"):
-                    #    mat.setAlphaTest(0)
+                    #if mtlInfo.get("alphatest(bool)") is not None:
+                    #    mat.setAlphaTest(mtlInfo.get("alphatest(bool)"))
                     matList.append(mat)
 
                 rapi.rpgCommitTriangles(triData[mshSubStart:][:mshSubSize * 2], noesis.RPGEODATA_USHORT, mshSubSize, noesis.RPGEO_TRIANGLE)
