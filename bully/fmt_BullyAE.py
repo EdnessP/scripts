@@ -431,7 +431,7 @@ def aeMshLoadModel(data, mdlList):
                         + "\nSubmesh {} of {}".format(k + 1, mshSubCount))
 
                 rapi.rpgSetMaterial(mtlNames[mtlIdx])
-                rapi.rpgSetName("{} {} {}".format(mshName, mtlIdx, mtlNames[mtlIdx].split("_", 1).pop()))
+                rapi.rpgSetName("{}-{} {} {}".format(j, mtlIdx, mshName, mtlNames[mtlIdx].split("_", 1).pop()))
 
                 if mtlInfo is not None:
                     texType = mtlInfo.get("effect(effect)")
