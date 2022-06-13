@@ -16,10 +16,10 @@ _encrypt_key = b"6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
 _encrypt_hash = 0x0CEB538D
 
 def encrypt(string):
+    enc_data = list()
     dec_size = len(string)
     enc_size = 8 * dec_size // 5 + 1
     dec_data = list(string + b"\x00")
-    enc_data = list(bytes(enc_size))
 
     xor = 18
     hash = _encrypt_hash
@@ -50,7 +50,7 @@ def encrypt(string):
             7: (char & 0x1) << 4 | next >> 4
         }.get(switch, 0)
 
-        enc_data[i] |= _encrypt_key[char]
+        enc_data.append(_encrypt_key[char])
 
         if (switch + 5) % 8 < switch: idx += 1
         switch = (switch + 5) % 8
