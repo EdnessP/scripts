@@ -7,7 +7,7 @@
 #   find /path/to/files -name "*.xml" -print -exec ./BullyAE_encryption.py decf {} \;
 # where  decf  can be replaced with  encf  to batch re-encrypt files.
 
-# Written by Edness    v1.1
+# Written by Edness    v1.2
 # 2021-11-29  -  2022-06-13
 
 import os
@@ -33,8 +33,9 @@ def encrypt(string):
     rem_extra = False
     for i in range(enc_size):
         char = dec_data[idx]
-        try: next = dec_data[idx + 1]
-        except IndexError:
+        if idx + 1 < len(dec_data):
+            next = dec_data[idx + 1]
+        else:
             rem_extra = True
             next = 0
 
@@ -54,13 +55,13 @@ def encrypt(string):
         switch = (switch + 5) % 8
 
         enc_data[i] |= _encrypt_key[char]
-    
+
     enc_data = b"Wx" + (bytes(enc_data) if not rem_extra else bytes(enc_data[:-1]))
     return enc_data
 
 def decrypt(string):
-    # The decryption routine is a Python reimplementation of  https://forum.xentax.com/viewtopic.php?t=15777  and
-    # https://github.com/bartlomiejduda/Tools/blob/master/NEW%20Tools/Bully%20Anniversary%20Edition/Bully_XML_Tool.cpp
+# The decryption routine is a Python reimplementation of  https://forum.xentax.com/viewtopic.php?t=15777  and
+# https://github.com/bartlomiejduda/Tools/blob/master/NEW%20Tools/Bully%20Anniversary%20Edition/Bully_XML_Tool.cpp
 
     buffer = list(bytes(256))
     for idx in range(len(_encrypt_key)):
