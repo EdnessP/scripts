@@ -50,10 +50,10 @@ def encrypt(string):
             7: (char & 0x1) << 4 | next >> 4
         }.get(switch, 0)
 
+        enc_data[i] |= _encrypt_key[char]
+
         if (switch + 5) % 8 < switch: idx += 1
         switch = (switch + 5) % 8
-
-        enc_data[i] |= _encrypt_key[char]
 
     enc_data = b"Wx" + bytes(enc_data[:-1] if rm_char else enc_data)
     return enc_data
