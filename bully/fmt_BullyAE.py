@@ -4,10 +4,10 @@
 #       * I've only seen mshAssign 7 once so far in cube.msh
 #   * Handle duplicate textures/materials (?)
 
-# Bully Modding community
-#  discord.gg/Xbrr72EsvK 
+# Bully Modding community #
+#  discord.gg/Xbrr72EsvK  #
 
-# Written by Edness   2022-04-08 - 2022-06-08   v1.3
+# Written by Edness   2022-04-08 - 2022-06-13   v1.3b
 
 AeDebug = False
 
@@ -24,19 +24,19 @@ def registerNoesisTypes():
     
     if AeDebug:
         noesis.logPopup()
-    return 1
+    return True
 
 def aeTexCheckType(data):
     chk = NoeBitStream(data)
     if chk.readUInt() == 0x7:
-        return 1
-    return 0
+        return True
+    return False
 
 def aeMshCheckType(data):
     chk = NoeBitStream(data)
     if 0x6 <= chk.readUInt() <= 0xC:
-        return 1
-    return 0
+        return True
+    return False
 
 
 
@@ -46,18 +46,18 @@ class AeParseHeader:
         self.fileVer = hdr.readUInt()
         self.fileCount = hdr.readUInt() - 1
         hdr.seek(0xC)
-        self.infoOfs = hdr.readUInt()
+        self.infoOffset = hdr.readUInt()
 
         self.fileFmt = list()
-        self.fileOfs = list()
+        self.fileOffset = list()
         for i in range(self.fileCount):
             self.fileFmt.append(hdr.readUInt())
-            self.fileOfs.append(hdr.readUInt())
+            self.fileOffset.append(hdr.readUInt())
 
         if AeDebug:
             print("\nFile version: 0x{:X}".format(self.fileVer)
                 + "\nFile amount: {}".format(self.fileCount)
-                + "\nFile info offset: 0x{:X}".format(self.infoOfs))
+                + "\nFile info offset: 0x{:X}".format(self.infoOffset))
 
 def aeTxtParse(txt):
     # Converts strings to a functional Python dict or list
@@ -129,7 +129,7 @@ def aeTxtParse(txt):
 
 def aeTxtDecrypt(txt):
     # Python reimplementation of Bartlomiej Duda's  Bully_XML_Tool.cpp  script
-    # see  BullyAE_decrypt.py  for the standalone version
+    # see  BullyAE_encryption.py  for the standalone version
 
     aeKey = b"6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
     aeHash = 0x0CEB538D
@@ -185,7 +185,7 @@ def aeTexLoadTexture(data, texList, extName=None):
     hdr = AeParseHeader(tex)
     rapi.processCommands("-texnorepfn")
 
-    tex.seek(hdr.infoOfs)
+    tex.seek(hdr.infoOffset)
     strSize = tex.readUInt()
     hdrInfo = aeTxtParse(noeStrFromBytes(tex.readBytes(strSize)))
 
@@ -203,7 +203,7 @@ def aeTexLoadTexture(data, texList, extName=None):
         texName = extName
 
     for i in range(hdr.fileCount):
-        tex.seek(hdr.fileOfs[i])
+        tex.seek(hdr.fileOffset[i])
         # partially taken, rewritten & improved upon AuraShadow's
         #  tex_BullyAnniversaryEdition_Android_iOS_tex.py  script
 
@@ -220,7 +220,7 @@ def aeTexLoadTexture(data, texList, extName=None):
 
         if AeDebug:
             print("\nTexture dimensions: {} x {}".format(texWidth, texHeight)
-                + "\nTexture offset: 0x{:X}".format(hdr.fileOfs[i])
+                + "\nTexture offset: 0x{:X}".format(hdr.fileOffset[i])
                 + "\nTexture size{}: 0x{:X}".format(" (compressed)" if texCompression else "", texSize)
                 +("\nTexture size (decompressed): 0x{:X}".format(decSize) if texCompression else "")
                 + "\nTexture format: 0x{:X} ({})".format(texFmt, {0: "RGBA32", 1: "RGB24", 3: "BGR16",
@@ -310,7 +310,7 @@ def aeMshLoadModel(data, mdlList):
     matList = list()
     texList = list()
 
-    msh.seek(hdr.infoOfs)
+    msh.seek(hdr.infoOffset)
     mtlCount = msh.readUInt()
     mtlNames = list()
     for i in range(mtlCount):
@@ -326,13 +326,13 @@ def aeMshLoadModel(data, mdlList):
     msh.seek(0x1, 1)  # the size changes depending on hdr.fileVer
 
     for i in range(hdr.fileCount):
-        msh.seek(hdr.fileOfs[i])
+        msh.seek(hdr.fileOffset[i])
         mshCount = msh.readUInt()
         if not mshCount:
             continue
 
         if AeDebug:
-            print("\nMesh offset: 0x{:X}".format(hdr.fileOfs[i])
+            print("\nMesh offset: 0x{:X}".format(hdr.fileOffset[i])
                 + "\nMesh format: 0x{:X}".format(hdr.fileFmt[i]))
 
         for j in range(mshCount):
@@ -350,7 +350,7 @@ def aeMshLoadModel(data, mdlList):
             mshInfoCount = msh.readUInt()
             mshInfo = list()
             for k in range(mshInfoCount):
-                mshInfo.append([msh.readUInt(), msh.readUInt()][::-1])
+                mshInfo.append([msh.readUInt(), msh.readUInt()])
                 msh.seek(0x2, 1)
 
             if AeDebug:
@@ -359,7 +359,7 @@ def aeMshLoadModel(data, mdlList):
                     + "\nFaces amount: {} ({})".format(faceCount, faceCount // 3)
                     + "\nVertices offset: 0x{:X}".format(msh.tell())
                     + "\nVertices amount: {}".format(vertCount)
-                    + "\nBlock layout: {}".format(mshInfo)
+                    + "\nBlock layout: {}".format(", ".join([str(k[::-1]) for k in mshInfo]))
                     + "\nMesh {} of {}\n".format(j + 1, mshCount))
 
             # DATA ASSIGNMENTS
@@ -375,10 +375,10 @@ def aeMshLoadModel(data, mdlList):
             #clrData = list()
             #nrmData = list()
             vertData = list()
-            uvData = [list() for k in mshInfo if k[0] == 4]
+            uvData = [list() for k in mshInfo if k[1] == 4]
             uvIdx = 0
             for k in range(vertCount):
-                for mshAssign, mshType in mshInfo:
+                for mshType, mshAssign in mshInfo:
                     if mshAssign == 0:
                         mshDataParse(vertData)
                     #elif mshAssign == 3:
@@ -431,7 +431,7 @@ def aeMshLoadModel(data, mdlList):
                         + "\nSubmesh {} of {}".format(k + 1, mshSubCount))
 
                 rapi.rpgSetMaterial(mtlNames[mtlIdx])
-                rapi.rpgSetName("{}-{} {} {}".format(j, mtlIdx, mshName, mtlNames[mtlIdx].split("_", 1).pop()))
+                rapi.rpgSetName("{}-{} {} {}".format(j, mtlIdx, mshName, mtlNames[mtlIdx].split("mat_", 1).pop()))
 
                 if mtlInfo is not None:
                     texType = mtlInfo.get("effect(effect)")
@@ -458,4 +458,4 @@ def aeMshLoadModel(data, mdlList):
         mdl.setModelMaterials(NoeModelMaterials(texList, matList))
         mdl.setBones(boneList)
         mdlList.append(mdl)
-    return 1
+    return True
