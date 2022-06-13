@@ -30,13 +30,13 @@ def encrypt(string):
 
     idx = 0
     switch = 0
-    rem_extra = False
+    rm_char = False
     for i in range(enc_size):
         char = dec_data[idx]
         if idx + 1 < len(dec_data):
             next = dec_data[idx + 1]
         else:
-            rem_extra = True
+            rm_char = True
             next = 0
 
         char = {
@@ -50,13 +50,12 @@ def encrypt(string):
             7: (char & 0x1) << 4 | next >> 4
         }.get(switch, 0)
 
-        if (switch + 5) % 8 < switch:
-            idx += 1
+        if (switch + 5) % 8 < switch: idx += 1
         switch = (switch + 5) % 8
 
         enc_data[i] |= _encrypt_key[char]
 
-    enc_data = b"Wx" + (bytes(enc_data) if not rem_extra else bytes(enc_data[:-1]))
+    enc_data = b"Wx" + bytes(enc_data[:-1] if rm_char else enc_data)
     return enc_data
 
 def decrypt(string):
@@ -97,8 +96,7 @@ def decrypt(string):
         dec_data[idx] |= char
         dec_data[idx + 1] |= next
 
-        if (switch + 5) % 8 < switch:
-            idx += 1
+        if (switch + 5) % 8 < switch: idx += 1
         switch = (switch + 5) % 8
 
     xor = 18
