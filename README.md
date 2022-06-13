@@ -7,7 +7,7 @@ If any problems arise, contact Edness#2203 on Discord.
 <details>
 <summary>bully\</summary>
 
-- BullyAE_decrypt.py &mdash; Decrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB and .XML files.
+- BullyAE_encryption.py &mdash; Decrypt and encrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB, and .XML files.
 - BullyAE_parse.py &mdash; Convert **Bully: Anniversary Edition** files' header info strings to usable lists and dictionaries.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive. (jumptable.bin)
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
