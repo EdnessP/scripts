@@ -7,8 +7,8 @@
 #   find /path/to/files -name "*.xml" -print -exec ./BullyAE_encryption.py decf {} \;
 # where  decf  can be replaced with  encf  to batch re-encrypt files.
 
-# Written by Edness    v1.2
-# 2021-11-29  -  2022-06-13
+# Written by Edness    v1.3
+# 2021-11-29  -  2022-06-14
 
 import os
 
@@ -16,7 +16,7 @@ _encrypt_key = b"6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
 _encrypt_hash = 0x0CEB538D
 
 def encrypt(string):
-    enc_data = list()
+    enc_data = list(b"Wx")
     dec_size = len(string)
     enc_size = 8 * dec_size // 5 + 1
     dec_data = list(string + b"\x00")
@@ -55,7 +55,7 @@ def encrypt(string):
         if (switch + 5) % 8 < switch: idx += 1
         switch = (switch + 5) % 8
 
-    enc_data = b"Wx" + bytes(enc_data[:-1] if rm_char else enc_data)
+    enc_data = bytes(enc_data[:-1] if rm_char else enc_data)
     return enc_data
 
 def decrypt(string):
@@ -109,33 +109,33 @@ def decrypt(string):
     dec_data = bytes(dec_data[:-1])
     return dec_data
 
-def enc_str(args):
-    string = bytes(args.enc_string, "UTF-8")
+def enc_str(enc_string):
+    string = bytes(enc_string, "UTF-8")
     data = encrypt(string)
     print(str(data, "ASCII"))
 
-def dec_str(args):
-    string = bytes(args.dec_string, "ASCII")
+def dec_str(dec_string):
+    string = bytes(dec_string, "ASCII")
     assert(string.startswith(b"Wx"))
     data = decrypt(string[2:])
     print(str(data, "UTF-8"))
 
-def enc_file(args):
-    with open(args.enc_path, "rb") as file:
+def enc_file(enc_path):
+    with open(enc_path, "rb") as file:
         string = file.read()
     data = encrypt(string)
-    input = os.path.splitext(args.enc_path)
+    input = os.path.splitext(enc_path)
     output = input[0] + ".enc" + input[1]
     with open(output, "wb") as file:
         file.write(data)
     print("Encrypted file written to ", output)
 
-def dec_file(args):
-    with open(args.dec_path, "rb") as file:
+def dec_file(dec_path):
+    with open(dec_path, "rb") as file:
         assert(file.read(2) == (b"Wx"))
         string = file.read()
     data = decrypt(string)
-    input = os.path.splitext(args.dec_path)
+    input = os.path.splitext(dec_path)
     output = input[0] + ".dec" + input[1]
     with open(output, "wb") as file:
         file.write(data)
@@ -150,20 +150,20 @@ def main():
     parser = argparse.ArgumentParser(description="Converts the encrypted text files in Bully: Anniversary Edition.")
     subparsers = parser.add_subparsers()
     decrypt_file_parser = subparsers.add_parser("decf", help="Decrypt file. \xA0 \xA0 Example: " + this + " decf " + path + "encrypted.xml")
-    decrypt_file_parser.add_argument("dec_path", type=str)
+    decrypt_file_parser.add_argument("arg", type=str)
     decrypt_file_parser.set_defaults(func=dec_file)
     decrypt_string_parser = subparsers.add_parser("decs", help="Decrypt string. \xA0 Example: " + this + " decs WxEHUf2GfEnC...")
-    decrypt_string_parser.add_argument("dec_string", type=str)
+    decrypt_string_parser.add_argument("arg", type=str)
     decrypt_string_parser.set_defaults(func=dec_str)
     encrypt_file_parser = subparsers.add_parser("encf", help="Encrypt file. \xA0 \xA0 Example: " + this + " encf " + path + "decrypted.xml")
-    encrypt_file_parser.add_argument("enc_path", type=str)
+    encrypt_file_parser.add_argument("arg", type=str)
     encrypt_file_parser.set_defaults(func=enc_file)
     encrypt_string_parser = subparsers.add_parser("encs", help="Encrypt string. \xA0 Example: " + this + " encs <Entry name=...")
-    encrypt_string_parser.add_argument("enc_string", type=str)
+    encrypt_string_parser.add_argument("arg", type=str)
     encrypt_string_parser.set_defaults(func=enc_str)
     args = parser.parse_args()
 
-    try: args.func(args)
+    try: args.func(args.arg)
     except AttributeError: print("No arguments given. Use -h or --help to show valid arguments.")
     except (AssertionError, UnicodeEncodeError): print("Invalid string detected!")
     except IndexError: print(("De" if str(args.func)[10:].startswith("dec") else "En") + "cryption failed!")
