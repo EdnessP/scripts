@@ -4,7 +4,7 @@
 
 def rstm_hash(str):
     # Reimplemented from the  zipHashFile::Hash  function
-    # Used for looking up audio RSTM audio files by their hashed names
+    # Used for looking up RSTM audio files by their hashed names
 
     # The game normally checks if it starts with a quotation mark and strips it,
     # and also terminates the hash loop if/when a quotation mark is encountered.
