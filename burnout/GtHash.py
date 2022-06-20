@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
-# Written by Edness
-# 2022-03-24   v1.0
+# Python reimplementation of Burnout's  CGtHash::CalculateHash  function.
+# A derivative of CRC-32 with the main difference being the output result
+# not being XORd with 0xFFFFFFFF (like CRC-32/JAMCRC) and the hash has to
+# and in the loop the hash has to be signed before shifting right 8 bits
+# and then become an unsigned integer after it as the final output.
+
+# Written by Edness    v1.1
+# 2022-03-24  -  2022-06-20
 
 _hash_table = (
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -37,10 +43,12 @@ _hash_table = (
     0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 )
 
-def calc_gthash(str):
+def calc_gthash(string: bytes):
+    if type(string) is str:
+        string = string.encode("UTF-8")
     gt_hash = 0xFFFFFFFF
-    for char in str:
-        gt_hash = gt_hash - ((gt_hash & 0x80000000) << 1) >> 8 & 0xFFFFFFFF ^ _hash_table[ord(char) ^ gt_hash & 0xFF]
+    for char in string:
+        gt_hash = gt_hash - ((gt_hash & 0x80000000) << 1) >> 8 & 0xFFFFFFFF ^ _hash_table[char ^ gt_hash & 0xFF]
     return gt_hash
 
 if __name__ == "__main__":
