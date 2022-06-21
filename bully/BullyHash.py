@@ -16,7 +16,7 @@ def rstm_hash(str):
     hash = hash * 9 & 0xFFFFFFFF
     return (hash ^ hash >> 11) * 0x8001 & 0xFFFFFFFF
 
-def label_lash(str):
+def label_hash(str):
     # Reimplemented from the  HashUCstring & HashStringJS  functions
     # Used for looking up strings by their hashed labels
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     rsm_parser.set_defaults(func=rstm_hash)
     str_parser = subparsers.add_parser("str", help="Hashes the string labels used for string lookups in Bully.")
     str_parser.add_argument("string", type=str)
-    str_parser.set_defaults(func=label_lash)
+    str_parser.set_defaults(func=label_hash)
     args = parser.parse_args()
 
     try: hash = args.func(args.string)
