@@ -9,6 +9,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 <details>
 <summary>bully\</summary>
 
+- BullyAE_DDS2TEX.py &mdash; Edit **Bully: Anniversary Edition** .TEX files from a .DDS file.
 - BullyAE_encryption.py &mdash; Decrypt and encrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB, and .XML files.
 - BullyAE_parse.py &mdash; Convert **Bully: Anniversary Edition** files' header info strings to usable lists and dictionaries.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive. (jumptable.bin)
