@@ -58,8 +58,8 @@ def dds_to_tex(input, output):
     def tex_upd(key, value):
         return tex_info.replace(f"{key}={tex_dict.get(key)}".lower(), f"{key}={value}")
 
+    print("Parsing DDS...")
     with open(input, "rb") as file:
-        print("Parsing DDS...")
         if file.read(0x4) != b"DDS ":
             print("Not a DDS file!")
             return
@@ -128,8 +128,8 @@ def dds_to_tex(input, output):
     if args.compress:
         dds_data = zlib.compress(dds_data, level=9)
 
+    print("Parsing TEX...")
     with open(output, "rb") as file:
-        print("Parsing TEX...")
         if read_int() != 7:
             print("Not a valid TEX format!")
             return
