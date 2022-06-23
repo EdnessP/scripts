@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Bully: Anniversary Edition import DDS to TEX
-# Written by Edness   v1.0   2022-06-22
+# Written by Edness    v1.1
+# 2022-06-22  -  2022-06-23
 
 # Usage:
 #   -i | --input
@@ -126,7 +127,7 @@ def dds_to_tex(input, output):
 
     dds_data = bytes(dds_data)
     if args.compress:
-        dds_data = zlib.compress(dds_data, level=9)
+        dds_data = write_int(len(dds_data)) + zlib.compress(dds_data, level=9)
 
     print("Parsing TEX...")
     with open(output, "rb") as file:
@@ -206,8 +207,7 @@ def dds_to_tex(input, output):
                  + write_int(dds_width)
                  + write_int(dds_height)
                  + write_int(tex_unk)
-                 + write_int(len(dds_data) + (4 if args.compress else 0))
-                 + (write_int(file_size - 0x80) if args.compress else b"")
+                 + write_int(len(dds_data))
                  + dds_data)
 
     print(f"{output} has been successfully updated!")
