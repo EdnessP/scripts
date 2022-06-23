@@ -4,10 +4,10 @@
 #       * I've only seen mshAssign 7 once so far in cube.msh
 #   * Handle duplicate textures/materials (?)
 
-# Bully Modding community #
-#  discord.gg/Xbrr72EsvK  #
+#   Bully Modding community   
+#    discord.gg/Xbrr72EsvK    
 
-# Written by Edness   2022-04-08 - 2022-06-13   v1.3b
+# Written by Edness   2022-04-08 - 2022-06-23   v1.4
 
 AeDebug = False
 
@@ -58,6 +58,9 @@ class AeParseHeader:
             print("\nFile version: 0x{:X}".format(self.fileVer)
                 + "\nFile amount: {}".format(self.fileCount)
                 + "\nFile info offset: 0x{:X}".format(self.infoOffset))
+
+def aeReadString(noe):
+    return noeStrFromBytes(noe.readBytes(noe.readUInt()))
 
 def aeTxtParse(txt):
     # Converts strings to a functional Python dict or list
@@ -186,8 +189,7 @@ def aeTexLoadTexture(data, texList, extName=None):
     rapi.processCommands("-texnorepfn")
 
     tex.seek(hdr.infoOffset)
-    strSize = tex.readUInt()
-    hdrInfo = aeTxtParse(noeStrFromBytes(tex.readBytes(strSize)))
+    hdrInfo = aeTxtParse(aeReadString(tex))
 
     texCompression = hdrInfo.get("compressondisk")
     intPath = hdrInfo.get("importfilepath")
@@ -207,10 +209,10 @@ def aeTexLoadTexture(data, texList, extName=None):
         # partially taken, rewritten & improved upon AuraShadow's
         #  tex_BullyAnniversaryEdition_Android_iOS_tex.py  script
 
-        texFmt = tex.readUInt() # == hdr.fileFmt[i]  ...most of the times, at least
+        texFmt = tex.readUInt()  # == hdr.fileFmt[i]  ...most of the times, at least
         texWidth = tex.readUInt()
         texHeight = tex.readUInt()
-        texUnk = tex.readUInt()
+        texMips = tex.readUInt()
         texSize = tex.readUInt()
         if texCompression == True:
             decSize = tex.readUInt()
@@ -220,6 +222,7 @@ def aeTexLoadTexture(data, texList, extName=None):
 
         if AeDebug:
             print("\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+                + "\nTexture mip maps: {}".format(texMips)
                 + "\nTexture offset: 0x{:X}".format(hdr.fileOffset[i])
                 + "\nTexture size{}: 0x{:X}".format(" (compressed)" if texCompression else "", texSize)
                 +("\nTexture size (decompressed): 0x{:X}".format(decSize) if texCompression else "")
@@ -240,7 +243,7 @@ def aeTexLoadTexture(data, texList, extName=None):
         #  8  =  A-8
         #  9  =  PVRTC2
 
-        texType = noesis.NOESISTEX_RGBA32 # texFmt == 0, also used for 3, 4, 8, and 9
+        texType = noesis.NOESISTEX_RGBA32  # texFmt == 0, also used for 3, 4, 8, and 9
         if texFmt == 1:
             texType = noesis.NOESISTEX_RGB24
         elif texFmt == 3:
@@ -306,38 +309,75 @@ def aeMshLoadModel(data, mdlList):
             return ""
 
     basePath = os.path.split(rapi.getInputName())[0] + "\\"
+    animList = list()
     boneList = list()
     matList = list()
     texList = list()
 
     msh.seek(hdr.infoOffset)
     mtlCount = msh.readUInt()
-    mtlNames = list()
-    for i in range(mtlCount):
-        strSize = msh.readUInt()
-        mtlNames.append(noeStrFromBytes(msh.readBytes(strSize)))
+    mtlNames = [aeReadString(msh) for i in range(mtlCount)]
+
     boneCount = msh.readUInt()
     for i in range(boneCount):
-        strSize = msh.readUInt()
-        boneName = noeStrFromBytes(msh.readBytes(strSize))
+        boneName = aeReadString(msh)
         boneMat = NoeMat43.fromBytes(msh.readBytes(48))
         boneIdx = msh.readInt()
         #boneList.append(NoeBone(boneIdx, boneName, boneMat))
-    msh.seek(0x1, 1)  # the size changes depending on hdr.fileVer
+
+    msh.seek({  # the size changes depending on hdr.fileVer
+        0x6: 0x1,
+        0x7: 0x2,
+        0x8: 0x3,
+        0x9: 0x4,
+        0xA: 0x4,
+        0xB: 0x4,  # x2 shorts; first one being a 0x0100(?)
+        0xC: 0x5,  # similar as above, but one extra byte?
+        # the \x00\x01 terminator is also used after every mshInfo block
+    }.get(hdr.fileVer), 1)
+
+    # 10 floats back to back; first 6 are for the bounding box of the
+    # mesh, next 3 are the middle point, unsure what the last float is.
+    #mshBounds = noeUnpack("<ffffff", msh.readBytes(24))
+    #mshCenter = noeUnpack("<fff", msh.readBytes(12))
+    #tmpDummy = noeUnpack("<f", msh.readBytes(4))
+    tmpDummy = noeUnpack("<ffffffffff", msh.readBytes(40))
+
+    # Seems to always be the same following dict:
+    #  { "physical(physicalmaterial)": None,
+    #    "setups(orderedarray<collisionshapesetup>)": [] }
+    hdrInfo = aeTxtParse(aeReadString(msh))
+
+    # An empty list in all models except for the following 9 vehicles:
+    # 70wagon, cargreen, dlvtruck, domestic, foreign, limo, policecar taxicab, truck
+    boneInfo = aeTxtParse(aeReadString(msh))
+
+    # Unsure
+    nodeCount = msh.readUInt()
+    for i in range(nodeCount):
+        nodeName = aeReadString(msh)
+        nodeBones = noeUnpack("<iiii", msh.readBytes(16))
+
+    # Unsure
+    animCount = msh.readUInt()
+    for i in range(animCount):
+        animName = aeReadString(msh)
+        animBones = noeUnpack("<iiii", msh.readBytes(16))
+        animMat = NoeMat43.fromBytes(msh.readBytes(48))
+        #animList.append(NoeAnim())
 
     for i in range(hdr.fileCount):
         msh.seek(hdr.fileOffset[i])
         mshCount = msh.readUInt()
-        if not mshCount:
-            continue
 
         if AeDebug:
             print("\nMesh offset: 0x{:X}".format(hdr.fileOffset[i])
                 + "\nMesh format: 0x{:X}".format(hdr.fileFmt[i]))
 
+        if not mshCount:
+            continue
         for j in range(mshCount):
-            strSize = msh.readUInt()
-            mshName = noeStrFromBytes(msh.readBytes(strSize))
+            mshName = aeReadString(msh)
             msh.seek(0x2, 1)
             vertCount = msh.readUInt()
             # most of the times varying amounts of null, occasionally floats
