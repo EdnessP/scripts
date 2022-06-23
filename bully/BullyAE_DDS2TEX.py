@@ -8,13 +8,13 @@
 #   -o | --output
 #       Output file (Pre-existing .TEX)
 #   BullyAE_DDS2TEX.py -i CustomFile.dds -o TargetFile.tex
-#
+# 
 # Optional:
 #   -c | --compress
 #       Zlib compress the texture data
 #   BullyAE_DDS2TEX.py -i CustomFile.dds -o TargetFile.tex -c
 
-# Written by Edness    v1.1
+# Written by Edness    v1.2
 # 2022-06-22  -  2022-06-23
 
 import os, sys, zlib
@@ -192,7 +192,7 @@ def dds_to_tex(input, output, compress=False):
                  + write_int(len(dds_data))
                  + dds_data)
 
-    print(f"{output} has been successfully updated!")
+    print(f"{os.path.split(output)} has been successfully updated!")
 
 if __name__ == "__main__":
     import argparse
