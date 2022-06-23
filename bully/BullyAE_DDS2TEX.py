@@ -133,10 +133,6 @@ def dds_to_tex(input, output, compress=False):
         tex_info = file.read(read_int()).decode()
 
     tex_dict = parse_info(tex_info)
-    tex_compress = ord(str(tex_dict.get("compressondisk"))[-1:])
-    dds_data += write_int(dds_bit_depth & 0xFF00
-                       | (tex_compress - 32 << 8
-                       |  tex_compress - 1) << 1, 0x2)
 
     if dds_fmt_id == bytes(4):
         tex_fmt = {
@@ -188,7 +184,7 @@ def dds_to_tex(input, output, compress=False):
                  + write_int(dds_width)
                  + write_int(dds_height)
                  + write_int(dds_mips)
-                 + write_int(len(dds_data) - 2)
+                 + write_int(len(dds_data))
                  + dds_data)
 
     print(f"{os.path.split(output)[1]} has been successfully updated!")
