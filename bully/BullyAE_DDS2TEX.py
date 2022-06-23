@@ -154,18 +154,6 @@ def dds_to_tex(input, output, compress=False):
             b"DXT5": 7
         }.get(dds_fmt_id)
 
-    # I've seen many different values here, not sure what this is
-    tex_unk = {
-        0: 10,
-        1: 8,
-        3: 8,
-        4: 10,
-        5: 10,
-        6: 10,
-        7: 10,
-        8: 1
-    }.get(tex_fmt)
-
     # I'm pretty sure this key isn't even used but just in case
     tex_info = tex_upd("mode", {
         0: "tm_raw32",
@@ -182,6 +170,8 @@ def dds_to_tex(input, output, compress=False):
     tex_info = tex_upd("width", str(dds_width))
     tex_info = tex_upd("height", str(dds_height))
 
+    # As with noMips, I've seen textures where this is set to true
+    # but textures themselves have mips. Only compressOnDisk is used
     tex_info = tex_upd("nomips", ("false" if dds_mips > 1 else "true"))
     tex_info = tex_upd("compressondisk", "true" if compress else "false")
 
@@ -198,7 +188,7 @@ def dds_to_tex(input, output, compress=False):
         file.write(write_int(tex_fmt)
                  + write_int(dds_width)
                  + write_int(dds_height)
-                 + write_int(tex_unk)
+                 + write_int(dds_mips)
                  + write_int(len(dds_data))
                  + dds_data)
 
