@@ -192,7 +192,7 @@ def dds_to_tex(input, output, compress=False):
                  + write_int(len(dds_data))
                  + dds_data)
 
-    print(f"{os.path.split(output)} has been successfully updated!")
+    print(f"{os.path.split(output)[1]} has been successfully updated!")
 
 if __name__ == "__main__":
     import argparse
