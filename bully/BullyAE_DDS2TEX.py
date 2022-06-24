@@ -13,7 +13,7 @@
 #       Zlib compress the texture data
 #   BullyAE_DDS2TEX.py -i CustomFile.dds -o TargetFile.tex -c
 
-# Written by Edness    v1.3
+# Written by Edness    v1.4
 # 2022-06-22  -  2022-06-24
 
 import os, zlib
@@ -120,12 +120,14 @@ def dds_to_tex(input, output, compress=False):
 
     print("Parsing TEX...")
     with open(output, "rb") as file:
-        if read_int() != 7:
-            print("Not a valid TEX format!")
+        tex_ver = read_int()
+        tex_files = read_int()
+        tex_id = read_int()
+
+        if tex_ver != 7 and tex_id != 110:
+            print("Not a valid TEX file!")
             return
 
-        tex_files = read_int()
-        tex_hdr_unk = read_int()
         tex_info_ofs = read_int()
 
         file.seek(tex_info_ofs)
@@ -167,12 +169,12 @@ def dds_to_tex(input, output, compress=False):
     # but textures themselves have mips. Only compressOnDisk is used
     tex_info = tex_upd("nomips", ("false" if dds_mips > 1 else "true"))
     tex_info = tex_upd("compressondisk", "true" if compress else "false")
-    tex_info = tex_upd("importfilepath", f"\"{os.path.abspath(input)}\"")
+    #tex_info = tex_upd("importfilepath", f"\"{os.path.abspath(input)}\"")
 
     with open(output, "wb") as file:
         file.write(write_int(0x7)
                  + write_int(0x2)
-                 + write_int(tex_hdr_unk)
+                 + write_int(0x6E)
                  + write_int(0x18)
                  + write_int(tex_fmt)
                  + write_int(0x1C + len(tex_info))
@@ -245,8 +247,6 @@ def parse_info(txt):
                     temp_ln = f"\"{temp_ln}\""
                     if temp_ln == "\"\"":
                         temp_ln = "None"
-                else:
-                    temp_ln = f"'{temp_ln}'"
             ln[j] = f"{ln[j][:start_skip]}{temp_ln}{ln[j][end_skip:]}"
         txt[i] = ":".join(ln)
     txt = eval(",".join(txt))
