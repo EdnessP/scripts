@@ -7,7 +7,7 @@
 #   Bully Modding community   
 #    discord.gg/Xbrr72EsvK    
 
-# Written by Edness   2022-04-08 - 2022-06-23   v1.4
+# Written by Edness   2022-04-08 - 2022-06-23   v1.4b
 
 AeDebug = False
 
@@ -29,13 +29,17 @@ def registerNoesisTypes():
 def aeTexCheckType(data):
     chk = NoeBitStream(data)
     if chk.readUInt() == 0x7:
-        return True
+        chk.seek(0x8)
+        if chk.readUInt() == 110:
+            return True
     return False
 
 def aeMshCheckType(data):
     chk = NoeBitStream(data)
     if 0x6 <= chk.readUInt() <= 0xC:
-        return True
+        chk.seek(0x8)
+        if chk.readUInt() == 1337:
+            return True
     return False
 
 
