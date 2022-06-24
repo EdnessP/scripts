@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # Bully: Anniversary Edition import DDS to TEX
-# Requires the BullyAE_parse.py script as well
 
 # Usage:
 #   -i | --input
