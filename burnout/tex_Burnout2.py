@@ -6,7 +6,7 @@ PoiDebug = False
 from inc_noesis import *
 
 def registerNoesisTypes():
-    handleDic = noesis.register("Burnout 2: Point of Impact - Dic", ".dic")
+    handleDic = noesis.register("Burnout 2: Point of Impact - Dictionary", ".dic")
     noesis.setHandlerTypeCheck(handleDic, poiChkDic)
     noesis.setHandlerLoadRGBA(handleDic, poiArcTexDic)
 
@@ -350,11 +350,11 @@ def poiArcTexPss(data, texList):
         texOffset = arc.readUInt() - ramAddress
         curTexOffset = arc.tell()
         poiTexParse(arc, texList, texOffset, ramAddress)
-        arc.seek(curTexOffset)
 
         if PoiDebug:
             print("Texture {} of {}".format(tex + 1, texCount))
 
+        arc.seek(curTexOffset)
     return True
 
 def poiArcTexTra(data, texList):
@@ -365,9 +365,9 @@ def poiArcTexTra(data, texList):
 
     # I hate this whole thing, but everything is tied to RAM addresses and nothing makes sense
     arc.seek(0x6C)
-    texOffsetWheels = 0x18640
-    ramAddress = arc.readUInt() - texOffsetWheels  # wheels texture, hardcoded(?)
-    poiTexParse(arc, texList, texOffsetWheels, ramAddress)
+    texOffset = 0x18640
+    ramAddress = arc.readUInt() - texOffset  # wheels texture, hardcoded(?)
+    poiTexParse(arc, texList, texOffset, ramAddress)
 
     arc.seek(0xFA0)
     #while arc.tell() < texOffsetWheels:
@@ -375,9 +375,9 @@ def poiArcTexTra(data, texList):
         curTexOffset = arc.tell()
         texOffset = arc.readUInt() - ramAddress
         poiTexParse(arc, texList, texOffset, ramAddress)
-        arc.seek(curTexOffset + 0xF00)
 
         if PoiDebug:
             print("Texture {} of {}".format(tex + 1, 25))
 
+        arc.seek(curTexOffset + 0xF00)
     return True
