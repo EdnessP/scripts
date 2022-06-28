@@ -1,5 +1,5 @@
 # Burnout 2: Point of Impact PS2 and Xbox texture plugin
-# Written by Edness   2022-06-28   v1.0
+# Written by Edness   2022-06-28   v1.1
 
 PoiDebug = False
 
@@ -298,7 +298,7 @@ def poiArcTexDic(data, texList):
         if PoiDebug:
             print("Texture {} of {}".format(tex + 1, texCount))
 
-    return False
+    return True
 
 def poiArcTexFE(data, texList):
     rapi.processCommands("-texnorepfn")
