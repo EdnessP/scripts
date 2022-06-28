@@ -164,6 +164,7 @@ def poiTexDicParse(tex, texList, texOffset):
                 + "\nTexture name: {}".format(texName)
                 + "\nTexture offset: 0x{:X}".format(texOffset)
                 + "\nTexture data offset: 0x{:X}".format(tex.tell())
+                + "\nTexture size: 0x{:X}".format(texSize)
                 + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
                 + "\nTexture format: 0x{:X}".format(texFmt))
 
