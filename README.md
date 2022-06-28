@@ -28,6 +28,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
 - GtHash.py &mdash; Python reimplementation of GtHash string hashing.
 - GtIDstr.py &mdash; Python reimplementation of GtID EA string compression and decompression.
+- tex_Burnout2.py &mdash; **Burnout 2: Point of Impact** PS2 and Xbox Noesis texture plugin.
 - txdscanner.bms &mdash; Extracts .TXDs from containers.  Only really needed for fonts stored in the executable.
 
 </details>
