@@ -80,10 +80,6 @@ def poiChkTra(data):
 
 
 
-def poiCalcAlign(padFrom, padTo):
-    # Calculates alignment to a value
-    return (padFrom // padTo + 1) * padTo
-
 def poiPS2Read4(tex, rSize):
     # Converts 4-bit data to 8-bit
     rData = list()
