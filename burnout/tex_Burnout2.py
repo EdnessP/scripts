@@ -140,7 +140,8 @@ def poiTexDicParse(tex, texList, texOffset):
 
         tex.seek(palOffset)
         if bitDepth == 4:
-            palData = poiPS2Read32(tex, 24)
+            palData = poiPS2Read32(tex, 16)
+            tex.seek(0x20, 1)
         elif bitDepth == 8:
             palData = poiPS2Read32(tex, 256)
         tex.seek(0x28, 1)
