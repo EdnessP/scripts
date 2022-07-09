@@ -1,5 +1,5 @@
 # Written by Edness
-# 2022-07-09   v1.1
+# 2022-07-09   v1.1b
 
 # NOTE:
 #   The Xbox 360 .DDX textures do not store their intended size and had
@@ -135,7 +135,7 @@ def boParseMdlCxm(data, mdlList):
 
         texName = boSplitName(texName)
         rapi.rpgSetMaterial("Material_{}".format(subIdx))
-        rapi.rpgSetName(texName)
+        rapi.rpgSetName("{}_{}".format(i, texName))
 
         mat = NoeMaterial("Material_{}".format(subIdx), texName)
         mat.setFlags(noesis.NMATFLAG_TWOSIDED)
@@ -181,10 +181,15 @@ def boParseTexDdx(data, texList, texName=None):
         if texWidth != 128:
             tex = NoeBitStream(texData)
             texData = list()
+            texSkip = list()
             for i in range(texHeight // 4):
                 texData.extend(tex.readBytes(texWidth * 4))
-                tex.seek((128 - texWidth) * 4, 1)
+                texSkip.extend(tex.readBytes((128 - texWidth) * 4))
+                #tex.seek((128 - texWidth) * 4, 1)
             texData = bytes(texData)
+            texSkip = bytes(texSkip)
+            if texSkip != bytes(len(texSkip)):
+                noesis.doException("Width adjustment failed!")
 
     texList.append(NoeTexture(boSplitName(texName), texWidth, texHeight, texData, noesis.NOESISTEX_DXT5))
     return True
