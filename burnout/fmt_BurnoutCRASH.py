@@ -122,6 +122,7 @@ def boParseMdlCxm(data, mdlList):
         subVertCount = mdl.readUShort()
 
         for texExt in callList:
+            # It's a relative path going a to a different folder in the directory above
             texName = r"{}\{}.{}".format(os.path.split(rapi.getInputName())[0], os.path.splitext(subTexture[subIdx])[0], texExt)
 
             if os.path.exists(texName):
@@ -131,10 +132,11 @@ def boParseMdlCxm(data, mdlList):
                 if chkCall(texData) and texCall(texData, texList, texName):
                     break
 
+        texName = boSplitName(texName)
         rapi.rpgSetMaterial("Material_{}".format(subIdx))
-        rapi.rpgSetName(boSplitName(texName))
+        rapi.rpgSetName(texName)
 
-        mat = NoeMaterial("Material_{}".format(subIdx), boSplitName(texName))
+        mat = NoeMaterial("Material_{}".format(subIdx), texName)
         mat.setFlags(noesis.NMATFLAG_TWOSIDED)
         matList.append(mat)
 
