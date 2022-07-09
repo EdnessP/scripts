@@ -1,10 +1,11 @@
 # Written by Edness
-# 2022-07-09   v1.0
+# 2022-07-09   v1.1
 
 # NOTE:
-#   Since the Xbox 360 .DDX textures do not store their intended size
-#   some models may look broken due to the textures having a larger 
-#   buffer filled with blank space!  PS3 and iOS are not affected!
+#   The Xbox 360 .DDX textures do not store their intended size and had
+#   to be manually calculated with what little info is stored.
+#   If you see something that looks weird or out of place when loading
+#   models with Xbox 360 textures, please inform me!
 
 from inc_noesis import *
 
@@ -167,6 +168,23 @@ def boParseTexDdx(data, texList, texName=None):
 
     if texFmt != 0x54:
         noesis.doException("Unhandled texture format 0x{:X}".format(texFmt))
+
+    # jank workaround for textures with a larger buffer
+    # i think there's a cleaner way to do this but i cba
+    if texWidth == 128:
+        texWidthDiv = texWidth
+        for i in range(5):
+            texWidthDiv //= 2
+            if not texData.endswith(bytes((texWidth - texWidthDiv) * 4)):
+                texWidth = texWidthDiv * 2
+                break
+        if texWidth != 128:
+            tex = NoeBitStream(texData)
+            texData = list()
+            for i in range(texHeight // 4):
+                texData.extend(tex.readBytes(texWidth * 4))
+                tex.seek((128 - texWidth) * 4, 1)
+            texData = bytes(texData)
 
     texList.append(NoeTexture(boSplitName(texName), texWidth, texHeight, texData, noesis.NOESISTEX_DXT5))
     return True
