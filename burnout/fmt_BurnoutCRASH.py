@@ -1,9 +1,9 @@
-# Written by Edness
-# 2022-07-09   v1.1b
+# Burnout CRASH! PS3, X360, iOS model and texture plugin
+# Written by Edness   v1.2   2022-07-09 - 2022-07-10
 
 # NOTE:
-#   The Xbox 360 .DDX textures do not store their intended size and had
-#   to be manually calculated with what little info is stored.
+#   The Xbox 360 .DDX textures don't store their intended size and had
+#   to be manually calculated with what little info there is.
 #   If you see something that looks weird or out of place when loading
 #   models with Xbox 360 textures, please inform me!
 
@@ -72,10 +72,9 @@ def boParseMdlCxm(data, mdlList):
     texList = list()
 
     mdl.seek(0x4)
-    swapBytes = False
     if mdl.readUInt() != 4:
         mdl.setEndian(NOE_BIGENDIAN)
-        swapBytes = True
+        rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, 1)
 
     subCount = mdl.readUInt()
     vertCount = mdl.readUInt()
@@ -100,9 +99,6 @@ def boParseMdlCxm(data, mdlList):
 
     vertData = mdl.readBytes(vertCount * 32)
     faceData = mdl.readBytes(faceCount * 2)
-    if swapBytes:
-        vertData = rapi.swapEndianArray(vertData, 4)
-        faceData = rapi.swapEndianArray(faceData, 2)
 
     rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 32)
     rapi.rpgBindNormalBuffer(vertData[12:], noesis.RPGEODATA_FLOAT, 32)
@@ -116,7 +112,7 @@ def boParseMdlCxm(data, mdlList):
 
     for i in range(subCount):
         mdl.seek(0x2, 1)  # 0x0001(?)
-        subIdx = mdl.readUShort()
+        subIdx = mdl.readUShort()  # == i?
         subFaceStart = mdl.readUShort()
         subFaceCount = mdl.readUShort()
         subVertStart = mdl.readUShort()
@@ -128,16 +124,16 @@ def boParseMdlCxm(data, mdlList):
 
             if os.path.exists(texName):
                 chkCall, texCall = callList[texExt]
-                with open(texName, "rb") as tex:
-                    texData = tex.read()
+                texData = rapi.loadIntoByteArray(texName)
                 if chkCall(texData) and texCall(texData, texList, texName):
                     break
 
         texName = boSplitName(texName)
-        rapi.rpgSetMaterial("Material_{}".format(subIdx))
-        rapi.rpgSetName("{}_{}".format(i, texName))
+        mtlName = "MTL_{}_{}".format(subIdx, texName)
+        rapi.rpgSetMaterial(mtlName)
+        rapi.rpgSetName("MSH_{}_{}".format(i, texName))
 
-        mat = NoeMaterial("Material_{}".format(subIdx), texName)
+        mat = NoeMaterial(mtlName, texName)
         mat.setFlags(noesis.NMATFLAG_TWOSIDED)
         matList.append(mat)
 
