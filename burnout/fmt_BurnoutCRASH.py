@@ -29,7 +29,7 @@ def registerNoesisTypes():
 
 def boCheckMdlCxm(data):
     chk = NoeBitStream(data)
-    if chk.readBytes(0x4) == b"CXM-":
+    if chk.readBytes(0x4) == b"CXM-" and chk.readUInt() in {0x4, 0x04000000}:
         return True
     return False
 
@@ -160,7 +160,7 @@ def boParseTexDdx(data, texList, texName=None):
     texDiv = tex.readUShort()  # i think???
     texFmt = tex.readUInt()
     if texDiv != 2:
-        noesis.doException("Texture division size is not 2! It's instead {}".format(texDiv))
+        noesis.doException("Texture division size is not 2 but instead {}".format(texDiv))
 
     tex.seek(0x34)
     texData = rapi.swapEndianArray(tex.readBytes(tex.getSize() - 0x34), 2)
