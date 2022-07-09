@@ -1,0 +1,29 @@
+# Burnout CRASH! .BIG files (PS3, X360, iOS)
+# Edness   2022-07-09   v1.0
+
+endian big
+get FILESIZE asize
+get HEADERSIZE long
+#if HEADERSIZE < FILESIZE
+#    idstring "\x00\x00\x00\x0C"
+#endif
+get INFOSIZE long  # 0xC
+get FILES long
+get NAMEOFFSET long  # the name offset pointer makes no sense
+math NAMEOFFSET += INFOSIZE
+goto INFOSIZE
+
+for i = 0 < FILES
+    #get NAMEOFFSET long
+    get DUMMY long
+    get OFFSET long
+    get SIZE long
+    savepos HDR
+    goto NAMEOFFSET
+    get NAME string
+    padding 4
+    savepos NAMEOFFSET
+    goto HDR
+    #print "%NAMEOFFSET|08X% %OFFSET|08X% %SIZE|08X%"
+    log NAME OFFSET SIZE
+next i
