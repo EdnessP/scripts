@@ -22,9 +22,11 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 <summary>burnout\</summary>
 
 - BLegendsDS.bms &mdash; Decompress LZSS compressed files in **Burnout Legends** NDS.
+- BurnoutCRASH_BIG.bms &mdash; **Burnout CRASH!** .BIG archives.
 - bxv_palsplit.bms &mdash; Split and re-merge interleaved-grouped palettes from .BGV and .BTV files.
 - fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).  Currently only supports textures.
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
+- fmt_BurnoutCRASH.py &mdash; **Burnout CRASH!** PS3, Xbox 360, iOS model and texture Noesis plugin.
 - GtHash.py &mdash; Python reimplementation of GtHash string hashing.
 - GtIDstr.py &mdash; Python reimplementation of GtID EA string compression and decompression.
 - tex_Burnout1.py &mdash; **Burnout** PS2 and Xbox Noesis texture plugin.
