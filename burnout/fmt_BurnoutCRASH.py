@@ -66,6 +66,7 @@ def boSplitName(name):
     return os.path.splitext(os.path.split(name)[1])[0]
 
 def boParseMdlCxm(data, mdlList):
+    #rapi.processCommands("-rotate -90 0 0")
     rapi.rpgCreateContext()
     mdl = NoeBitStream(data)
     matList = list()
@@ -169,7 +170,7 @@ def boParseTexDdx(data, texList, texName=None):
     # i think there's a cleaner way to do this but i cba
     if texWidth == 128:
         texWidthDiv = texWidth
-        for i in range(5):
+        for i in range(6):
             texWidthDiv //= 2
             if not texData.endswith(bytes((texWidth - texWidthDiv) * 4)):
                 texWidth = texWidthDiv * 2
