@@ -1,5 +1,5 @@
 # Burnout CRASH! PS3, X360, iOS model and texture plugin
-# Written by Edness   v1.2   2022-07-09 - 2022-07-10
+# Written by Edness   v1.2b   2022-07-09 - 2022-07-10
 
 # NOTE:
 #   The Xbox 360 .DDX textures don't store their intended size and had
@@ -66,7 +66,7 @@ def boSplitName(name):
     return os.path.splitext(os.path.split(name)[1])[0]
 
 def boParseMdlCxm(data, mdlList):
-    #rapi.processCommands("-rotate -90 0 0")
+    #rapi.setPreviewOption("setAngOfs", "0 -90 180")
     rapi.rpgCreateContext()
     mdl = NoeBitStream(data)
     matList = list()
