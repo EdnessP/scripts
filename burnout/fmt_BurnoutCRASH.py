@@ -1,5 +1,5 @@
 # Burnout CRASH! PS3, X360, iOS model and texture plugin
-# Written by Edness   v1.2b   2022-07-09 - 2022-07-10
+# Written by Edness   v1.3   2022-07-09 - 2022-07-12
 
 # NOTE:
 #   The Xbox 360 .DDX textures don't store their intended size and had
@@ -76,6 +76,7 @@ def boParseMdlCxm(data, mdlList):
     if mdl.readUInt() != 4:
         mdl.setEndian(NOE_BIGENDIAN)
         rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, 1)
+    rapi.rpgSetOption(noesis.RPGOPT_TRIWINDBACKWARD, 1)
 
     subCount = mdl.readUInt()
     vertCount = mdl.readUInt()
@@ -135,7 +136,7 @@ def boParseMdlCxm(data, mdlList):
         rapi.rpgSetName("MSH_{}_{}".format(i, texName))
 
         mat = NoeMaterial(mtlName, texName)
-        mat.setFlags(noesis.NMATFLAG_TWOSIDED)
+        #mat.setFlags(noesis.NMATFLAG_TWOSIDED)
         matList.append(mat)
 
         rapi.rpgCommitTriangles(faceData[subFaceStart * 2:][:subFaceCount * 2], noesis.RPGEODATA_SHORT, subFaceCount, noesis.RPGEO_TRIANGLE_STRIP)
