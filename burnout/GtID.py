@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-# Written by Edness   2021-08-20 - 2022-05-06   v1.1
+# A heavily simplified Python reimplementation of Burnout's  GtIDCompress
+# and  GtIDUnCompress  functions - an 8 byte compressed format for strings
+# up to 12 characters long using upper-case alphanumeric symbols.
+
+# Written by Edness  v1.1
+# 2021-08-20 - 2022-05-06
 
 _char = " -/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 
