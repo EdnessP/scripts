@@ -85,7 +85,7 @@ def boParseMdlCxm(data, mdlList):
     if mdl.readUInt() != subCount:
         noesis.doException("Unhandled data parsing!")
 
-    # a bunch of floats here, collision boxes?
+    # a bunch of floats here
     mdl.seek(0x28)
     subType = list()
     subTexture = list()
