@@ -136,7 +136,7 @@ def boParseMdlCxm(data, mdlList):
         rapi.rpgSetName("MSH_{}_{}".format(i, texName))
 
         mat = NoeMaterial(mtlName, texName)
-        #mat.setFlags(noesis.NMATFLAG_TWOSIDED)
+        mat.setFlags(noesis.NMATFLAG_TWOSIDED)
         matList.append(mat)
 
         rapi.rpgCommitTriangles(faceData[subFaceStart * 2:][:subFaceCount * 2], noesis.RPGEODATA_SHORT, subFaceCount, noesis.RPGEO_TRIANGLE_STRIP)
