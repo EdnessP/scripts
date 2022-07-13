@@ -1,5 +1,5 @@
 # Burnout CRASH! PS3, X360, iOS model and texture plugin
-# Written by Edness   v1.3   2022-07-09 - 2022-07-12
+# Written by Edness   v1.4   2022-07-09 - 2022-07-13
 
 # NOTE:
 #   The Xbox 360 .DDX textures don't store their intended size and had
@@ -22,7 +22,7 @@ def registerNoesisTypes():
     noesis.setHandlerTypeCheck(handleGtf, boCheckTexGtf)
     noesis.setHandlerLoadRGBA(handleGtf, boParseTexGtf)
 
-    handlePvr = noesis.register("Burnout CRASH! - Textures [iOS]", ".pvr")
+    handlePvr = noesis.register("Burnout CRASH! - Textures [iOS]", ".pvr;.pvru")
     noesis.setHandlerTypeCheck(handlePvr, boCheckTexPvr)
     noesis.setHandlerLoadRGBA(handlePvr, boParseTexPvr)
     return True
@@ -52,7 +52,7 @@ def boCheckTexPvr(data):
     if chk.readUInt() == 0x34:
         chk.seek(0x10)
         # All the existing PVR tools I looked at didn't support these format IDs
-        if chk.readUInt() in {0x20D, 0x820D}:
+        if chk.readUInt() in {0x20D, 0x8012, 0x820D}:
             chk.seek(0x2C)
             if chk.readBytes(0x4) == b"PVR!":
                 return True
@@ -225,8 +225,15 @@ def boParseTexPvr(data, texList, texName=None):
     texHeight = tex.readUInt()
     tex.seek(0x14)
     texSize = tex.readUInt()
+    bitDepth = tex.readUInt()
+    #bitMask = [tex.readUInt() for i in range(4)]
     tex.seek(0x34)
-    texData = rapi.imageDecodePVRTC(tex.readBytes(texSize), texWidth, texHeight, 4, noesis.PVRTC_DECODE_PVRTC2_ROTATE_BLOCK_PAL)
+    texData = tex.readBytes(texSize)
+    if bitDepth == 32:
+        texWidth, texHeight = texHeight, texWidth
+    else:
+        # reversed texture dimensions crashes noesis...
+        texData = rapi.imageDecodePVRTC(texData, texWidth, texHeight, bitDepth, noesis.PVRTC_DECODE_PVRTC2_ROTATE_BLOCK_PAL)
 
     texList.append(NoeTexture(boSplitName(texName), texWidth, texHeight, texData))
     return True
