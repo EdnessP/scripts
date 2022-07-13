@@ -29,7 +29,7 @@ def parse_csv(csv_path, ff_path=_ffmpeg_path):
         csv_data = file.read().splitlines()
 
     def ffmpeg_cmd(tex, vf_cmd):
-        os.system(f"{ff_path} -i \"{base_path}\\{tex}.png\" {vf_cmd} -hide_banner -loglevel error")
+        os.system(f"{ff_path} -i \"{base_path}\\{tex}.png\" {vf_cmd.strip()} -hide_banner -loglevel error")
 
     out_dict = {}
     for line in csv_data:
