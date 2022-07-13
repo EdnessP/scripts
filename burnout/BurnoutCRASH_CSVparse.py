@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 # Parse Burnout CRASH! CSV files to crop exported PNGs with FFmpeg
 # Expects the textures to be exported in the same directory as the CSV
-# Set the path to the FFmpeg executable at  _ffmpeg_path  before running
+# Set the path to the FFmpeg executable at  ffmpeg_path  before running
 
 # Written by Edness   v1.0   2022-07-13
 
-_ffmpeg_path = r"X:\path\to\ffmpeg\executable"
+ffmpeg_path = r"X:\path\to\ffmpeg\executable"
 
 import os
 
-def parse_csv(csv_path, ff_path=_ffmpeg_path):
+dir = "\\" if os.name == "nt" else "/"
+
+def parse_csv(csv_path, ff_path=ffmpeg_path):
     if not os.path.exists(ff_path):
         if __name__ == "__main__":
-            print("Please specify the correct location of the FFmpeg executable for _ffmpeg_path in the script!")
+            print("Please specify the correct location of the FFmpeg executable for ffmpeg_path in the script!")
         else:
             print("The provided FFmpeg executable was not found!")
         return
@@ -30,21 +32,21 @@ def parse_csv(csv_path, ff_path=_ffmpeg_path):
         csv_data = file.read().splitlines()
 
     def ffmpeg_cmd(tex, vf_cmd):
-        os.system(f"{ff_path} -i \"{base_path}\\{tex}.png\" {vf_cmd.strip()} -hide_banner -loglevel error")
+        os.system(f"{ff_path} -i \"{base_path}{dir}{tex}.png\" {vf_cmd.strip()} -hide_banner -loglevel error")
 
     out_dict = {}
     for line in csv_data:
         name, file, x, y, w, h, _w, _h = line.split(",")
         if w != _w or h != _h:
-            print(f"Warning! {name} ({file}) has mismatching dimensions!")
+            print(f"Warning! {file}{dir}{name} has mismatching dimensions! {w}x{h} vs {_w}x{_h}")
 
-        out_path = f"{base_path}\\{file}\\{name}.png"
+        out_path = f"{base_path}{dir}{file}{dir}{name}.png"
         os.makedirs(os.path.split(out_path)[0], exist_ok=True)
         if file not in out_dict.keys():
             out_dict[file] = ""
 
         out_cmd = f"-vf crop={w}:{h}:{x}:{y} \"{out_path}\" "
-        if len(out_dict[file]) + len(out_cmd) > 8000:  # limit is 8191
+        if len(out_dict[file]) + len(out_cmd) > 8000:  # limit is 8192
             print("Dumping currently queued images...")
             ffmpeg_cmd(file, out_dict[file])
             out_dict[file] = ""
