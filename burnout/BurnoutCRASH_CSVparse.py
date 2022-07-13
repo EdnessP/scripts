@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Parse Burnout CRASH! CSV files to crop exported PNGs with FFmpeg
+# Expects the textures to be exported in the same directory as the CSV
 # Set the path to the FFmpeg executable at  _ffmpeg_path  before running
 
 # Written by Edness   v1.0   2022-07-13
