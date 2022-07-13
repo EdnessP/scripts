@@ -34,8 +34,8 @@ def parse_csv(csv_path, ff_path=_ffmpeg_path):
 
     out_dict = {}
     for line in csv_data:
-        name, file, x, y, h, w, _h, _w = line.split(",")
-        if h != _h or w != _w:
+        name, file, x, y, w, h, _w, _h = line.split(",")
+        if w != _w or h != _h:
             print(f"Warning! {name} ({file}) has mismatching dimensions!")
 
         out_path = f"{base_path}\\{file}\\{name}.png"
@@ -43,7 +43,7 @@ def parse_csv(csv_path, ff_path=_ffmpeg_path):
         if file not in out_dict.keys():
             out_dict[file] = ""
 
-        out_cmd = f"-vf crop={h}:{w}:{x}:{y} \"{out_path}\" "
+        out_cmd = f"-vf crop={w}:{h}:{x}:{y} \"{out_path}\" "
         if len(out_dict[file]) + len(out_cmd) > 8000:  # limit is 8191
             print("Dumping currently queued images...")
             ffmpeg_cmd(file, out_dict[file])
