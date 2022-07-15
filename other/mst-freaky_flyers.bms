@@ -1,0 +1,24 @@
+# Freaky Flyers .MST
+# Edness   2022-07-15
+
+comtype LZO1X
+idstring "FANG"
+get DUMMY long
+get ASIZE long
+get FILES long
+
+# other stuff ...
+
+goto 0x6C 0
+for i = 0 < FILES
+	getdstring NAME 24
+	get OFFSET long
+	get ZSIZE long
+	get DUMMY long # hash?
+	get SIZE long
+	if SIZE == ZSIZE
+		log NAME OFFSET ZSIZE
+	else
+		clog NAME OFFSET ZSIZE SIZE
+	endif
+next i
