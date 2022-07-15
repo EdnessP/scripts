@@ -49,8 +49,9 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
-- sdwww-mst.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has filenames unlike *sru-mst.bms*)
-- sru-mst.bms &mdash; **Saints Row Undercover** .MST files.  (Has no filenames unlike *sdwww-mst.bms*)
+- mst-freaky_flyers.bms &mdash; **Freaky Flyers** .MST files.  (Has 24 byte name fields + LZO1X compression)
+- mst-saints_row_uc.bms &mdash; **Saints Row Undercover** .MST files.  (Has no filenames unlike *sdwww-mst.bms*)
+- mst-scoobys_doo_www.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has 16 byte name fields unlike *sru-mst.bms*)
 - txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 
 ### GAME TEXTURES
