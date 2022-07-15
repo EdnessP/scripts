@@ -44,7 +44,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - activisionRPF.bms &mdash; **Activision Anthology** .RPF archives.
 - atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
 - atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
-- BombermanActZero.bms &mdash; **Bomberman: Act Zero** .DAT files.
+- BombermanActZero.bms &mdash; **Bomberman Act:Zero** .DAT files.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
@@ -56,7 +56,8 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 
 ### GAME TEXTURES
 
-- tex_BombermanActZero.py &mdash; **Bomberman: Act Zero** XPR2 textures extracted with the QuickBMS script.
+- tex_BombermanActZero.py &mdash; **Bomberman Act:Zero** XPR2 textures extracted with the QuickBMS script.
+- tex_FreakyFlyers.py &mdash; **Freaky Flyers** PS2 .PTX and Xbox .XTX Noesis texture plugin.
 - tex_HuneX_MF_PS2.py &mdash; PS2 Texture extraction for **HuneX** developed games.
 - tex_SpongebobSurfnSkate.py &mdash; **SpongeBob's Surf & Skate Roadtrip** .XEN textures. May work on other Blitz Games archives too.
 - tex_TheSimpsonsGame_X360_itxd.py &mdash; **The Simpsons Game** Xbox 360 .ITXD Noesis texture plugin.
