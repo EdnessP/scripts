@@ -51,7 +51,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - mst-freaky_flyers.bms &mdash; **Freaky Flyers** .MST files.  (Has 24 byte name fields and LZO1X compression)
 - mst-saints_row_uc.bms &mdash; **Saints Row Undercover** .MST files.  (Has hashed filenames)
-- mst-scooby_doo_www.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has 16 byte name fields)
+- mst-scooby_doo_www&#x200b;.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has 16 byte name fields)
 - txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 
 ### GAME TEXTURES
