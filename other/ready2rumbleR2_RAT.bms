@@ -1,0 +1,20 @@
+# Ready 2 Rumble Boxing: Round 2 .RAT 1.0A files
+# Edness   v1.0   2022-07-19
+
+idstring binary "RAT\x001.0A"
+get FILES long
+
+goto 0x20 0
+for i = 0 < FILES
+    getdstring NAME 8
+    getdstring EXT 4
+    getdstring DIR 4
+	# Unsure about the directory string, some of them have invalid folder names such as
+	# \xFC\xF9, \xCC\xCC\xCC, and especially NUL which will do funny stuff to Windows
+    get SIZE long
+    get DUMMY longlong
+    get OFFSET long
+    #string NAME P "%DIR%\%NAME%.%EXT%"  # I highly suggest NOT using the dir string
+    string NAME P "%NAME%.%EXT%"
+    log NAME OFFSET SIZE
+next i
