@@ -9,8 +9,8 @@ for i = 0 < FILES
     getdstring NAME 8
     getdstring EXT 4
     getdstring DIR 4
-	# Unsure about the directory string, some of them have invalid folder names such as
-	# \xFC\xF9, \xCC\xCC\xCC, and especially NUL which will do funny stuff to Windows
+    # Unsure about the directory string, some of them have invalid folder names such as
+    # \xFC\xF9, \xCC\xCC\xCC, and especially NUL which will do funny stuff to Windows
     get SIZE long
     get DUMMY longlong
     get OFFSET long
