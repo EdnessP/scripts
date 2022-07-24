@@ -1,0 +1,25 @@
+# Bomberman Act:Zero FILEB0.DAT
+# A lazy XWB/WBND scanner thing
+# Edness   v1.0   2022-07-24
+
+get TSIZE asize
+
+do
+	findloc STARTOFFSET binary "DNBW\0\0\0\x26"
+	goto STARTOFFSET 0
+	goto 0x38 0 SEEK_CUR
+	get NAME string
+	string NAME P "%NAME%.xwb" 
+	findloc ENDOFFSET binary "DNBW\0\0\0\x26" 0 0
+	#print "%STARTOFFSET% %ENDOFFSET%"
+
+	if ENDOFFSET != 0
+		math SIZE == ENDOFFSET
+		math SIZE -= STARTOFFSET
+	else
+		math SIZE == TSIZE
+		math SIZE -= STARTOFFSET
+	endif
+
+	log NAME STARTOFFSET SIZE
+while STARTOFFSET < TSIZE
