@@ -16,13 +16,12 @@ def parse_pic(path):
     with open(path, "rb") as file:
         file.seek(0x4 if file.read(0x2) != b"DI" else 0x0)  # Usually b"\x10\x02", sometimes NULL?
         while file.read(0x2) == b"DI":
-            file.seek(0x2, 1)
-            file.seek(0x1, 1)  # 0x1 if identifier == "BDW" else 0x0 ?
+            file.seek(0x3, 1)  # 3rd byte is 0x1 if identifier == "BDW" else 0x0?
             layer = read_int(0x1)  # entry would be more appropriate for the BDR/W identifier
             type = file.read(0x1)  # "b" if identifier == "BDR", "c" if "BDW", otherwise " "?
             file.seek(0x1, 1)
             identifier = file.read(0x4).decode()  # BDO, BDU2, XG4, etc.
-            #file.seek(0x8, 1)  # 1st byte >> 4 == amount of layers?
+            #file.seek(0x8, 1)  # 1st byte >> 4 == total layers?
             if layer == 0:
                 total_layers, total_sectors = read_const_info()
             elif read_const_info() != (total_layers, total_sectors):
