@@ -43,9 +43,9 @@ def parse_pic(path):
             print(f"{repr(identifier)[1:-1]} - Layer {layer} - Start: 0x{layer_sector_start + 2:08X} - End: 0x{layer_sector_end:08X} - Size: 0x{layer_size:08X} ({layer_size} sectors, {layer_size * 2048} bytes)")
 
     actual_size = (total_size - layer_size) + (total_sectors - layer_sector_start)
-    print(f"Total size (Used): 0x{actual_size:08X} ({actual_size} sectors, {actual_size * 2048} bytes) - Disc end: 0x{total_sectors + 1:08X}")
-    print(f"Total size (Full): 0x{total_size:08X} ({total_size} sectors, {total_size * 2048} bytes)")
-    print(f"Total layers: {total_layers}")
+    print(f"Total size (Used): 0x{actual_size:08X} ({actual_size} sectors, {actual_size * 2048} bytes) - Disc end: 0x{total_sectors + 1:08X}\n"
+        + f"Total size (Full): 0x{total_size:08X} ({total_size} sectors, {total_size * 2048} bytes)\n"
+        + f"Total layers: {total_layers}")
     if type != b" ":
         print("\nThis information may be wrong due to it being a burnt disc.")
 
