@@ -72,6 +72,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - ms_timestamp.py &mdash; Python reimplementation of *xbexexmzpe.bms* written by jason098.
+- PICparse.py &mdash; Python parser for Blu-ray **Permanent Information & Control** (PIC) binaries.
 - sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
 - TheSimpsonsGame_NewGen_LH2.py &mdash; Exports and rebuilds .LH (2HCL) string files from **The Simpsons Game** (PS3, X360).
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
