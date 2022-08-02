@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# Parses Blu-ray Permanent Information & Control (PIC) data
-# Written by Edness   v1.1   2022-08-01
+# Parses and prints Blu-ray Permanent Information & Control (PIC) data
+# Alternatively, add -d | --dump to print a hexdump of the PIC
+# Written by Edness   v1.2   2022-08-01 - 2022-08-02
 
-def parse_pic(path):
+def parse_pic(path, dump=False):
     def read_int(bytes):
         return int.from_bytes(file.read(bytes), "big")
 
@@ -37,22 +38,38 @@ def parse_pic(path):
             else:
                 file.seek(0x20, 1)
 
-            layer_size = layer_sector_end - layer_sector_start
-            total_size += layer_size
-            # Most of this information is completely useless garbage for BDR/BDW, but oh well
-            print(f"{repr(identifier)[1:-1]} - Layer {layer} - Start: 0x{layer_sector_start + 2:08X} - End: 0x{layer_sector_end:08X} - Size: 0x{layer_size:08X} ({layer_size} sectors, {layer_size * 2048} bytes)")
+            if not dump:
+                layer_size = layer_sector_end - layer_sector_start
+                total_size += layer_size
+                # Most of this information is completely useless garbage for BDR/BDW, but oh well
+                print(f"{repr(identifier)[1:-1]} - Layer {layer} - Start: 0x{layer_sector_start + 2:08X} - End: 0x{layer_sector_end:08X} - Size: 0x{layer_size:08X} ({layer_size} sectors, {layer_size * 2048} bytes)")
 
-    actual_size = (total_size - layer_size) + (total_sectors - layer_sector_start)
-    print(f"Total size (Used): 0x{actual_size:08X} ({actual_size} sectors, {actual_size * 2048} bytes) - Disc end: 0x{total_sectors + 1:08X}\n"
-        + f"Total size (Full): 0x{total_size:08X} ({total_size} sectors, {total_size * 2048} bytes)\n"
-        + f"Total layers: {total_layers}")
-    if type != b" ":
-        print("\nThis information may be wrong due to it being a burnt disc.")
+        if dump:
+            pic_end = file.tell()
+            # Redump submissions always store 2 entries
+            #if pic_end < 0x84: pic_end = 0x84
+            if pic_end % 4 != 0:
+                pic_end -= 2
+            file.seek(0x0)
+            while file.tell() + 0x10 < pic_end:
+                print(f"{read_int(0x10):032X}")
+            remainder = pic_end % 0x10
+            if remainder:
+                # This should always just be (4, 8) but I'm future-proofing
+                print("{:0{}X}".format(read_int(remainder), remainder * 2))
+        else:
+            actual_size = (total_size - layer_size) + (total_sectors - layer_sector_start)
+            print(f"Total size (Used): 0x{actual_size:08X} ({actual_size} sectors, {actual_size * 2048} bytes) - Disc end: 0x{total_sectors + 1:08X}\n"
+                + f"Total size (Full): 0x{total_size:08X} ({total_size} sectors, {total_size * 2048} bytes)\n"
+                + f"Total layers: {total_layers}")
+            if type != b" ":
+                print("\nThis information may be wrong due to it being a burnt disc.")
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("path", type=str)
+    parser.add_argument("-d", "--dump", action="store_true")
     args = parser.parse_args()
 
-    parse_pic(args.path)
+    parse_pic(args.path, args.dump)
