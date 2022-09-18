@@ -1,0 +1,33 @@
+# Adventure Time: Explore the dungeon because idk PAK
+# Tested for PC, PlayStation 3, Wii U, and Xbox 360
+# Written by Edness  v1.2
+# 2021-03-21 - 2022-09-18
+
+#get EXT extension
+#if EXT != "pak"
+#    print "ERROR! Not a .PAK file!"
+#    break
+#endif
+
+get HEADER long
+endian guess HEADER
+get FILES long
+getdstring CHECK 0x10
+
+math HEADER += 0x40 # include "MANAGEDFILE_DATABLOCK_USED_IN_ENGINE_________________________END"
+
+if CHECK != "FILELINK_____END"
+    print "ERROR! This file likely is not compatible with this script!"
+    break
+endif
+
+for i = 0 < FILES
+    get OFFSET long
+    get SIZE long
+    get NAME string
+    padding 8 # padfilled "????????"
+    goto 16 0 SEEK_CUR # "FILELINK_____END"
+    math OFFSET += HEADER
+    string NAME R : \
+    log NAME OFFSET SIZE
+next i
