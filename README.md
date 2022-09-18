@@ -43,7 +43,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 
 - activisionRPF.bms &mdash; **Activision Anthology** .RPF archives.
 - atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
-- atetdbidk360.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
+- atetdbidkPAK.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
 - BombermanActZero.bms &mdash; **Bomberman Act:Zero** .DAT files.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
