@@ -1,3 +1,8 @@
+# NOTICE
+**These scripts are now listed in a somewhat more viewable fashion on my website at https://EdnessP.github.io/tools.html**
+
+ <br>
+
 # My Scripts
 This repository contains random scripts I've written at one point or another.  I've written additional info in the header for some of them just for uploading them here.  Most of them are written for QuickBMS, but there are a few Python (both regular and Noesis) scripts, and one GreaseMonkey script too.
 
@@ -12,7 +17,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - BullyAE_encryption.py &mdash; Decrypt and encrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB, and .XML files.
 - BullyAE_parse.py &mdash; Convert **Bully: Anniversary Edition** files' header info strings to usable lists and dictionaries.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive. (jumptable.bin)
-- BullyHash &mdash; Hashing functions used by **Bully** for RSTM audio and string label lookups.
+- BullyHash &mdash; Hashing functions used by **Bully** for RSTM audio and string label lookup hashes.
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
 
@@ -61,7 +66,6 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - tex_FreakyFlyers.py &mdash; **Freaky Flyers** PS2 .PTX and Xbox .XTX Noesis texture plugin.
 - tex_HuneX_MF_PS2.py &mdash; PS2 Texture extraction for **HuneX** developed games.
 - tex_SpongebobSurfnSkate.py &mdash; **SpongeBob's Surf & Skate Roadtrip** .XEN textures. May work on other Blitz Games archives too.
-- tex_TheSimpsonsGame_X360_itxd.py &mdash; **The Simpsons Game** Xbox 360 .ITXD Noesis texture plugin.
 - tex_Yakuza.py &mdash; **Yakuza** TXBP Noesis texture exporter plugin.
 
 ### MISCELLANEOUS
@@ -75,7 +79,6 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** STMA/RSTM hash lookup reimplementation.
 - PICparse.py &mdash; Python parser for Blu-ray **Permanent Information & Control** (PIC) binaries.
 - sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
-- TheSimpsonsGame_NewGen_LH2.py &mdash; Exports and rebuilds .LH (2HCL) string files from **The Simpsons Game** (PS3, X360).
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
@@ -86,5 +89,14 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 <summary>sims-console\</summary>
 
 - todo
+
+</details>
+
+<details>
+<summary>tsg\</summary>
+
+- TheSimpsonsGame_NewGen_LH2.py &mdash; Exports and rebuilds .LH (2HCL) string files from **The Simpsons Game** (PS3, X360).
+- tex_TheSimpsonsGame_X360_itxd.py &mdash; **The Simpsons Game** Xbox 360 .ITXD Noesis texture plugin.
+- tsg_hash.py &mdash; **The Simpsons Game** (PS3, X360) string label lookup hashing.
 
 </details>
