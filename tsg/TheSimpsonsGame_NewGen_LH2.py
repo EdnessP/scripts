@@ -83,7 +83,7 @@ def parse_txt(path):
     data = [list() for x in range(tables)]
     ptr = [32 + (entries + tables * entries) * 4]
 
-    label = True if hdr[1] == "String Label" else False
+    label = hdr[1] == "String Label"
     for ln in txt:
         ln = ln.split("\t")
         ids.extend(write_int(int(ln.pop(0), 16)))
