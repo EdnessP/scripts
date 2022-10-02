@@ -32,7 +32,7 @@ def parse_lh(path):
         file.seek(0x10)
         entries = read_int()
         tables = read_int()
-        # Next two values are pointers to the compressed(?) ID list
+        # Next two values are pointers to the hashed string ID list
         # and the table pointer lists, but only when loaded in RAM.
         # Otherwise these two fields are blank.
 
@@ -67,6 +67,9 @@ def parse_txt(path):
 
     with open(path, "r", encoding="UTF-8") as file:
         txt = file.read().splitlines()
+
+    # Todo: validate string hash IDs with the hashing algorithm
+    # https://github.com/EdnessP/scripts/blob/main/tsg/tsg_hash.py
 
     hdr = txt.pop(0).split("\t")
     if hdr[0] != "String ID" or hdr[1] not in {"String Label", "Language 0"}:
