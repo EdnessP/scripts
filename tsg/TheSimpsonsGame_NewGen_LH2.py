@@ -5,9 +5,11 @@
 #   script.py dec "string_file.LH2"
 #   script.py enc "string_file.LH2.txt"
 
-# All the strings must be compatible with Windows Codepage 1252!
+# While the output TXT file will be in UTF-8, all of the
+# strings must be compatible with Windows Codepage 1252!
+# None of the strings should have multiple lines or tabs!
 
-# Written by Edness   v1.0
+# Written by Edness   v1.1
 # 2022-05-30
 
 import argparse, os
@@ -30,7 +32,7 @@ def parse_lh(path):
         file.seek(0x10)
         entries = read_int()
         tables = read_int()
-        # Next two values are pointers to the hashed string ID list
+        # Next two values are pointers to the compressed(?) ID list
         # and the table pointer lists, but only when loaded in RAM.
         # Otherwise these two fields are blank.
 
@@ -66,33 +68,27 @@ def parse_txt(path):
     with open(path, "r", encoding="UTF-8") as file:
         txt = file.read().splitlines()
 
-    # Todo: validate string hash IDs with the hashing algorithm
-    # https://github.com/EdnessP/scripts/blob/main/tsg/tsg_hash.py
-
-    hdr = txt[0].split("\t")
+    hdr = txt.pop(0).split("\t")
     if hdr[0] != "String ID" or hdr[1] not in {"String Label", "Language 0"}:
         print("Not recognised as an .LH2 file exported by this script.")
         return
 
-    txt.pop(0)
     tables = len(hdr) - 1
     entries = len(txt)
 
     ids = list()
     data = [list() for x in range(tables)]
-    txt_ofs = 32 + (entries + tables * entries) * 4
+    ptr = [32 + (entries + tables * entries) * 4]
 
     label = True if hdr[1] == "String Label" else False
     for ln in txt:
         ln = ln.split("\t")
-        ids.extend(write_int(int(ln[0], 16)))
+        ids.extend(write_int(int(ln.pop(0), 16)))
 
-        ln.pop(0)
         if label: ln.append(ln.pop(0))
         for i, s in enumerate(ln):
             data[i].append(s.encode("1252") + b"\x00")
 
-    ptr = [txt_ofs]
     for lst in data:
         for ln in lst:
             ptr.append(ptr[-1] + len(ln))
