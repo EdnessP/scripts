@@ -42,6 +42,13 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 </details>
 
 <details>
+<summary>mclub\</summary>
+
+- MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations.
+
+</details>
+
+<details>
 <summary>other\</summary>
 
 ### GAME ARCHIVES
@@ -76,7 +83,6 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - ms_timestamp.py &mdash; Python reimplementation of *xbexexmzpe.bms* written by jason098.
-- MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** STMA/RSTM hash lookup reimplementation.
 - PICparse.py &mdash; Python parser for Blu-ray **Permanent Information & Control** (PIC) binaries.
 - sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
