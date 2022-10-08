@@ -25,7 +25,7 @@ def string_hash(str):
     # can be found at  scripts/bully/BullyHash.py
     hash = 0x00000000
     for chr in str:
-        hash = (hash << 4) + ord(chr) & 0xFFFFFFFF
+        hash = (hash << 4) + ord(chr)
         if mask := hash & 0xF0000000:
             hash ^= mask >> 24 ^ mask
     return hash
