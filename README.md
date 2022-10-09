@@ -42,9 +42,10 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 </details>
 
 <details>
-<summary>mclub\</summary>
+<summary>midnight-club\</summary>
 
 - MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations.
+- mclub_strtbl.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** (and other earlier Angel Studios/Rockstar: San Diego) .STRTBL string table exporter and rebuilder
 
 </details>
 
@@ -99,9 +100,9 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 </details>
 
 <details>
-<summary>tsg\</summary>
+<summary>simpsons-game\</summary>
 
-- TheSimpsonsGame_NewGen_LH2.py &mdash; Exports and rebuilds .LH (2HCL) string files from **The Simpsons Game** (PS3, X360).
+- TheSimpsonsGame_NewGen_LH2.py &mdash; **The Simpsons Game** (PS3, X360) .LH2 (2HCL) string file exporter and rebuilder.
 - tex_TheSimpsonsGame_X360_itxd.py &mdash; **The Simpsons Game** Xbox 360 .ITXD Noesis texture plugin.
 - tsg_hash.py &mdash; **The Simpsons Game** (PS3, X360) string label lookup hashing.
 
