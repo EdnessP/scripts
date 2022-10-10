@@ -42,6 +42,14 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 </details>
 
 <details>
+<summary>cod\</summary>
+
+- codfh_hash.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox filename hashing function reimplementation.
+- codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
+
+</details>
+
+<details>
 <summary>midnight-club\</summary>
 
 - MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations.
@@ -58,7 +66,6 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - atariGLM.bms &mdash; **Atari Anthology** .GLM archives.
 - atetdbidkPAK.bms &mdash; **Adventure Time: Explore the Dungeon Because I Don't Know!** .PAK files.
 - BombermanActZero.bms &mdash; **Bomberman Act:Zero** .DAT files.
-- codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
