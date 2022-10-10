@@ -3,7 +3,7 @@
 # Written by Edness   v1.0   2022-06-20
 
 def rstm_hash(str):
-    # Reimplemented from the  zipHashFile::Hash  function
+    # Reimplemented from the  zipHashFile::Hash  function at  0040CDF0  in PS2 PAL
     # Used for looking up RSTM audio files by their hashed names
 
     # The game normally checks if it starts with a quotation mark and strips it,
