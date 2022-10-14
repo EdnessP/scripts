@@ -18,7 +18,7 @@
 # The  -a | --algo  argument refers to the string hashing algorithm used;
 # 2 = Midnight Club 2 (or other older games),  3 = Midnight Club 3
 
-# Written by Edness   v1.0   2022-10-09
+# Written by Edness   v1.1   2022-10-09 - 2022-10-14
 
 import argparse, os, struct
 
@@ -74,7 +74,7 @@ def parse_strtbl(path, algo):
         return str
 
     with open(path, "rb") as file:
-        file_size = os.path.getsize(path) #file.seek(0, 2)
+        file_size = os.path.getsize(path)  #file.seek(0, 2)
 
         lang_ptrs = list()
         for i in range(read_int(0x4)):  # is it always 10 total?
@@ -90,8 +90,8 @@ def parse_strtbl(path, algo):
         str_dict = dict()
         for lab in labels: str_dict[lab] = list()
 
-        for ptr in lang_ptrs:
-            for i in range(read_int(0x4)):
+        for i in lang_ptrs:
+            for j in range(read_int(0x4)):
                 str_dict[hash_dict[read_int(0x4)]].append((
                     read_int(0x2),              # [0] param_text[0]
                     read_font(),                # [1] font_text
@@ -183,22 +183,19 @@ def parse_txt(path, algo):
         label_data.extend(write_int(len(label), 0x4))
         label_data.extend(label.encode() + b"\x00")
 
-        #for col in range(0, lang_count * 3, lang_count):
-        #    for entry in range(lang_count):
-        #        print(ln[col + entry])
-
         for col in range(lang_count):
             lang = ln[col::lang_count]
             lang[2] = lang[2].split(",")
+            lang_str = fixup_str(lang[0])
 
             lang_data[col].extend(write_int(hash(label), 0x4))
             lang_data[col].extend(write_int(int(lang[2][0]), 0x2))
             lang_data[col].extend(write_int(len(lang[1]), 0x4))
             lang_data[col].extend(lang[1].encode())
-            lang_data[col].extend(write_int(len(lang_str := fixup_str(lang[0])) + 1, 0x4))
+            lang_data[col].extend(write_int(len(lang_str) + 1, 0x4))
             lang_data[col].extend(lang_str.encode("UTF-16LE"))
             lang_data[col].extend(bytes(2))  # NULL terminator
-            lang_data[col].extend(write_float(float(lang[2][1])))
+            lang_data[col].extend(write_float(float(lang[2][1])))  # Always 1.0?
             lang_data[col].extend(write_float(float(lang[2][2])))
             lang_data[col].extend(write_int(int(lang[2][3]), 0x2))  # NULL?
 
@@ -222,11 +219,11 @@ this = os.path.basename(__file__)
 parser = argparse.ArgumentParser(description="Converts to and from the .STRTBL string tables used in Midnight Club.")
 subparsers = parser.add_subparsers()
 
-decode_parser = subparsers.add_parser("dec", help=f"decode from a .STRTBL file")
+decode_parser = subparsers.add_parser("dec", help="decode from a .STRTBL file")
 decode_parser.add_argument("path", type=str)
 decode_parser.set_defaults(func=parse_strtbl)
 
-encode_parser = subparsers.add_parser("enc", help=f"encode to a .STRTBL file")
+encode_parser = subparsers.add_parser("enc", help="encode to a .STRTBL file")
 encode_parser.add_argument("path", type=str)
 encode_parser.set_defaults(func=parse_txt)
 
