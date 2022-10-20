@@ -1,5 +1,5 @@
 # NOTICE
-**These scripts are now listed in a somewhat more viewable fashion on my website at [EdnessP.github.io](https://EdnessP.github.io/)**
+**These scripts are now listed in a somewhat more viewable fashion on my website at [EdnessP.github.io](https://EdnessP.github.io/tools)**
 
  <br>
 
