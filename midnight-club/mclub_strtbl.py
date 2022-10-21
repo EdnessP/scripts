@@ -18,7 +18,7 @@
 # The  -a | --algo  argument refers to the string hashing algorithm used;
 # 2 = Midnight Club 2 (or other older games),  3 = Midnight Club 3
 
-# Written by Edness   v1.1   2022-10-09 - 2022-10-14
+# Written by Edness   v1.2   2022-10-09 - 2022-10-21
 
 import argparse, os, struct
 
@@ -159,11 +159,10 @@ def parse_txt(path, algo):
         print("Error! Not recognised as an exported .STRTBL from this script.")
         return
 
-    lang_count = len(header[1:]) / 3
-    if not lang_count.is_integer():
+    if len(header[1:]) % 3 != 0:
         print("Error! Unequal amount of columns.")
         return
-    lang_count = int(lang_count)
+    lang_count = len(header[1:]) // 3
 
     # Every section starts with the amount of strings
     label_data = list(write_int(len(input), 0x4))
@@ -185,15 +184,15 @@ def parse_txt(path, algo):
 
         for col in range(lang_count):
             lang = ln[col::lang_count]
+            lang[0] = fixup_str(lang[0])
             lang[2] = lang[2].split(",")
-            lang_str = fixup_str(lang[0])
 
             lang_data[col].extend(write_int(hash(label), 0x4))
             lang_data[col].extend(write_int(int(lang[2][0]), 0x2))
             lang_data[col].extend(write_int(len(lang[1]), 0x4))
             lang_data[col].extend(lang[1].encode())
-            lang_data[col].extend(write_int(len(lang_str) + 1, 0x4))
-            lang_data[col].extend(lang_str.encode("UTF-16LE"))
+            lang_data[col].extend(write_int(len(lang[0]) + 1, 0x4))
+            lang_data[col].extend(lang[0].encode("UTF-16LE"))
             lang_data[col].extend(bytes(2))  # NULL terminator
             lang_data[col].extend(write_float(float(lang[2][1])))  # Always 1.0?
             lang_data[col].extend(write_float(float(lang[2][2])))
