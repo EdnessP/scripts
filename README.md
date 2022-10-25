@@ -75,7 +75,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - ready2rumbleRAT.bms &mdash; **Ready 2 Rumble Boxing** (1) and **Round 2** .RAT files.
 - txbp-tm2.bms &mdash; **Yakuza 1** & **2** PS2 TXBP texture container to TM2 converter.
 
-### GAME TEXTURES/MODELS
+### GAME TEXTURES / MODELS
 
 - fmt_BigRigsOTRR.py &mdash; **Big Rigs: Over the Road Racing** PC .SCO Noesis model plugin.
 - tex_BombermanActZero.py &mdash; **Bomberman Act:Zero** XPR2 textures extracted with the QuickBMS script.
