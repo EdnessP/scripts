@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness   2021-10-23 - 2022-03-12   v1.4.5
+# Python reimplementation of xbexexmzpe.bms with extra features
+# Written by jason098 & Edness   2021-10-23 - 2022-10-29   v1.5
+# Original base script written on 2021-03-17
 
 import argparse, os
 from datetime import datetime
@@ -16,6 +17,9 @@ time_t = True
 
 def read_int(bytes):
     return int.from_bytes(file.read(bytes), endian)
+
+def read_str(bytes):
+    return str(file.read(bytes), "UTF-8")
 
 def print_time(type):
     time = read_int(0x4) if (time_t == True) else (read_int(0x8) - 0x19DB1DED53E8000) // 10000000
@@ -49,21 +53,21 @@ def parse_pdb(word, *c_dates):
 if (magic[:0x2] == b"MZ"):
     file.seek(0x3C)
     file.seek(read_int(0x4))
-    magic = str(file.read(0x2), "UTF-8")
+    magic = read_str(0x2)
     if (magic == "PE"):
         file.seek(0x6, 1)
         print_time(magic)
-    else: # NE, LE, LX have no timestamp.
+    else:  # NE, LE, LX have no timestamp.
         print(f"Unsupported {magic} file.")
 
-elif (magic[:0x4] == b"XE\x00\x00"): # Xbox (Alpha)
+elif (magic[:0x4] == b"XE\x00\x00"):  # Xbox (Alpha)
     file.seek(0x1C)
     print_time("XE")
     file.seek(0x24)
     file.seek(read_int(0x4) + 0x3C)
     print_time("PE")
 
-elif (magic[:0x4] == b"XBEH"): # Xbox (Final)
+elif (magic[:0x4] == b"XBEH"):  # Xbox (Final)
     file.seek(0x114)
     print_time("XBE")
     file.seek(read_int(0x2) + 0x4)
@@ -71,12 +75,12 @@ elif (magic[:0x4] == b"XBEH"): # Xbox (Final)
     file.seek(0x148)
     print_time("PE")
 
-elif (magic[:0x4] in {b"XEX?", b"XEX0"}): # Xbox 360 (Alpha)
+elif (magic[:0x4] in {b"XEX?", b"XEX0"}):  # Xbox 360 (Alpha)
     file.seek(0x103C)
     file.seek(read_int(0x4) + 0x1008)
     print_time("PE")
 
-elif (magic[:0x4] in {b"XEX-", b"XEX1", b"XEX2"}): # Xbox 360 (Beta, Final)
+elif (magic[:0x4] in {b"XEX-", b"XEX1", b"XEX2"}):  # Xbox 360 (Beta, Final)
     endian = "big"
     file.seek(0x14)
     sections = read_int(0x4)
@@ -88,12 +92,31 @@ elif (magic[:0x4] in {b"XEX-", b"XEX1", b"XEX2"}): # Xbox 360 (Beta, Final)
             print_time("XEX")
             break
 
-elif (magic[0x200:0x208] == b"msft-xvd"): # Xbox One
+elif (magic[0x200:0x208] == b"msft-xvd"):  # Xbox One
     time_t = False
     file.seek(0x210)
     print_time("XVD")
 
-elif (magic[:0x2] == b"DI"): # DBG - PDB predecessor?
+elif (int.from_bytes(magic[:0x8], endian) == 1):  # Xbox DMI
+    time_t = False
+    file.seek(0x10)
+    print_time("Authoring")
+    file.seek(0x8)
+    print("XMID:", read_str(0x8))
+
+elif (int.from_bytes(magic[:0x10], endian) == 2):  # Xbox 360 DMI
+    time_t = False
+    file.seek(0x10)
+    print_time("Authoring")
+    file.seek(0x40)
+    print("XeMID:", read_str(0x10))
+
+elif (magic[:0x4] in {b"\xD1\x0F\x31\x10", b"\xE1\x0F\x31\x10"}):  # Xbox, Xbox 360 SS
+    time_t = False
+    file.seek(0x5DF)
+    print_time("Mastering")
+
+elif (magic[:0x2] == b"DI"):  # DBG - PDB predecessor?
     file.seek(0x8)
     print_time("DI")
 
@@ -124,3 +147,5 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
 
 else:
     print("Couldn't determine file type!")
+
+file.close()
