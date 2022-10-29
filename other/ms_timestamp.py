@@ -80,7 +80,7 @@ elif (magic[:0x4] in {b"XEX?", b"XEX0"}):  # Xbox 360 (Alpha)
     file.seek(read_int(0x4) + 0x1008)
     print_time("PE")
 
-elif (magic[:0x4] in {b"XEX-", b"XEX1", b"XEX2"}):  # Xbox 360 (Beta, Final)
+elif (magic[:0x4] in {b"XEX-", b"XEX%", b"XEX1", b"XEX2"}):  # Xbox 360 (Beta, Final)
     endian = "big"
     file.seek(0x14)
     sections = read_int(0x4)
