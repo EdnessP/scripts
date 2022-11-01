@@ -15,6 +15,9 @@ magic = file.read(0x208)
 endian = "little"
 time_t = True
 
+def magic_int(bytes):
+    return int.from_bytes(magic[:bytes], endian)
+
 def read_int(bytes):
     return int.from_bytes(file.read(bytes), endian)
 
@@ -98,12 +101,7 @@ elif (magic[0x200:0x208] == b"msft-xvd"):  # Xbox One
     file.seek(0x210)
     print_time("XVD")
 
-elif (int.from_bytes(magic[:0x8], endian) == 1):  # Xbox DMI
-    time_t = False
-    file.seek(0x10)
-    print_time("Authoring")
-
-elif (int.from_bytes(magic[:0x10], endian) == 2):  # Xbox 360 DMI
+elif (magic_int(0x8) == 1 or magic_int(0x10) == 2):  # Xbox, Xbox 360 DMI
     time_t = False
     file.seek(0x10)
     print_time("Authoring")
