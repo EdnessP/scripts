@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Python reimplementation of xbexexmzpe.bms with extra features
-# Written by jason098 & Edness   2021-10-23 - 2022-10-29   v1.5
+# Python reimplementation of  xbexexmzpe.bms  with extra features
+# Written by jason098 & Edness   2021-10-23 - 2022-11-01   v1.5.1
 # Original base script written on 2021-03-17
 
 import argparse, os
@@ -22,8 +22,9 @@ def read_str(bytes):
     return str(file.read(bytes), "UTF-8")
 
 def print_time(type):
-    time = read_int(0x4) if (time_t == True) else (read_int(0x8) - 0x19DB1DED53E8000) // 10000000
-    print(f"{type} date:".ljust(10), datetime.utcfromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S"))
+    time = (read_int(0x4), 0) if (time_t) else divmod(read_int(0x8) - 0x19DB1DED53E8000, 10000000)
+    time = datetime.utcfromtimestamp(time[0]).replace(microsecond=time[1] // 10)
+    print(f"{type} date:".ljust(10), time.strftime(f"%Y-%m-%d %H:%M:%S{'' if (time_t) else '.%f'}"))
 
 def parse_pdb(word, *c_dates):
     # Normally it's supposed to always be Stream 2, but a few edge cases have arisen
@@ -101,15 +102,11 @@ elif (int.from_bytes(magic[:0x8], endian) == 1):  # Xbox DMI
     time_t = False
     file.seek(0x10)
     print_time("Authoring")
-    file.seek(0x8)
-    print("XMID:", read_str(0x8))
 
 elif (int.from_bytes(magic[:0x10], endian) == 2):  # Xbox 360 DMI
     time_t = False
     file.seek(0x10)
     print_time("Authoring")
-    file.seek(0x40)
-    print("XeMID:", read_str(0x10))
 
 elif (magic[:0x4] in {b"\xD1\x0F\x31\x10", b"\xE1\x0F\x31\x10"}):  # Xbox, Xbox 360 SS
     time_t = False
@@ -144,6 +141,12 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     streams = read_int(0x4)
     stream_ptr = streams * 4 + 4 + stream_dir
     parse_pdb(0x4, 20000404)
+
+elif (magic[:0x20] == b"Microsoft Linker Database\n\n\x07\x1A\x00\x00\x00"):
+    # There are both timestamp types - FILETIME at 0x30, and TIME_T at 0x44
+    time_t = False
+    file.seek(0x30)
+    print_time("ILK")
 
 else:
     print("Couldn't determine file type!")
