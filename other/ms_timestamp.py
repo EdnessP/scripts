@@ -112,6 +112,12 @@ elif (magic[:0x4] in {b"\xD1\x0F\x31\x10", b"\xE1\x0F\x31\x10"}):  # Xbox, Xbox 
     print_time("Authoring")
     file.seek(0x5DF)
     print_time("Mastering")
+    if magic[:0x4] == b"\xD1\x0F\x31\x10":  # Xbox only
+        file.seek(0x41F)
+        print_time("Unknown 1")  # Creation?  Before Authoring date
+        time_t = True
+        file.seek(0x4A7)
+        print_time("Unknown 2")  # Shortly after Authoring date
 
 elif (magic[:0x2] == b"DI"):  # DBG - PDB predecessor?
     file.seek(0x8)
