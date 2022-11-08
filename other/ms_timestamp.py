@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness   2021-10-23 - 2022-11-01   v1.5.1
+# Written by jason098 & Edness   2021-10-23 - 2022-11-09   v1.5.2
 # Original base script written on 2021-03-17
 
 import argparse, os
@@ -104,10 +104,12 @@ elif (magic[0x200:0x208] == b"msft-xvd"):  # Xbox One
 elif (magic_int(0x8) == 1 or magic_int(0x10) == 2):  # Xbox, Xbox 360 DMI
     time_t = False
     file.seek(0x10)
-    print_time("Authoring")
+    print_time("DMI")
 
 elif (magic[:0x4] in {b"\xD1\x0F\x31\x10", b"\xE1\x0F\x31\x10"}):  # Xbox, Xbox 360 SS
     time_t = False
+    file.seek(0x49F)
+    print_time("Authoring")
     file.seek(0x5DF)
     print_time("Mastering")
 
