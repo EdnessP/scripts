@@ -51,8 +51,8 @@ def tsgLoadTexturePS3(data, texList):
         texFmt = tex.readUByte()
         texWidth = tex.readUShort()
         texHeight = tex.readUShort()
-        tex.seek(texOffset + 0x54)
         tex.setEndian(NOE_LITTLEENDIAN)
+        tex.seek(texOffset + 0x54)
         texSize = tex.readUInt()
 
         if TsgDebug:
