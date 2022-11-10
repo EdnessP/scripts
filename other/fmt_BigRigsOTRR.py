@@ -81,7 +81,7 @@ def brLoadModelSco(data, mdlList):  #, runFirst=True
                         mat.setOpacityTexture(brLoadTexture(brReadEntry(ln), texList))
 
                     elif ln.startswith("NormalMap"):
-                        #getFlags1 |= noesis.NMATFLAG_NORMAL_UV1 | noesis.NTEXFLAG_ISNORMALMAP
+                        #getFlags1 |= noesis.NMATFLAG_NORMAL_UV1
                         mat.setNormalTexture(brLoadTexture(brReadEntry(ln), texList))
 
                     elif ln.startswith("EnvMap"):
