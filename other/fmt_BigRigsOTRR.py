@@ -1,4 +1,4 @@
-# Written by Edness   v1.0   2022-10-25
+# Written by Edness   v1.1   2022-10-25 - 2022-11-10
 
 USE_MAT_COLOR = False  # Material colors, these seem to not be used by the game
 
@@ -81,7 +81,7 @@ def brLoadModelSco(data, mdlList):  #, runFirst=True
                         mat.setOpacityTexture(brLoadTexture(brReadEntry(ln), texList))
 
                     elif ln.startswith("NormalMap"):
-                        #getFlags1 |= noesis.NMATFLAG_NORMAL_UV1
+                        #getFlags1 |= noesis.NMATFLAG_NORMAL_UV1 | noesis.NTEXFLAG_ISNORMALMAP
                         mat.setNormalTexture(brLoadTexture(brReadEntry(ln), texList))
 
                     elif ln.startswith("EnvMap"):
@@ -143,9 +143,7 @@ def brLoadModelSco(data, mdlList):  #, runFirst=True
                 faceCount -= 1
                 ln = ln.split()
                 faceLine = int(ln.pop(0))  # Always 3 lol
-                faces = [0 for f in range(faceLine)]
-                for f in range(faceLine):
-                    faces[f] = int(ln.pop(0))
+                faces = [int(ln.pop(0)) for f in range(faceLine)]
 
                 matName = ln.pop(0)
                 if matName not in faceData:
