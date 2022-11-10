@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness   2021-10-23 - 2022-11-09   v1.5.3
+# Written by jason098 & Edness   2021-10-23 - 2022-11-10   v1.5.4
 # Original base script written on 2021-03-17
 
 import argparse, os
@@ -149,9 +149,10 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     parse_pdb(0x4, 20000404)
 
 elif (magic[:0x20] == b"Microsoft Linker Database\n\n\x07\x1A\x00\x00\x00"):
-    # There are both timestamp types - FILETIME at 0x30, and TIME_T at 0x44
+    # There are both FILETIME and TIME_T timestamps, as well as PDB dates?
     time_t = False
-    file.seek(0x30)
+    file.seek(0x26)
+    file.seek(read_int(0x2) - 0x12, 1)
     print_time("ILK")
 
 else:
