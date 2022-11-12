@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 # Parse Burnout CRASH! CSV files to crop exported PNGs with FFmpeg
 # Expects the textures to be exported in the same directory as the CSV
-# Set the path to the FFmpeg executable at  ffmpeg_path  before running
+# Set the path to the FFmpeg executable at  FFMPEG_PATH  before running
 
-# Written by Edness   v1.0   2022-07-13
+# Written by Edness   v1.1   2022-07-13 - 2022-11-12
 
-ffmpeg_path = r"X:\path\to\ffmpeg\executable"
+FFMPEG_PATH = r"D:\CTOOLS\ffmpeg\bin\ffmpeg.exe"
 
 import os
 
-dir = "\\" if os.name == "nt" else "/"
-
-def parse_csv(csv_path, ff_path=ffmpeg_path):
+def parse_csv(csv_path, ff_path=FFMPEG_PATH):
     if not os.path.exists(ff_path):
         if __name__ == "__main__":
-            print("Please specify the correct location of the FFmpeg executable for ffmpeg_path in the script!")
+            print("Please specify the correct location of the FFmpeg executable for FFMPEG_PATH in the script!")
         else:
             print("The provided FFmpeg executable was not found!")
         return
@@ -32,15 +30,15 @@ def parse_csv(csv_path, ff_path=ffmpeg_path):
         csv_data = file.read().splitlines()
 
     def ffmpeg_cmd(tex, vf_cmd):
-        os.system(f"{ff_path} -i \"{base_path}{dir}{tex}.png\" {vf_cmd.strip()} -hide_banner -loglevel error")
+        os.system(f"{ff_path} -i \"{os.path.join(base_path, tex)}.png\" {vf_cmd.strip()} -hide_banner -loglevel error")
 
     out_dict = {}
     for line in csv_data:
         name, file, x, y, w, h, _w, _h = line.split(",")
         if w != _w or h != _h:
-            print(f"Warning! {file}{dir}{name} has mismatching dimensions! {w}x{h} vs {_w}x{_h}")
+            print(f"Warning! {os.path.join(file, name)} has mismatching dimensions! {w}x{h} vs {_w}x{_h}")
 
-        out_path = f"{base_path}{dir}{file}{dir}{name}.png"
+        out_path = f"{os.path.join(base_path, file, name)}.png"
         os.makedirs(os.path.split(out_path)[0], exist_ok=True)
         if file not in out_dict.keys():
             out_dict[file] = ""
@@ -55,9 +53,9 @@ def parse_csv(csv_path, ff_path=ffmpeg_path):
         print(f"Prepared a path for {out_path}")
 
     print("Dumping remaining images...")
-    for file in out_dict:
-        if out_dict[file]:
-            ffmpeg_cmd(file, out_dict[file])
+    for file, vf_cmd in out_dict.items():
+        if vf_cmd:
+            ffmpeg_cmd(file, vf_cmd)
 
     print("Done!")
 
