@@ -1,6 +1,9 @@
 # Burnout CRASH! PS3, X360, iOS model and texture plugin
 # Written by Edness   v1.4   2022-07-09 - 2022-07-13
 
+# This plugin is brought to you by the Burnout Modding community.
+#               burnout.wiki  |  discord.gg/8zxbb4x              
+
 # NOTE:
 #   The Xbox 360 .DDX textures don't store their intended size and had
 #   to be manually calculated with what little info there is.
@@ -51,7 +54,7 @@ def boCheckTexPvr(data):
     chk = NoeBitStream(data)
     if chk.readUInt() == 0x34:
         chk.seek(0x10)
-        # All the existing PVR tools I looked at didn't support these format IDs
+        # The few existing PVR plugins I looked at didn't support these format IDs
         if chk.readUInt() in {0x20D, 0x8012, 0x820D}:
             chk.seek(0x2C)
             if chk.readBytes(0x4) == b"PVR!":
