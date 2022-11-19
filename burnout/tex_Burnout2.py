@@ -1,18 +1,32 @@
-# Burnout 2: Point of Impact PS2 and Xbox texture plugin
-# Written by Edness   2022-06-28   v1.1
+# Burnout 2: Point of Impact GameCube, PS2 and Xbox texture plugin
+# The  lib_zq_nintendo_tex  library is required to view the GameCube
+# textures.  Place it Noesis Python plugins directory to enable it.
 
-PoiDebug = False
+# Written by Edness   2022-06-28 - 2022-11-19   v1.2
+
+PoiDebug = True
 
 from inc_noesis import *
+
+try:
+    import lib_zq_nintendo_tex as ntex
+    PoiGameCube = True
+except ImportError:
+    PoiGameCube = False
 
 def registerNoesisTypes():
     handleDic = noesis.register("Burnout 2: Point of Impact - Dictionary", ".dic")
     noesis.setHandlerTypeCheck(handleDic, poiChkDic)
     noesis.setHandlerLoadRGBA(handleDic, poiArcTexDic)
 
-    handleFE = noesis.register("Burnout 2: Point of Impact - Frontend", ".ps2")  # ".gcn;.ps2"
+    handleFE = noesis.register("Burnout 2: Point of Impact - Frontend", ".gcn;.ps2" if PoiGameCube else ".ps2")
     noesis.setHandlerTypeCheck(handleFE, poiChkFE)
     noesis.setHandlerLoadRGBA(handleFE, poiArcTexFE)
+
+    if PoiGameCube:
+        handleGrd = noesis.register("Burnout 2: Point of Impact - GameCube Textures", ".grd")
+        noesis.setHandlerTypeCheck(handleGrd, poiChkGrd)
+        noesis.setHandlerLoadRGBA(handleGrd, poiArcTexGrd)
 
     handleCar = noesis.register("Burnout 2: Point of Impact - Racecars", ".rcf;.rcx")
     noesis.setHandlerTypeCheck(handleCar, poiChkCar)
@@ -30,6 +44,10 @@ def registerNoesisTypes():
         noesis.logPopup()
     return True
 
+
+
+
+
 def poiChkDic(data):
     chk = NoeBitStream(data)
     chk.seek(0x4)
@@ -43,20 +61,27 @@ def poiChkFE(data):
         return True
     return False
 
+def poiChkGrd(data):
+    if data.startswith(bytes(16)):
+        return True
+    return False
+
 def poiChkCar(data):
-    chk = NoeBitStream(data)
-    if chk.readUInt64() in {
+    chk, chkEndian = poiGetHdrEndian(data)
+    if chk.readUInt() in {
         0xB2CA0009,  # PS2,  Alpha
         0xB2CA000A,  # PS2,  Demo
         0xB2CA000B,  # PS2,  Final
         0xB2CA2001,  # XBOX, Final
-    } and chk.readUInt() == chk.getSize():
+        0xB2CA2003,  # GCN,  Final
+    } and chk.readUInt() == 0 and chk.readUInt() == chk.getSize():
         return True
     return False
 
 def poiChkPss(data):
-    chk = NoeBitStream(data)
+    chk, chkEndian = poiGetHdrEndian(data)
     if chk.readUInt() in {
+        0xB2300007,  # GCN,  Final
         0xB2300008,  # XBOX, Final
         0xB2300011,  # PS2,  Alpha
         0xB2300012,  # PS2,  Demo
@@ -66,12 +91,13 @@ def poiChkPss(data):
     return False
 
 def poiChkTra(data):
-    chk = NoeBitStream(data)
-    if chk.readUInt64() in {
+    chk, chkEndian = poiGetHdrEndian(data)
+    if chk.readUInt() in {
         0xB2DA0007,  # PS2,  Alpha, Demo
         0xB2DA0008,  # PS2,  Final
         0xB2DA2001,  # XBOX, Final
-    }:
+        0xB2DA2004,  # GCN,  Final
+    } and chk.readUInt() == 0:
         return True
     return False
 
@@ -79,6 +105,9 @@ def poiChkTra(data):
 
 
 
+def poiGetHdrEndian(data):
+    noeEndian = NOE_BIGENDIAN if data.startswith(b"\xB2") else NOE_LITTLEENDIAN
+    return NoeBitStream(data, noeEndian), noeEndian
 
 def poiPS2Read4(tex, rSize):
     # Converts 4-bit data to 8-bit
@@ -112,7 +141,7 @@ def poiTexDicParse(tex, texList, texOffset):
         nameLen = tex.readUInt()
         tex.seek(texOffset + 0x20)
         texName = noeStrFromBytes(tex.readBytes(nameLen))
-        texOffsetNew = tex.tell()
+        texOffsetNew = tex.getOffset()
         tex.seek(texOffsetNew + 0x28)
         texWidth = tex.readUInt()
         texHeight = tex.readUInt()
@@ -120,7 +149,7 @@ def poiTexDicParse(tex, texList, texOffset):
         tex.seek(texOffsetNew + 0x58)
         palOffset = tex.readUInt() + texOffsetNew + 0xC4
         tex.seek(texOffsetNew + 0xC4)
-        bmpOffset = tex.tell()
+        bmpOffset = tex.getOffset()
 
         if PoiDebug:
             print("\nPlayStation 2 texture detected!"
@@ -163,7 +192,7 @@ def poiTexDicParse(tex, texList, texOffset):
             print("\nXbox texture detected!"
                 + "\nTexture name: {}".format(texName)
                 + "\nTexture offset: 0x{:X}".format(texOffset)
-                + "\nTexture data offset: 0x{:X}".format(tex.tell())
+                + "\nTexture data offset: 0x{:X}".format(tex.getOffset())
                 + "\nTexture size: 0x{:X}".format(texSize)
                 + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
                 + "\nTexture format: 0x{:X}".format(texFmt))
@@ -192,11 +221,11 @@ def poiTexPS2Parse(tex, texList, texOffset, texName, ramAddress):
     if PoiDebug:
         print("\nPlayStation 2 texture detected!"
             + "\nTexture name: {}".format(texName)
-            + "\nTexture offset: 0x{:X}".format(texOffset) + (" (0x{:X} in RAM)".format(texOffset + ramAddress) if ramAddress else "")
-            + "\nTexture data offset: 0x{:X}".format(bmpOffset) + (" (0x{:X} in RAM)".format(bmpOffset + ramAddress) if ramAddress else "")
+            + "\nTexture offset: 0x{:X}".format(texOffset) + (" (0x{:08X} in RAM)".format(texOffset + ramAddress) if ramAddress else "")
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset) + (" (0x{:08X} in RAM)".format(bmpOffset + ramAddress) if ramAddress else "")
             + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
             + "\nTexture bit depth: {}".format(bitDepth)
-            + "\nPalette data offset: 0x{:X}".format(palOffset) + (" (0x{:X} in RAM)".format(palOffset + ramAddress) if ramAddress else ""))
+            + "\nPalette data offset: 0x{:X}".format(palOffset) + (" (0x{:08X} in RAM)".format(palOffset + ramAddress) if ramAddress else ""))
 
     tex.seek(bmpOffset)
     if bitDepth == 4:
@@ -216,6 +245,34 @@ def poiTexPS2Parse(tex, texList, texOffset, texName, ramAddress):
     texData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "R8G8B8A8", noesis.DECODEFLAG_PS2SHIFT if bitDepth == 8 else 0)
     texList.append(NoeTexture(texName, texWidth, texHeight, texData, noesis.NOESISTEX_RGBA32))
 
+def poiTexGCNParse(tex, texList, texOffset, texName, ramAddress):
+    tex.seek(texOffset + 0xC)
+    texWidth = tex.readUInt()
+    texHeight = tex.readUInt()
+    bitDepth = tex.readUInt()
+    tex.seek(texOffset + 0x40)
+    texFmt = tex.readUInt()
+    tex.seek(texOffset + 0x4C)
+    palOffset = tex.readUInt() - ramAddress  # i think?
+    bmpOffset = tex.readUInt() - ramAddress
+
+    if PoiDebug:
+        print("\nGameCube texture detected!"
+            + "\nTexture name: {}".format(texName)
+            + "\nTexture offset: 0x{:X}".format(texOffset) + (" (0x{:08X} in RAM)".format(texOffset + ramAddress) if ramAddress else "")
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset) + (" (0x{:08X} in RAM)".format(bmpOffset + ramAddress) if ramAddress else "")
+            + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
+            + "\nTexture bit depth: {}".format(bitDepth)
+            + "\nTexture format: 0x{:X}".format(texFmt))
+
+    if 0x8 <= texFmt <= 0xA:
+        noesis.doException("Unhandled GCN paletted texture.")
+
+    tex.seek(bmpOffset)
+    texData = ntex.readTexture(tex, texWidth, texHeight, texFmt, palOffset)
+    texData.name = texName
+    texList.append(texData)
+
 def poiTexXboxParse(tex, texList, texOffset, texName, ramAddress):
     tex.seek(texOffset + 0xC)
     texWidth = tex.readUInt()
@@ -232,9 +289,9 @@ def poiTexXboxParse(tex, texList, texOffset, texName, ramAddress):
     if PoiDebug:
         print("\nXbox texture detected!"
             + "\nTexture name: {}".format(texName)
-            + "\nTexture offset: 0x{:X}".format(texOffset) + (" (0x{:X} in RAM)".format(texOffset + ramAddress) if ramAddress else "")
-            + "\nTexture info offset: 0x{:X}".format(texDataOffset) + (" (0x{:X} in RAM)".format(texDataOffset + ramAddress) if ramAddress else "")
-            + "\nTexture data offset: 0x{:X}".format(bmpOffset) + (" (0x{:X} in RAM)".format(bmpOffset + ramAddress) if ramAddress else "")
+            + "\nTexture offset: 0x{:X}".format(texOffset) + (" (0x{:08X} in RAM)".format(texOffset + ramAddress) if ramAddress else "")
+            + "\nTexture info offset: 0x{:X}".format(texDataOffset) + (" (0x{:08X} in RAM)".format(texDataOffset + ramAddress) if ramAddress else "")
+            + "\nTexture data offset: 0x{:X}".format(bmpOffset) + (" (0x{:08X} in RAM)".format(bmpOffset + ramAddress) if ramAddress else "")
             + "\nTexture dimensions: {} x {}".format(texWidth, texHeight)
             + "\nTexture bit depth: {}".format(bitDepth)
             + "\nTexture format: 0x{:X}".format(texFmt))
@@ -254,8 +311,8 @@ def poiTexXboxParse(tex, texList, texOffset, texName, ramAddress):
 
     texList.append(NoeTexture(texName, texWidth, texHeight, texData, texFmt))
 
-def poiTexParse(tex, texList, nextTex, ramAddress=0x0):
-    while nextTex > 0x0:
+def poiTexParse(tex, texEndian, texList, nextTex, ramAddress=0x0, nextTexMin=0x0):
+    while nextTex > nextTexMin:
         if PoiDebug:
             hdrOffset = nextTex
         tex.seek(nextTex)
@@ -266,20 +323,23 @@ def poiTexParse(tex, texList, nextTex, ramAddress=0x0):
         texName = tex.readString()
 
         tex.seek(texOffset)
+        print(hex(texOffset), hex(nextTex), hex(prevTex))
         if tex.readUInt() - ramAddress != texOffset:
             noesis.doException("Pointer mismatch!")
 
         if tex.readUInt() != 0:
             poiTexPS2Parse(tex, texList, texOffset, texName, ramAddress)
-        else:
+        elif texEndian == NOE_LITTLEENDIAN:
             poiTexXboxParse(tex, texList, texOffset, texName, ramAddress)
+        elif PoiGameCube:
+            poiTexGCNParse(tex, texList, texOffset, texName, ramAddress)
 
         if PoiDebug:
-            print("Texture header offset: 0x{:X}".format(hdrOffset) + (" (0x{:X} in RAM)".format(hdrOffset + ramAddress) if ramAddress else ""))
+            print("Texture header offset: 0x{:X}".format(hdrOffset) + (" (0x{:08X} in RAM)".format(hdrOffset + ramAddress) if ramAddress else ""))
             if nextTex >= 0:
-                print("Next texture header: 0x{:X}".format(nextTex) + (" (0x{:X} in RAM)".format(nextTex + ramAddress) if ramAddress else ""))
+                print("Next texture header: 0x{:X}".format(nextTex) + (" (0x{:08X} in RAM)".format(nextTex + ramAddress) if ramAddress else ""))
             if prevTex >= 0:
-                print("Previous texture header: 0x{:X}".format(prevTex) + (" (0x{:X} in RAM)".format(prevTex + ramAddress) if ramAddress else ""))
+                print("Previous texture header: 0x{:X}".format(prevTex) + (" (0x{:08X} in RAM)".format(prevTex + ramAddress) if ramAddress else ""))
 
 
 
@@ -293,7 +353,7 @@ def poiArcTexDic(data, texList):
 
     arc.seek(0x2C)
     for tex in range(texCount):
-        texOffset = arc.tell()
+        texOffset = arc.getOffset()
         poiTexDicParse(arc, texList, texOffset)
 
         if PoiDebug:
@@ -305,17 +365,37 @@ def poiArcTexFE(data, texList):
     rapi.processCommands("-texnorepfn")
     arc = NoeBitStream(data)
 
+    arc.seek(0x24)
+    if arc.readUInt() == 0:
+        arcEndian = NOE_BIGENDIAN
+        arc.setEndian(arcEndian)
+    else:
+        arcEndian = NOE_LITTLEENDIAN
+
     arc.seek(0x20)
     ramAddress = arc.readUInt() - 0x20
 
     arc.seek(0x8)
     texOffset = arc.readUInt() - ramAddress - 0x8
-    poiTexParse(arc, texList, texOffset, ramAddress)
+    poiTexParse(arc, arcEndian, texList, texOffset, ramAddress)
+    return True
+
+def poiArcTexGrd(data, texList):
+    rapi.processCommands("-texnorepfn")
+    arc = NoeBitStream(data, NOE_BIGENDIAN)
+
+    arc.seek(0x110)
+    ramAddress = arc.readUInt() - 0x120
+    texCount = arc.readUInt()
+    arc.seek(0x128)
+    texOffset = arc.readUInt() - ramAddress - 0x8
+
+    poiTexParse(arc, NOE_BIGENDIAN, texList, texOffset, ramAddress, 0x120)
     return True
 
 def poiArcTexCar(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc, arcEndian = poiGetHdrEndian(data)
 
     arcVer = arc.readUInt()
 
@@ -323,8 +403,8 @@ def poiArcTexCar(data, texList):
     texCount = arc.readUInt() if arcVer == 0xB2CA2001 else 1
     for tex in range(texCount):
         texOffset = arc.readUInt()
-        curTexOffset = arc.tell()
-        poiTexParse(arc, texList, texOffset)
+        curTexOffset = arc.getOffset()
+        poiTexParse(arc, arcEndian, texList, texOffset)
 
         if PoiDebug and arcVer == 0xB2CA2001:
             print("Texture {} of {}".format(tex + 1, texCount))
@@ -334,24 +414,29 @@ def poiArcTexCar(data, texList):
     arc.seek(0xCE8 if arcVer == 0xB2CA2001 else 0xCD8)
     texOffset = arc.readUInt()
     if texOffset:
-        poiTexParse(arc, texList, texOffset)
+        poiTexParse(arc, arcEndian, texList, texOffset)
     return True
 
 def poiArcTexPss(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc, arcEndian = poiGetHdrEndian(data)
 
     arcVer = arc.readUInt()
 
     arc.seek(0x10)
     texCount = arc.readUInt()
-    ramAddress = arc.readUInt() - 0x1C0  # texArrayOffset
 
-    arc.seek(0x1C0)  # texArrayOffset
+    # It's consistent at 0x1C0 in PS2 and Xbox, but in GCN it changes per file.
+    # Assuming the offset never exceeds 0x1000 and is always aligned to it too.
+    texArrayOffset = arc.readUInt()
+    ramAddress = texArrayOffset & 0xFFFFF000
+    texArrayOffset ^= ramAddress
+
+    arc.seek(texArrayOffset)
     for tex in range(texCount):
         texOffset = arc.readUInt() - ramAddress
-        curTexOffset = arc.tell()
-        poiTexParse(arc, texList, texOffset, ramAddress)
+        curTexOffset = arc.getOffset()
+        poiTexParse(arc, arcEndian, texList, texOffset, ramAddress)
 
         if PoiDebug:
             print("Texture {} of {}".format(tex + 1, texCount))
@@ -361,25 +446,31 @@ def poiArcTexPss(data, texList):
 
 def poiArcTexTra(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc, arcEndian = poiGetHdrEndian(data)
 
     arcVer = arc.readUInt()
 
     # I hate this whole thing, but everything is tied to RAM addresses and nothing makes sense
-    arc.seek(0x6C)
-    texOffset = 0x18640
-    ramAddress = arc.readUInt() - texOffset  # wheels texture, hardcoded(?)
-    poiTexParse(arc, texList, texOffset, ramAddress)
+    arc.seek(0x6C)  # 3 pointers to the wheels texture, hardcoded(?)
+    texOffset = 0x18000 | arc.readUInt() & 0xFFF
+    ramAddress = arc.readUInt() - texOffset
+    poiTexParse(arc, arcEndian, texList, texOffset, ramAddress)
 
-    arc.seek(0xFA0)
-    #while arc.tell() < texOffsetWheels:
-    for tex in range(25):  # int @ 0x17740 ???
-        curTexOffset = arc.tell()
+    # Hardcoding for PS2 and GCN because I can't figure this out (not used in Xbox)
+    texStart, texSeek = {
+        NOE_BIGENDIAN: (0xFE0, 0xF40),
+        NOE_LITTLEENDIAN: (0xFA0, 0xF00),
+    }.get(arcEndian)
+
+    arc.seek(texStart)
+    #while arc.getOffset() < texOffsetWheels:
+    for tex in range(25):  # int @ 0x17740 ??? (PS2)
+        curTexOffset = arc.getOffset()
         texOffset = arc.readUInt() - ramAddress
-        poiTexParse(arc, texList, texOffset, ramAddress)
+        poiTexParse(arc, arcEndian, texList, texOffset, ramAddress)
 
         if PoiDebug:
             print("Texture {} of {}".format(tex + 1, 25))
 
-        arc.seek(curTexOffset + 0xF00)
+        arc.seek(curTexOffset + texSeek)
     return True
