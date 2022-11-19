@@ -7,7 +7,7 @@
 
 # Written by Edness   2022-06-28 - 2022-11-19   v1.2
 
-PoiDebug = True
+PoiDebug = False
 
 from inc_noesis import *
 
@@ -326,7 +326,6 @@ def poiTexParse(tex, texEndian, texList, nextTex, ramAddress=0x0, nextTexMin=0x0
         texName = tex.readString()
 
         tex.seek(texOffset)
-        print(hex(texOffset), hex(nextTex), hex(prevTex))
         if tex.readUInt() - ramAddress != texOffset:
             noesis.doException("Pointer mismatch!")
 
