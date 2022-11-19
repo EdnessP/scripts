@@ -2,6 +2,9 @@
 # The  lib_zq_nintendo_tex  library is required to view the GameCube
 # textures.  Place it Noesis Python plugins directory to enable it.
 
+# This plugin is brought to you by the Burnout Modding community.
+#               burnout.wiki  |  discord.gg/8zxbb4x      
+
 # Written by Edness   2022-06-28 - 2022-11-19   v1.2
 
 PoiDebug = True
