@@ -458,7 +458,7 @@ def poiArcTexTra(data, texList):
     ramAddress = arc.readUInt() - texOffset
     poiTexParse(arc, arcEndian, texList, texOffset, ramAddress)
 
-    # Hardcoding for PS2 and GCN because I can't figure this out (not used in Xbox)
+    # Hardcoding this because I can't figure it out (works for their appropriate systems)
     texStart, texSeek = {
         NOE_BIGENDIAN: (0xFE0, 0xF40),
         NOE_LITTLEENDIAN: (0xFA0, 0xF00),
