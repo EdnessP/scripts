@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Call of Duty: Finest Hour .PAK extract w/ filename support
-# Written by Edness   v1.1   2022-12-01 - 2022-12-07
+# Written by Edness   v1.11   2022-12-01 - 2022-12-07
 
 import os
 
@@ -38,7 +38,7 @@ def extract_pak(inpath, outpath=""):
 
 # See  codfh_hash.py  for the hash algorithm
 # Files that are normally outside of the Spark Pack are still included in this.
-# There are still anywhere up to 72 (most likely unused) files left hashed
+# There are still anywhere up to around 70 (most likely unused) files left hashed
 
 # See this spreadsheet for hashes not yet reversed:
 # https://docs.google.com/spreadsheets/d/1QEDncvs6EH_KhAWjfUEabVK3r2VhDJDIWftD2pYOkho/edit#gid=0
@@ -6152,6 +6152,7 @@ HASH_DICT = {
     0xB6210931BC62F183: r"SB_AWD\60_89\ENGLISH\XBX_0082.awd",
     0xB62748C45BB0807B: r"SB_AWD\90_119\ENGLISH\PS2_0118.awd",
     0xB64028F4CA78E2C4: r"SB_AGD\210_239\FRENCH\PS2_0215.agd",
+    0xB6417957B27E3E99: r"SessionListBase.layout",
     0xB649CA82C4C84775: r"SB_AGD\180_209\ENGLISH\NGC_0201.agd",
     0xB65A20045B6B46A5: r"SB_AGD\60_89\SPANISH\NGC_0064.agd",
     0xB664DD6283979DFA: r"SB_AGD\180_209\ITALIAN\PS2_0184.agd",
