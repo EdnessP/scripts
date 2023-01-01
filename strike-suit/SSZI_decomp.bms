@@ -1,0 +1,23 @@
+# Strike Suit Zero / Infinity XEMC/LPMC decompress
+# Edness   v1.0   2023-01-01
+
+get NAME basename
+get EXT extension
+string NAME P "%NAME%.dec.%EXT%"
+
+getdstring IDSTR 4
+
+elif IDSTR == "LPMC" # Strike Suit Zero
+    comtype lz4
+if IDSTR == "XEMC" # Strike Suit Infinity
+    comtype zlib
+else
+    print "\nUnsupported file %IDSTR%"
+    break
+endif
+
+get SIZE long
+get ZSIZE asize
+math ZSIZE -= 8
+
+clog NAME 8 ZSIZE SIZE
