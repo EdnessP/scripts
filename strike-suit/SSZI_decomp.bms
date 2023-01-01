@@ -7,10 +7,10 @@ string NAME P "%NAME%.dec.%EXT%"
 
 getdstring IDSTR 4
 
-elif IDSTR == "LPMC" # Strike Suit Zero
-    comtype lz4
 if IDSTR == "XEMC" # Strike Suit Infinity
     comtype zlib
+elif IDSTR == "LPMC" # Strike Suit Zero
+    comtype lz4
 else
     print "\nUnsupported file %IDSTR%"
     break
