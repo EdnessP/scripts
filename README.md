@@ -17,7 +17,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - BullyAE_encryption.py &mdash; Decrypt and encrypt **Bully: Anniversary Edition** .EFF, .MTL, .WDB, and .XML files.
 - BullyAE_parse.py &mdash; Convert **Bully: Anniversary Edition** files' header info strings to usable lists and dictionaries.
 - BullyAEjumptable.bms &mdash; **Bully: Anniversary Edition** developer savefile archive. (jumptable.bin)
-- BullyHash &mdash; Hashing functions used by **Bully** for RSTM audio and string label lookup hashes.
+- BullyHash &mdash; Hashing functions used by **Bully** for RSTM audio and string label lookup hashes. [Live version](https://ednessp.github.io/live/strings#Bully_(Canis_Canem_Edit)).
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
 
@@ -33,8 +33,8 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).  Currently only supports textures.
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
 - fmt_BurnoutCRASH.py &mdash; **Burnout CRASH!** PS3, Xbox 360, iOS model and texture Noesis plugin.
-- GtHash.py &mdash; Python reimplementation of GtHash string hashing.
-- GtIDstr.py &mdash; Python reimplementation of GtID EA string compression and decompression.
+- GtHash.py &mdash; Python reimplementation of GtHash string hashing. [Live version](https://ednessp.github.io/live/strings#Criterion_Games).
+- GtID.py &mdash; Python reimplementation of GtID EA string compression and decompression. [Live version](https://ednessp.github.io/live/strings#Criterion_Games).
 - tex_Burnout1.py &mdash; **Burnout** PS2 and Xbox Noesis texture plugin.
 - tex_Burnout2.py &mdash; **Burnout 2: Point of Impact** PS2 and Xbox Noesis texture plugin.
 - txdscanner.bms &mdash; Extracts .TXDs from containers.  Only really needed for fonts stored in the executable.
@@ -44,7 +44,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 <details>
 <summary>cod\</summary>
 
-- codfh_hash.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox filename hashing function reimplementation.
+- codfh_hash.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox filename hashing function reimplementation. [Live version](https://ednessp.github.io/live/strings#Call_of_Duty).
 - codfh_pak_filenames.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK extractor with filename support.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 
@@ -53,7 +53,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 <details>
 <summary>midnight-club\</summary>
 
-- MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations.
+- MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations. [Live version](https://ednessp.github.io/live/strings#Midnight_Club).
 - mclub_strtbl.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** (and other earlier Angel Studios/Rockstar: San Diego) .STRTBL string table exporter and rebuilder
 
 </details>
@@ -89,11 +89,11 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
 - DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
-- LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression.
+- LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression. [Live version](https://ednessp.github.io/live/strings#Lingo_(Tildes_Birojs)).
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
 - ms_timestamp.py &mdash; Python reimplementation of *xbexexmzpe.bms* written by jason098.
-- PICparse.py &mdash; Python parser for Blu-ray **Permanent Information & Control** (PIC) binaries.
+- PICparse.py &mdash; Python parser for Blu-ray **Permanent Information & Control** (PIC) binaries. [Live version](https://ednessp.github.io/live/redump#Permanent_Information_&_Control).
 - sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
@@ -113,7 +113,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 
 - TheSimpsonsGame_NewGen_LH2.py &mdash; **The Simpsons Game** (PS3, X360) .LH2 (2HCL) string file exporter and rebuilder.
 - tex_TheSimpsonsGame_X360_itxd.py &mdash; **The Simpsons Game** Xbox 360 .ITXD Noesis texture plugin.
-- tsg_hash.py &mdash; **The Simpsons Game** (PS3, X360) string label lookup hashing.
+- tsg_hash.py &mdash; **The Simpsons Game** (PS3, X360) string label lookup hashing. [Live version](https://ednessp.github.io/live/strings#The_Simpsons_Game).
 
 </details>
 
