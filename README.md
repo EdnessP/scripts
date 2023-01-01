@@ -116,3 +116,11 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 - tsg_hash.py &mdash; **The Simpsons Game** (PS3, X360) string label lookup hashing.
 
 </details>
+
+<details>
+<summary>strike-suit\</summary>
+
+- SSZI_LNG.py &mdash; **Strike Suit Zero** / **Strike Suit Infinity** .LNG string file exporter and rebuilder.
+- SSZI_decomp.bms &mdash; **Strike Suit Zero** / **Strike Suit Infinity** LPMC/XEMC decompressor.
+
+</details>
