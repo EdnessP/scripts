@@ -7,7 +7,7 @@
 #   Bully Modding community   
 #    discord.gg/Xbrr72EsvK    
 
-# Written by Edness   2022-04-08 - 2022-06-23   v1.4b
+# Written by Edness   2022-04-08 - 2022-06-23   v1.4c
 
 AeDebug = False
 
@@ -138,21 +138,17 @@ def aeTxtDecrypt(txt):
     # Python reimplementation of Bartlomiej Duda's  Bully_XML_Tool.cpp  script
     # see  BullyAE_encryption.py  for the standalone version
 
-    aeKey = b"6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
+    aeKey = "6Ev2GlK1sWoCa5MfQ0pj43DH8Rzi9UnX"
     aeHash = 0x0CEB538D
 
     encSize = len(txt)
     decSize = (5 * encSize >> 3)
     decData = list(bytes(decSize + 1))
 
-    aeBuffer = list(bytes(256))
-    for idx in range(len(aeKey)):
-        aeBuffer[aeKey[idx]] = idx
-
     case = 0
     bufIdx = 0
     for i in range(encSize):
-        char = aeBuffer[txt[i]]
+        char = aeKey.index(txt[i])
 
         next = {
             4: char << 7,
@@ -459,7 +455,7 @@ def aeMshLoadModel(data, mdlList):
                 try:
                     with open(mtlPath, "rb") as mtl:
                         assert(mtl.read(0x2) == b"Wx")
-                        mtlInfo = aeTxtParse(aeTxtDecrypt(mtl.read()))
+                        mtlInfo = aeTxtParse(aeTxtDecrypt(mtl.read().decode()))
                         print("Successfully loaded {}.mtl".format(mtlNames[mtlIdx]))
                 except Exception as aeExc:
                     print("Failed loading {}.mtl: {}".format(mtlNames[mtlIdx], aeExc))
