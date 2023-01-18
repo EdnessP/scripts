@@ -1,3 +1,14 @@
+2023-01-18  -  v0.7
+    Added features:
+     * PlayStation 2 model support.
+     * Xbox model support.
+     * Xbox 360 model support.
+     * Static DAT model support.
+     * Streamed DAT model support.
+    Fixed issues:
+     * Exported Frontend textures get put in their appropriate folders.
+
+
 2022-05-31  -  v0.6c
     Cleanup release!
      * Removed unused functions and/or parts of functions.
