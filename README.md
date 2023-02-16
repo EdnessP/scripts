@@ -102,6 +102,13 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 </details>
 
 <details>
+<summary>ps2\</summary>
+
+- fmt_PS2memcard.py &mdash; **PlayStation 2** Memory Card save icon Noesis importer/exporter plugin. This script has been published incomplete as-is currently, see the comments in the header for more information.
+
+</details>
+
+<details>
 <summary>sims-console\</summary>
 
 - todo
