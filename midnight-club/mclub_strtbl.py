@@ -18,7 +18,7 @@
 # The  -a | --algo  argument refers to the string hashing algorithm used;
 # 2 = Midnight Club 2 (or other older games),  3 = Midnight Club 3
 
-# Written by Edness   v1.2   2022-10-09 - 2022-10-21
+# Written by Edness   v1.2.1   2022-10-09 - 2023-02-23
 
 import argparse, os, struct
 
@@ -38,7 +38,7 @@ def hash2(str):
     for chr in str.encode():
         hash = (hash << 4) + chr
         if mask := hash & 0xF0000000:
-            hash = hash ^ mask >> 24 ^ mask
+            hash ^= mask >> 24 ^ mask
     return hash
 
 def hash3(str):
