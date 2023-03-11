@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Call of Duty: Finest Hour .PAK extract w/ filename support
-# Written by Edness   v1.14   2022-12-01 - 2022-12-11
+# Written by Edness   v1.15   2022-12-01 - 2023-03-09
 
 import os
 
