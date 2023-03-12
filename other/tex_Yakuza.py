@@ -1,5 +1,5 @@
-# Written by Edness    v1.2
-# 2021-07-15  -  2022-11-05
+# Written by Edness    v1.3
+# 2021-07-15  -  2023-03-12
 
 from inc_noesis import *
 
@@ -45,6 +45,10 @@ def txbpLoadTex(data, texList):
             palData = bs.readBytes(0x400)
             texData = bs.readBytes(texWidth * texHeight)
             texData = rapi.imageDecodeRawPal(texData, palData, texWidth, texHeight, 8, "R8G8B8A8", noesis.DECODEFLAG_PS2SHIFT)
+
+        elif texFmt == 0x1D:
+            texFmt = noesis.NOESISTEX_RGBA32
+            texData = bs.readBytes(texWidth * texHeight * 4)
 
         elif texFmt == 0x23:
             # Thanks to aboood40091's GTX-Extractor for letting me know what the Gfx2 header should look like.
