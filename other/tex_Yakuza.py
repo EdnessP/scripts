@@ -1,4 +1,4 @@
-# Written by Edness    v1.4
+# Written by Edness   v1.4b
 # 2021-07-15  -  2023-03-13
 
 from inc_noesis import *
@@ -30,14 +30,14 @@ def txbpLoadTex(data, texList):
         bs.seek(0x10, 1)
 
         texName = os.path.splitext(rapi.getInputName())[0] + "_{}".format(tex)
+        texData = bs.readBytes(texSize)
+
         if texFmt == 0x0B:
             texFmt = noesis.NOESISTEX_DXT5
-            texData = bs.readBytes(texSize)
 
         elif texFmt == 0x14:
             texFmt = noesis.NOESISTEX_RGBA32
             texRes = texWidth * texHeight // 2
-            texData = bs.read(texSize)
             palData = texData[:-texRes]
             #palData = bs.readBytes(0x40)  # Had a sample file where the palette was 0x20 bytes long instead
             #texData = bs.readBytes(texWidth * texHeight // 2)
@@ -46,7 +46,6 @@ def txbpLoadTex(data, texList):
         elif texFmt == 0x15:
             texFmt = noesis.NOESISTEX_RGBA32
             texRes = texWidth * texHeight
-            texData = bs.read(texSize)
             palData = texData[:-texRes]
             #palData = bs.readBytes(0x400)
             #texData = bs.readBytes(texWidth * texHeight)
@@ -54,12 +53,11 @@ def txbpLoadTex(data, texList):
 
         elif texFmt == 0x1D:
             texFmt = noesis.NOESISTEX_RGBA32
-            texData = bs.readBytes(texWidth * texHeight * 4)
-            #texData = rapi.imageDecodeRaw(texData, texWidth, texHeight, "B8G8R8A8")  # Unknown if needed, only got one 0x1D sample
+            #texData = rapi.imageDecodeRaw(texData, texWidth, texHeight, "B8G8R8A8")  # Unsure if needed, only got one 0x1D sample
 
         elif texFmt == 0x23:
             # Thanks to aboood40091's GTX-Extractor for letting me know what the Gfx2 header should look like.
-            tex = rapi.loadTexByHandler(b"".join((b"Gfx2", noePack(">IIIIIII", 32, 7, 1, 2, 1, 0, 0), bs.readBytes(texSize))), ".gtx")
+            tex = rapi.loadTexByHandler(b"Gfx2" + noePack(">7I", 32, 7, 1, 2, 1, 0, 0) + texData, ".gtx")
             tex.name = texName
             texList.append(tex)
             continue
