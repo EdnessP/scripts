@@ -49,6 +49,7 @@ def txbpLoadTex(data, texList):
         elif texFmt == 0x1D:
             texFmt = noesis.NOESISTEX_RGBA32
             texData = bs.readBytes(texWidth * texHeight * 4)
+            #texData = rapi.imageDecodeRaw(texData, texWidth, texHeight, "B8G8R8A8")  # Unknown if needed, only one 0x1D sample
 
         elif texFmt == 0x23:
             # Thanks to aboood40091's GTX-Extractor for letting me know what the Gfx2 header should look like.
