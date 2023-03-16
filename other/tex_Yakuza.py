@@ -1,21 +1,37 @@
-# Written by Edness   v1.4b
-# 2021-07-15  -  2023-03-13
+# Written by Edness    v1.5
+# 2021-07-15  -  2023-03-16
 
 from inc_noesis import *
 
 def registerNoesisTypes():
-    handle = noesis.register("Yakuza TXBP", ".txb")
-    noesis.setHandlerTypeCheck(handle, txbpCheckType)
-    noesis.setHandlerLoadRGBA(handle, txbpLoadTex)
+    handle = noesis.register("Yakuza SGT textures", ".sgt")
+    noesis.setHandlerTypeCheck(handle, sgtCheckType)
+    noesis.setHandlerLoadRGBA(handle, sgtLoadTex)
+
+    handle = noesis.register("Yakuza TXB textures", ".txb")
+    noesis.setHandlerTypeCheck(handle, txbCheckType)
+    noesis.setHandlerLoadRGBA(handle, txbLoadTex)
     return True
 
-def txbpCheckType(data):
+def sgtCheckType(data):
+    bs = NoeBitStream(data)
+    if bs.readBytes(4) in {b"SG2\x00", b"SGT\x00"}:
+        return True
+    return False
+
+def txbCheckType(data):
     bs = NoeBitStream(data)
     if bs.readBytes(4) == b"TXBP":
         return True
     return False
 
-def txbpLoadTex(data, texList):
+def sgtLoadTex(data, texList):
+    texData = data[0x20:]
+    if txbCheckType(texData):
+        txbLoadTex(texData, texList)
+    return True
+
+def txbLoadTex(data, texList):
     rapi.processCommands("-texnorepfn")
     bs = NoeBitStream(data)
     bs.seek(0x4)
