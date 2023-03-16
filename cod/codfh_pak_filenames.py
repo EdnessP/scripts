@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Call of Duty: Finest Hour .PAK extract w/ filename support
-# Written by Edness   v1.15   2022-12-01 - 2023-03-09
+# Written by Edness   v1.16   2022-12-01 - 2023-03-15
 
 import os
 
@@ -23,6 +23,7 @@ def extract_pak(inpath, outpath=""):
 
         files = read_int(0x4)
         for idx in range(files):
+            file.seek(0x80 + idx * 0x10)
             size = read_int(0x4)
             offset = read_int(0x4)
             filename = read_int(0x8)
