@@ -111,7 +111,7 @@ If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?
 <details>
 <summary>sims-console\</summary>
 
-- todo
+- Sims2PetsKeyGen.py &mdash; **The Sims 2: Pets** Unlock Code key generator and decoder. [Live version](https://ednessp.github.io/live/strings#The_Sims_(Console))
 
 </details>
 
