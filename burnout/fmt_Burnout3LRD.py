@@ -12,7 +12,7 @@
 #       Burnout Dominator DLC   (PSP)
 #       Need for Speed: Shift   (PSP)
 #
-#   Models (Tracks):
+#   Models (Tracks, incomplete):
 #       Burnout 3: Takedown     (PS2, Xbox)
 #       Burnout Revenge         (Xbox, X360)
 #       Burnout Dominator       (PS2)
@@ -20,10 +20,17 @@
 # This plugin is brought to you by the Burnout Modding community.
 #               burnout.wiki  |  discord.gg/8zxbb4x              
 
-# Written by Edness   v0.7   2021-06-23 - 2022-11-28
+# TODO:
+#   All streamed track materials
+#   All vehicle model support
+#   PSP track model support
+#   PS2 two-point (Line) "triangles"
+#   PS2 models now have several triangles backwards
+
+# Written by Edness   v0.7b   2021-06-23 - 2023-03-22
 
 BoDebug = False
-BoModels = False  # !!! MODELS ARE CURRENTLY DISABLED BY DEFAULT !!!
+BoModels = False
 
 from inc_noesis import *
 import zlib
@@ -124,7 +131,7 @@ def boDecGtID(cGtID: int):
     for chr in range(12):
         decStr += char[cGtID % len(char)]
         cGtID //= len(char)
-    return decStr[::-1].strip()
+    return decStr[::-1].rstrip()
 
 def boDecZlib(data):
     # Not using Noesis' rapi.decompInflate() because it doesn't support partial decompression
@@ -490,112 +497,63 @@ def boMdlXboxReadLine(mdl, faceCount):
         faceData.extend(mdl.readBytes(0x2) + mdl.readBytes(0x2) * 2)
     return bytearray(faceData)
 
-def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, *subIdx):
-    def boPS2Read12(rData, rSize):
-        for int in range(rSize):
-            rData.extend(noePack("d", mdl.readShort() / 4096))
-
-    def boPS2ReadSub():
-        if subSize == 0x0:
-            for hdrSize in (0x4, 0xC):
-                hdr = mdl.readBytes(hdrSize)
-                mdl.seek(-0x4, 1)
-                if hdr.endswith((b"\x65", b"\x6A", b"\x6C", b"\x6E")):
-                    return True
-        elif mdl.readBytes(subSize) in mdlHeaders:
-            return True
-        return False
-
-    mdlHeaders = (b"\x00\x00\x00\x00\x00\x00\x00\x05\x03\x01\x00\x01",
-                  b"\x00\x00\x00\x00\x00\x00\x00\x05\x01\x01\x00\x01")
+def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
+    def boPS2Read12(vif, rData):  # Would be // vif.numElems if it weren't for car UVs
+        for int in noeUnpack("<{}h".format(len(vif.data) // 2), vif.data):
+            rData.extend(noePack("f", int / 4096))
 
     mdl.seek(mdlOffset)
-    mdlHeader = mdl.readBytes(0x2C)
-    if mdlHeader[:0x10].endswith(mdlHeaders):    # Revenge
-        hdrSize, subSize = 0x10, 0x0
-    elif mdlHeader[:0x1C].endswith(mdlHeaders):  # Takedown, Dominator
-        hdrSize, subSize = 0x1C, 0xC
-    elif mdlHeader[:0x2C].endswith(mdlHeaders):  # Vehicles
-        hdrSize, subSize = 0x2C, 0xC
-    else:
-        noesis.doException("Couldn't determine PS2 mesh header!")
-    mdl.seek(-0x2C, 1)
+    subSize = mdl.readUShort()
+    mdl.seek(mdlOffset + 0x4)
+    #print("SubHdr:", " ".join(["{:02X}".format(i) for i in mdl.read(0x2)]))
 
-    while mdl.readBytes(hdrSize).endswith(mdlHeaders):
-        #print("new model", hex(mdl.tell()))
-        if subSize != 0:
-            mdl.seek(-0xC, 1)
-            mdlAlign = mdl.getOffset() % 0x10
+    mdlName = mdlBaseName + "{:03}_{}".format(subIdx, vertIdx)
+    rapi.rpgSetName(mdlName)
+    rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx]))
 
-        vertData = list()
-        clrData = list()
-        uvData = list()
-        while boPS2ReadSub():
-            mdlIdx = mdl.readUByte()
-            mdlUnk = mdl.readUByte()
-            mdlCount = mdl.readUByte()
-            mdlType = mdl.readUByte()  # Usually ordered  6C-65-6A-6E  or  6C-6A-6D
-            #print("sub model {:02X} {:02X}".format(mdlIdx, mdlType), hex(mdl.tell()))
-            clrExist = False
-            uvExist = False
+    vifData = rapi.unpackPS2VIF(mdl.read(subSize * 0x10 + 0xC))
+    #print("MdlOffs", hex(mdlOffset), mdlName)  # NoePS2VIFUnpack
+    vertData = list()
+    faceData = list()
+    clrData = list()
+    uvData = list()
+    # many submeshes have both RGB24 and RGBA32 vtxclrs, RGB24 seems to take precedence
+    clr32 = True
+    for vif in vifData:
+        #print(vif, vif.data)
+        if vif.elemBits == 32 and vif.numElems == 4:    # Vertices
+            vertData.extend(vif.data)
+        elif vif.elemBits == 16 and vif.numElems == 2:  # UVs (Tracks)
+            boPS2Read12(vif, uvData)
+        elif vif.elemBits == 16 and vif.numElems == 4:  # UVs (Vehicles)
+            boPS2Read12(vif, uvData)
+        elif vif.elemBits == 8 and vif.numElems == 3:   # Colors RGB24
+            clr32 = False
+            # Vertex colors need to be changed from RGB to RGBA
+            for clr in range(len(vif.data) // 3):
+                clrData.extend(vif.data[clr * 3:][:3] + b"\xFF")
+        elif vif.elemBits == 8 and vif.numElems == 4:   # Colors RGBA32
+            if clr32:
+                clrData.extend(vif.data)
+        else:
+            noesis.doException("Unhandled VIF data: {}".format(vif))
 
-            #mdlName = mdlBaseName + "_".join("{:03}".format(sub) for sub in subIdx)
-            mdlName = mdlBaseName + "{:03}".format(subIdx[0])
-            rapi.rpgSetName(mdlName)
-            rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx[0]]))
+    vertData = bytes(vertData)
+    for vtx in range(len(vertData) // 0x10 - 2):
+        if vertData[vtx * 0x10:][:0x30].endswith(bytes(4)):
+            faceData.extend((vtx, vtx + 1, vtx + 2) if vtx % 2 == 0 else (vtx, vtx + 2, vtx + 1))
 
-            if mdlType == 0x65:    # UVs
-                for uv in range(mdlCount):
-                    boPS2Read12(uvData, 2)
+    if not uvData:
+        uvData = bytes(len(vertData) // 0x10 * 8)
 
-            elif mdlType == 0x6A:  # Colors
-                # Vertex colors need to be changed from RGB to RGBA
-                #clrData.extend((mdl.readBytes(0x3) + b"\xFF") for clr in range(mdlCount))
-                clrExist = True
-                for clr in range(mdlCount):
-                    clrData.extend(mdl.readBytes(0x3) + b"\xFF")
+    clrData = bytearray(clrData)
+    boMdlSkipVertexAlpha(clrData, 0x0, 0x4)
 
-            elif mdlType == 0x6C:  # Vertices
-                vertData.extend(mdl.readBytes(mdlCount * 0x10))
-
-            #elif mdlType == 0x6D:  # ??? UVs (Half size)
-            #    # Only seen in vehicle models, UVs but mdlCount is halved?
-            #    for uv in range(mdlCount):
-            #        boPS2Read12(uvData, 4)
-
-            elif mdlType == 0x6E:  # ???
-                #print("PS2 mesh block 6E found at 0x{:X}".format(mdl.getOffset()))
-                mdl.seek(mdlCount * 0x4, 1)
-                #clrData = bytearray(mdl.readBytes(mdlCount * 0x4))
-                #boMdlSkipVertexAlpha(clrData, 0x0, 0x4)
-
-            else:
-                noesis.doException("Unknown PS2 mesh block {:02X}".format(mdlType))
-
-            if (mdl.getOffset() - mdlAlign) % 0x10 != 0:
-                mdl.seek(boCalcAlign(mdl.getOffset(), 0x10) + mdlAlign)
-
-        if not clrExist:
-            clrData.extend(b"\x7F\x7F\x7F\xFF" * mdlCount)
-
-        if not uvExist:
-            uvData.extend(bytes(0x10 * mdlCount))
-
-        faceData = list()
-        vertData = bytes(vertData)
-        for vtx in range(len(vertData) // 0x10 - 2):
-            if vertData[vtx * 0x10:vtx * 0x10 + 0x30].endswith(bytes(4)):
-                faceData.extend((vtx, vtx + 1, vtx + 2) if vtx % 2 == 0 else (vtx, vtx + 2, vtx + 1))
-                # Improve this with [::-1] or something
-                # TODO: does this cause overlapping issues from merging the sub-submeshes?
-
-        if faceData:
-            rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x10)
-            rapi.rpgBindUV1Buffer(bytes(uvData), noesis.RPGEODATA_DOUBLE, 0x10)
-            rapi.rpgBindColorBuffer(bytes(clrData), noesis.RPGEODATA_UBYTE, 0x4, 4)
-            rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
-
-        mdl.seek(-0xC, 1)
+    faceData = b"".join([int.to_bytes(2, "little") for int in faceData])
+    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x10)
+    rapi.rpgBindUV1Buffer(bytes(uvData), noesis.RPGEODATA_FLOAT, 0x8)
+    rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
+    rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_USHORT, len(faceData) // 2, noesis.RPGEO_TRIANGLE)
 
 def boMdlPS2Track(mdl, matList, mdlOffset, mdlBaseName, grpOffset, mdlVer):
     mdl.seek(mdlOffset)
@@ -616,7 +574,6 @@ def boMdlPS2Track(mdl, matList, mdlOffset, mdlBaseName, grpOffset, mdlVer):
                 vertOffsetList.append(vertOffset + subOffset)
         subOffset += 0x40
 
-        #rapi.unpackPS2VIF(mdl.readBytes(0x20))
         for vertIdx, vertOffset in enumerate(vertOffsetList):
             boMdlPS2(mdl, matList, matIdx, vertOffset, mdlBaseName, blk, vertIdx)
 
@@ -1493,8 +1450,8 @@ def boArcTexBinFE(data, texList):
                     if tex == str(texNameIndex) or tex[11:] == str(texNameIndex - 1):
                         boTexParse(arc, arcEndian, texList, texArray.pop(tex), texName=texName)
                         break
-                else:
-                    noesis.doException("Couldn't find texture!")
+                #else:
+                #    noesis.doException("Couldn't find texture!")  # Rev 360 demo broke this...
 
                 if BoDebug:
                     print("Directory name: {}".format(dirName)
@@ -1505,6 +1462,19 @@ def boArcTexBinFE(data, texList):
                         + "\nTexture {} of {}".format(texNameIndex, texCount))
 
                 arc.seek(curAptOffset)
+
+            for tex in texArray:  # Clear out remaining textures, if any
+                texName = os.path.join(dirName, tex)
+                boTexParse(arc, arcEndian, texList, texArray.get(tex), texName=texName)
+
+                if BoDebug:
+                    print("Directory name: {}".format(dirName)
+                        + "\nDirectory offset: 0x{:X}".format(dirDataOffset)
+                        + "\nApt Data offset: 0x{:X}".format(aptDataOffset)
+                        + "\nApt constant file offset: 0x{:X}".format(aptConstOffset)
+                        + "\nTexture array offset: 0x{:X}".format(texArrayOffset)
+                        + "\nTexture {} of {}".format(tex, texCount))
+
         arc.seek(curHdrOffset)
     return True
 
