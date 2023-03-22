@@ -28,7 +28,7 @@
 #   PS2 two-point (Line) "triangles"
 #   PSP track model support
 
-# Written by Edness   v0.7b   2021-06-23 - 2023-03-22
+# Written by Edness   v0.7c   2021-06-23 - 2023-03-22
 
 BoDebug = False
 BoModels = False
@@ -502,16 +502,19 @@ def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
     def boPS2Read12(vif):  # Would be  // vif.numElems  if it weren't for car UVs
         rData = list()
         for int in noeUnpack("<{}h".format(len(vif.data) // 2), vif.data):
-            rData.append(noePack("f", int / 4096))
-        return b"".join(rData)
+            rData.extend(noePack("f", int / 4096))
+        return bytearray(rData)
 
     mdl.seek(mdlOffset)
     subSize = mdl.readUShort()
     mdl.seek(mdlOffset + 0x4)
-    #print("SubHdr:", " ".join(["{:02X}".format(i) for i in mdl.read(0x2)]))
-
     vifData = rapi.unpackPS2VIF(mdl.read(subSize * 0x10 + 0xC))
+
+    mdlName = mdlBaseName + "{:03}".format(subIdx)
+    rapi.rpgSetName(mdlName)
+    rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx]))
     #print("MdlOffs", hex(mdlOffset), mdlName)  # NoePS2VIFUnpack
+
     vertData = list()
     clrData = list()
     uvData = list()
@@ -546,17 +549,13 @@ def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
             if vertData[idx][vtx * 0x10:][:0x30].endswith(bytes(4)):
                 faceData.extend((vtx, vtx + 1, vtx + 2) if vtx % 2 == 0 else (vtx, vtx + 2, vtx + 1))
 
-        #mdlName = mdlBaseName + "{:03}_{}_{:03}".format(subIdx, vertIdx, idx)
-        mdlName = mdlBaseName + "{:03}".format(subIdx)  # merge into one submesh
-        rapi.rpgSetName(mdlName)
-        rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx]))
-
         boMdlSkipVertexAlpha(clrData[idx], 0x0, 0x4)
 
-        rapi.rpgBindPositionBuffer(vertData[idx], noesis.RPGEODATA_FLOAT, 0x10)
-        rapi.rpgBindColorBuffer(clrData[idx], noesis.RPGEODATA_UBYTE, 0x4, 4)
-        rapi.rpgBindUV1Buffer(uvData[idx], noesis.RPGEODATA_FLOAT, 0x8)
-        rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
+        if len(vertData[idx]) // 0x10 > 2:  # Prevent small two-point wire submeshes from breaking
+            rapi.rpgBindPositionBuffer(vertData[idx], noesis.RPGEODATA_FLOAT, 0x10)
+            rapi.rpgBindColorBuffer(clrData[idx], noesis.RPGEODATA_UBYTE, 0x4, 4)
+            rapi.rpgBindUV1Buffer(uvData[idx], noesis.RPGEODATA_FLOAT, 0x8)
+            rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
 
 def boMdlPS2Track(mdl, matList, mdlOffset, mdlBaseName, grpOffset, mdlVer):
     mdl.seek(mdlOffset)
