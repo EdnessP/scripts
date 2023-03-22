@@ -2,8 +2,6 @@
     Fixed issues:
      * Rewritten PS2 model support.
      * Fixed bad Frontend texture name pointers. (Revenge Xbox 360 Demo)
-    Known issues:
-     * Several triangles on PS2 models are now facing backwards.
 
 
 2023-01-18  -  v0.7

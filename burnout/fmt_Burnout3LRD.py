@@ -21,11 +21,12 @@
 #               burnout.wiki  |  discord.gg/8zxbb4x              
 
 # TODO:
+#   All track collisions
 #   All streamed track materials
 #   All vehicle model support
-#   PSP track model support
+#   PS2 track material parsing
 #   PS2 two-point (Line) "triangles"
-#   PS2 models now have several triangles backwards
+#   PSP track model support
 
 # Written by Edness   v0.7b   2021-06-23 - 2023-03-22
 
@@ -498,62 +499,64 @@ def boMdlXboxReadLine(mdl, faceCount):
     return bytearray(faceData)
 
 def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
-    def boPS2Read12(vif, rData):  # Would be // vif.numElems if it weren't for car UVs
+    def boPS2Read12(vif):  # Would be  // vif.numElems  if it weren't for car UVs
+        rData = list()
         for int in noeUnpack("<{}h".format(len(vif.data) // 2), vif.data):
-            rData.extend(noePack("f", int / 4096))
+            rData.append(noePack("f", int / 4096))
+        return b"".join(rData)
 
     mdl.seek(mdlOffset)
     subSize = mdl.readUShort()
     mdl.seek(mdlOffset + 0x4)
     #print("SubHdr:", " ".join(["{:02X}".format(i) for i in mdl.read(0x2)]))
 
-    mdlName = mdlBaseName + "{:03}_{}".format(subIdx, vertIdx)
-    rapi.rpgSetName(mdlName)
-    rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx]))
-
     vifData = rapi.unpackPS2VIF(mdl.read(subSize * 0x10 + 0xC))
     #print("MdlOffs", hex(mdlOffset), mdlName)  # NoePS2VIFUnpack
     vertData = list()
-    faceData = list()
     clrData = list()
     uvData = list()
     # many submeshes have both RGB24 and RGBA32 vtxclrs, RGB24 seems to take precedence
     clr32 = True
     for vif in vifData:
-        #print(vif, vif.data)
         if vif.elemBits == 32 and vif.numElems == 4:    # Vertices
-            vertData.extend(vif.data)
+            vertData.append(vif.data)
         elif vif.elemBits == 16 and vif.numElems == 2:  # UVs (Tracks)
-            boPS2Read12(vif, uvData)
+            uvData.append(boPS2Read12(vif))
         elif vif.elemBits == 16 and vif.numElems == 4:  # UVs (Vehicles)
-            boPS2Read12(vif, uvData)
+            uvData.append(boPS2Read12(vif))
         elif vif.elemBits == 8 and vif.numElems == 3:   # Colors RGB24
+            clr24 = list()
             clr32 = False
             # Vertex colors need to be changed from RGB to RGBA
             for clr in range(len(vif.data) // 3):
-                clrData.extend(vif.data[clr * 3:][:3] + b"\xFF")
+                clr24.extend(vif.data[clr * 3:][:3] + b"\xFF")
+            clrData.append(bytearray(clr24))
         elif vif.elemBits == 8 and vif.numElems == 4:   # Colors RGBA32
             if clr32:
-                clrData.extend(vif.data)
+                clrData.append(vif.data)
         else:
             noesis.doException("Unhandled VIF data: {}".format(vif))
 
-    vertData = bytes(vertData)
-    for vtx in range(len(vertData) // 0x10 - 2):
-        if vertData[vtx * 0x10:][:0x30].endswith(bytes(4)):
-            faceData.extend((vtx, vtx + 1, vtx + 2) if vtx % 2 == 0 else (vtx, vtx + 2, vtx + 1))
-
     if not uvData:
-        uvData = bytes(len(vertData) // 0x10 * 8)
+        uvData = [bytes(len(vtx) // 0x10 * 8) for vtx in vertData]
 
-    clrData = bytearray(clrData)
-    boMdlSkipVertexAlpha(clrData, 0x0, 0x4)
+    for idx in range(len(vertData)):  # not using  enumerate()  or  zip()  cuz too many to iterate on
+        faceData = list()
+        for vtx in range(len(vertData[idx]) // 0x10 - 2):
+            if vertData[idx][vtx * 0x10:][:0x30].endswith(bytes(4)):
+                faceData.extend((vtx, vtx + 1, vtx + 2) if vtx % 2 == 0 else (vtx, vtx + 2, vtx + 1))
 
-    faceData = b"".join([int.to_bytes(2, "little") for int in faceData])
-    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x10)
-    rapi.rpgBindUV1Buffer(bytes(uvData), noesis.RPGEODATA_FLOAT, 0x8)
-    rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
-    rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_USHORT, len(faceData) // 2, noesis.RPGEO_TRIANGLE)
+        #mdlName = mdlBaseName + "{:03}_{}_{:03}".format(subIdx, vertIdx, idx)
+        mdlName = mdlBaseName + "{:03}".format(subIdx)  # merge into one submesh
+        rapi.rpgSetName(mdlName)
+        rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx]))
+
+        boMdlSkipVertexAlpha(clrData[idx], 0x0, 0x4)
+
+        rapi.rpgBindPositionBuffer(vertData[idx], noesis.RPGEODATA_FLOAT, 0x10)
+        rapi.rpgBindColorBuffer(clrData[idx], noesis.RPGEODATA_UBYTE, 0x4, 4)
+        rapi.rpgBindUV1Buffer(uvData[idx], noesis.RPGEODATA_FLOAT, 0x8)
+        rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
 
 def boMdlPS2Track(mdl, matList, mdlOffset, mdlBaseName, grpOffset, mdlVer):
     mdl.seek(mdlOffset)
