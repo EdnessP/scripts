@@ -21,7 +21,7 @@
 #               burnout.wiki  |  discord.gg/8zxbb4x              
 
 # TODO:
-#   All track collisions
+#   All track collisions and props
 #   All streamed track materials
 #   All vehicle model support
 #   PS2 track material parsing
@@ -498,8 +498,8 @@ def boMdlXboxReadLine(mdl, faceCount):
         faceData.extend(mdl.readBytes(0x2) + mdl.readBytes(0x2) * 2)
     return bytearray(faceData)
 
-def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
-    def boPS2Read12(vif):  # Would be  // vif.numElems  if it weren't for car UVs
+def boMdlPS2(mdl, matList, matIdx, mdlOffset):
+    def boPS2Read12():  # Would be  // vif.numElems  if it weren't for car UVs
         rData = list()
         for int in noeUnpack("<{}h".format(len(vif.data) // 2), vif.data):
             rData.extend(noePack("f", int / 4096))
@@ -509,11 +509,7 @@ def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
     subSize = mdl.readUShort()
     mdl.seek(mdlOffset + 0x4)
     vifData = rapi.unpackPS2VIF(mdl.read(subSize * 0x10 + 0xC))
-
-    mdlName = mdlBaseName + "{:03}".format(subIdx)
-    rapi.rpgSetName(mdlName)
-    rapi.rpgSetMaterial(BoMatName.format(matIdx[subIdx]))
-    #print("MdlOffs", hex(mdlOffset), mdlName)  # NoePS2VIFUnpack
+    #print("MdlOffs", hex(mdlOffset))  # NoePS2VIFUnpack
 
     vertData = list()
     clrData = list()
@@ -524,9 +520,9 @@ def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
         if vif.elemBits == 32 and vif.numElems == 4:    # Vertices
             vertData.append(vif.data)
         elif vif.elemBits == 16 and vif.numElems == 2:  # UVs (Tracks)
-            uvData.append(boPS2Read12(vif))
+            uvData.append(boPS2Read12())
         elif vif.elemBits == 16 and vif.numElems == 4:  # UVs (Vehicles)
-            uvData.append(boPS2Read12(vif))
+            uvData.append(boPS2Read12())
         elif vif.elemBits == 8 and vif.numElems == 3:   # Colors RGB24
             clr24 = list()
             clr32 = False
@@ -543,18 +539,18 @@ def boMdlPS2(mdl, matList, matIdx, mdlOffset, mdlBaseName, subIdx, vertIdx):
     if not uvData:
         uvData = [bytes(len(vtx) // 0x10 * 8) for vtx in vertData]
 
-    for idx in range(len(vertData)):  # not using  enumerate()  or  zip()  cuz too many to iterate on
+    for vertData, clrData, uvData in zip(vertData, clrData, uvData):
         faceData = list()
-        for vtx in range(len(vertData[idx]) // 0x10 - 2):
-            if vertData[idx][vtx * 0x10:][:0x30].endswith(bytes(4)):
+        for vtx in range(len(vertData) // 0x10 - 2):
+            if vertData[vtx * 0x10:][:0x30].endswith(bytes(4)):
                 faceData.extend((vtx, vtx + 1, vtx + 2) if vtx % 2 == 0 else (vtx, vtx + 2, vtx + 1))
 
-        boMdlSkipVertexAlpha(clrData[idx], 0x0, 0x4)
+        boMdlSkipVertexAlpha(clrData, 0x0, 0x4)
 
-        if len(vertData[idx]) // 0x10 > 2:  # Prevent small two-point wire submeshes from breaking
-            rapi.rpgBindPositionBuffer(vertData[idx], noesis.RPGEODATA_FLOAT, 0x10)
-            rapi.rpgBindColorBuffer(clrData[idx], noesis.RPGEODATA_UBYTE, 0x4, 4)
-            rapi.rpgBindUV1Buffer(uvData[idx], noesis.RPGEODATA_FLOAT, 0x8)
+        if len(vertData) // 0x10 > 2:  # Prevent small two-point wire submeshes from breaking
+            rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x10)
+            rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
+            rapi.rpgBindUV1Buffer(uvData, noesis.RPGEODATA_FLOAT, 0x8)
             rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
 
 def boMdlPS2Track(mdl, matList, mdlOffset, mdlBaseName, grpOffset, mdlVer):
@@ -576,8 +572,13 @@ def boMdlPS2Track(mdl, matList, mdlOffset, mdlBaseName, grpOffset, mdlVer):
                 vertOffsetList.append(vertOffset + subOffset)
         subOffset += 0x40
 
-        for vertIdx, vertOffset in enumerate(vertOffsetList):
-            boMdlPS2(mdl, matList, matIdx, vertOffset, mdlBaseName, blk, vertIdx)
+        mdlName = mdlBaseName + "{:03}".format(blk)
+        rapi.rpgSetName(mdlName)
+        rapi.rpgSetMaterial(BoMatName.format(matIdx[blk]))
+        #print("SubOffs", hex(subOffset), mdlName)
+
+        for vertOffset in vertOffsetList:
+            boMdlPS2(mdl, matList, matIdx, vertOffset)
 
 def boMdlPSPTrack():
     # The streamed format is entirely different in Legends
