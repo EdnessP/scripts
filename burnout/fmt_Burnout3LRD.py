@@ -490,7 +490,7 @@ def boMdlVtxClrPreview(clrData, clrOffset, clrStride):
         clrChannel = clrData[clrOffset + clr::clrStride]
         clrMultiply = list()
         clrTest = sorted(set(clrChannel))[-1]
-        if 131 < clrTest < 255:  # 131 because PSP RGBA5551 
+        if 131 < clrTest < 255:  # 131 because PSP RGBA5551
             noesis.messagePrompt("VtxClr mul {}\nContact Edness!".format(clrTest))
         for byte in clrChannel:
             byte *= 2
@@ -779,7 +779,9 @@ def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
             faceData.extend(range(mdl.readUInt() & 0xFFFF))
             for idx in range(len(faceData) - 1, 0, -2):
                 faceData.insert(idx, faceData[idx])
-            rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
+            faceCount = len(faceData)
+            faceData = noePack("<{}h".format(faceCount), *faceData)
+            rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_USHORT, faceCount, noesis.RPGEO_TRIANGLE)
         elif vertType == 0x4:  # Tri-Strips
             faceData = [-1, -1]
             for face in range(faceCount - 1):
