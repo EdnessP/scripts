@@ -1,7 +1,17 @@
+2023-04-05  -  v0.7d
+    Added features:
+     * PS2 material parsing.
+     * PS2 prop support. (Revenge and Dominator only)
+     * PSP model support.
+     * Vertex color data is multiplied by 2 for previewing.
+     * Streamed DAT and PropInst DAT files are read through Static DAT files.
+
+
 2023-03-22  -  v0.7c
     Fixed issues:
      * Random backwards facing triangles.
      * Prevented small two-vertex submeshes from breaking. (To be fixed)
+
 
 2023-03-22  -  v0.7b
     Fixed issues:
@@ -13,7 +23,7 @@
 
 2023-01-18  -  v0.7
     Added features:
-     * PlayStation 2 model support.
+     * PS2 model support.
      * Xbox model support.
      * Xbox 360 model support.
      * Static DAT model support.
