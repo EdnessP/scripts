@@ -490,7 +490,7 @@ def boMdlVtxClrPreview(clrData, clrOffset, clrStride):
         clrChannel = clrData[clrOffset + clr::clrStride]
         clrMultiply = list()
         clrTest = sorted(set(clrChannel))[-1]
-        if 129 < clrTest < 255:
+        if 131 < clrTest < 255:  # 131 because PSP RGBA5551 
             noesis.messagePrompt("VtxClr mul {}\nContact Edness!".format(clrTest))
         for byte in clrChannel:
             byte *= 2
