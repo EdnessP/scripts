@@ -1,10 +1,14 @@
-2023-04-05  -  v0.7d
+2023-04-06  -  v0.7d
     Added features:
      * PS2 material parsing.
      * PS2 prop support. (Revenge and Dominator only)
      * PSP model support.
      * Vertex color data is multiplied by 2 for previewing.
      * Streamed DAT and PropInst DAT files are read through Static DAT files.
+     * Need for Speed: Shift TMM support
+    Known issues:
+     * Burnout 3: Takedown Alpha 1 breaks Enviro DAT files occasionally.
+       * NULL pointer to an envmap texture.
 
 
 2023-03-22  -  v0.7c
@@ -56,7 +60,7 @@
      * Automatic system detection for textures.
      * Large parts of the script were rewritten.
      * Slightly more strict ARENA texture name linking with their indexes.
-     * Added Burnout Dominator DLC and Need for Speed: Shift PSP FXP support.
+     * Burnout Dominator DLC and Need for Speed: Shift PSP FXP support.
     Fixed issues:
      * Enviro DAT exporter only finding up one texture from Burnout 3 Xbox Alpha builds.
      * Improved various Black BIN and DB detection methods.
@@ -70,13 +74,13 @@
     Added features:
      * Reorganised just about everything.
      * Readded Black Frontend BIN support.
-     * Added Black Char DB support.
-     * Added Black GlobData BIN support.
-     * Added Black Guns BIN support.
-     * Added Black LevelDat BIN support.
-     * Added Black StLevel BIN support.
-     * Added Black StUnit BIN support.
-     * Added an experimental translation feature for the platform select window.
+     * Black Char DB support.
+     * Black GlobData BIN support.
+     * Black Guns BIN support.
+     * Black LevelDat BIN support.
+     * Black StLevel BIN support.
+     * Black StUnit BIN support.
+     * An experimental translation feature for the platform select window.
         * Probably will not actually be used in the end.
      * Split Font and LoadScrn detection separately.
     Known issues:

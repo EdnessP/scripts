@@ -29,7 +29,7 @@
 #   All track material parsing (PS2 done?)
 #   PS2 two-point (Line) meshes
 
-# Written by Edness   v0.7d   2021-06-23 - 2023-04-05
+# Written by Edness   v0.7d   2021-06-23 - 2023-04-06
 
 BoDebug = False
 BoModels = False
@@ -76,6 +76,10 @@ def registerNoesisTypes():
 
     handleFxp = noesis.register("Burnout Dominator DLC, NFS Shift - FXP [PSP]", ".fxp")
     noesis.setHandlerExtractArc(handleFxp, boArcFxp)
+
+    handleTmm = noesis.register("NFS Shift - TrackMaps [PSP]", ".tmm")
+    noesis.setHandlerTypeCheck(handleTmm, nfsChkTmm)
+    noesis.setHandlerLoadModel(handleTmm, nfsArcMdlTmm)
 
     ### Black - all of these call boArcTxdParse ###
 
@@ -313,6 +317,16 @@ def boChkArena(data):
         return True
     return False
 
+def nfsChkTmm(data):
+    chk = NoeBitStream(data)
+    if chk.getSize() > 0x50:
+        for hdr in range(3):
+            chk.seek(0xC + hdr * 0x10)
+            if chk.readBytes(0x4) != bytes(4):
+                return False
+        return True
+    return False
+
 def blkChkDb(data):
     chk = NoeBitStream(data)
 
@@ -472,7 +486,7 @@ def boMdlGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, matOffset):
     if matIdxOffset == 0:  # Streamed
         matIdxOffset = mdlOffset + matOffset
     else:                  # Static
-        matIdxOffset += grpOffset if mdlVer <= 0x32 else mdlOffset - 0x40
+        matIdxOffset += grpOffset if mdlVer <= 0x30 else mdlOffset - 0x40
     #else:
     #    noesis.doException("Unhandled material index pointer")
     return matIdxOffset
@@ -775,13 +789,12 @@ def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
         if vertType == 0x1:  # Lines
             faceData = list()
             if faceCount - 1 != 1:
-                noesis.doException("wire stuff")
+                noesis.doException("Wire mesh with more than 1 split")
             faceData.extend(range(mdl.readUInt() & 0xFFFF))
             for idx in range(len(faceData) - 1, 0, -2):
                 faceData.insert(idx, faceData[idx])
-            faceCount = len(faceData)
-            faceData = noePack("<{}h".format(faceCount), *faceData)
-            rapi.rpgCommitTriangles(bytes(faceData), noesis.RPGEODATA_USHORT, faceCount, noesis.RPGEO_TRIANGLE)
+                faceType = noesis.RPGEO_TRIANGLE
+
         elif vertType == 0x4:  # Tri-Strips
             faceData = [-1, -1]
             for face in range(faceCount - 1):
@@ -789,10 +802,12 @@ def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
                 # this is kinda messy looking, it'll be improved if possible
                 faceData.extend(range(faceRange, faceRange + mdl.readUInt() & 0xFFFF))
                 faceData.append(-1)
+                faceType = noesis.RPGEO_TRIANGLE_STRIP
             faceData = faceData[2:]
-            faceCount = len(faceData)
-            faceData = noePack("<{}h".format(faceCount), *faceData)
-            rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, noesis.RPGEO_TRIANGLE_STRIP)
+
+        faceCount = len(faceData)
+        faceData = noePack("<{}h".format(faceCount), *faceData)
+        rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, faceType)
 
     rapi.rpgSetTransform(None)
 
@@ -1437,9 +1452,6 @@ def boTexParse(tex, texEndian, texList, texOffset, texName=None, texExtra=None):
         boTexXbox(tex, texList, texOffset, texName)
     elif texSystem == BoXbox360:
         boTexXbox360(tex, texList, texOffset, texName, texExtra)
-    # Originally the idea was to allow potential multi-system textures in an archive
-    # but detecting the system for static model data is a pain, so just returning this
-    return texSystem
 
 
 
@@ -1542,16 +1554,16 @@ def boArcMdlDatStatic(data, mdlList):
     texArrayOffset = arc.readUInt()
 
     texName = dict()
-    arc.seek(texArrayOffset)
     for tex in range(texCount):
+        arc.seek(texArrayOffset + 0x4 * tex)
         texOffset = arc.readUInt()
-        curTexOffset = arc.getOffset()
-        arcSystem = boTexParse(arc, arcEndian, texList, texOffset)
+        boTexParse(arc, arcEndian, texList, texOffset)
         texName[texOffset] = boTexGetName(arc, arcEndian, texOffset)
-        arc.seek(curTexOffset)
-
+        
         if BoDebug:
             print("Texture {} of {}".format(tex + 1, texCount))
+
+    arcSystem = boTexGetSystem(arc, arcEndian, texOffset)
 
     if not BoModels:
         boSetDummyMdl(mdlList, texList)
@@ -1595,7 +1607,7 @@ def boArcMdlDatStatic(data, mdlList):
                 matFlags |= noesis.NMATFLAG_TWOSIDED
             #if matInfo & 0x0018:  # makes water show through?  also reflect heavily on cars?
             #if matInfo & 0x0400:  # makes props show through?
-            #if matInfo & 0x0200:  # unknown
+            #if matInfo & 0x0200:  # use uv scrolling
             matInfo = arc.readUByte()   # 0x26  # also color related like matAlpha?
             #if matInfo & 0x04:  # draw mesh with the stuff below?
             #if matInfo & 0x44:  # use original alpha
@@ -2012,6 +2024,33 @@ def boArcFxp(fileName, fileLen, isChk):
         else:
             print("Extracted", fileName)
         arc[0].seek(curArcPos)
+    return True
+
+def nfsArcMdlTmm(data, mdlList):
+    rapi.rpgCreateContext()
+    arc = NoeBitStream(data[0x50:])
+    matList = list()
+
+    mdlOffset = arc.readUInt()
+    arc.seek(0x8)
+    mdlSize = arc.readUInt()  # this is actually a pointer to the end but lmao
+    arc.seek(0x18)
+    vertCount = arc.readUInt()
+
+    mat = NoeMaterial("mat0", "")
+    mat.setFlags(noesis.NMATFLAG_TWOSIDED)
+    matList.append(mat)
+
+    rapi.rpgSetMaterial("mat0")
+
+    arc.seek(mdlOffset)
+    vertData = arc.readBytes(mdlSize)
+    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0xC)
+    rapi.rpgCommitTriangles(None, noesis.RPGEODATA_USHORT, vertCount, noesis.RPGEO_TRIANGLE_STRIP)
+
+    mdl = rapi.rpgConstructModel()
+    mdl.setModelMaterials(NoeModelMaterials(list(), matList))
+    mdlList.append(mdl)
     return True
 
 def blkArcTexDb(data, texList):
