@@ -8,7 +8,7 @@ This repository contains random scripts I've written at one point or another.  I
 
 If any problems arise, contact Edness#2203 on Discord.
 
-If you wish to, you may also [donate to me here](https://www.paypal.com/donate/?hosted_button_id=Z4LLFEUNXXRGJ).
+If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 
 ## Script list
 <details>
