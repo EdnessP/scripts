@@ -1,3 +1,14 @@
+2023-05-04  -  v0.8
+    Added features:
+     * PS2 streamed prop and instance support.
+     * PSP streamed prop and instance support.
+     * PSP streamed material support.
+     * PSP material parsing.
+     * Xbox prop support.
+    Known issues:
+     * Burnout 3: Takedown Alpha 1 breaks Enviro DAT files occasionally.
+
+
 2023-04-06  -  v0.7d
     Added features:
      * PS2 material parsing.
@@ -5,7 +16,7 @@
      * PSP model support.
      * Vertex color data is multiplied by 2 for previewing.
      * Streamed DAT and PropInst DAT files are read through Static DAT files.
-     * Need for Speed: Shift TMM support
+     * Need for Speed: Shift TMM support.
     Known issues:
      * Burnout 3: Takedown Alpha 1 breaks Enviro DAT files occasionally.
        * NULL pointer to an envmap texture.

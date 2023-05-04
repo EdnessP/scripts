@@ -23,13 +23,15 @@
 #               burnout.wiki  |  discord.gg/8zxbb4x              
 
 # TODO:
-#   All track collisions and objects
-#   All streamed track materials
+#   All track collisions
+#   All streamed track materials (except PSP)
 #   All vehicle model support
-#   All track material parsing (PS2 done?)
+#   Xbox streamed instance support
+#   X360 streamed instance and prop support
+#   Xbox/X360 track material parsing
 #   PS2 two-point (Line) meshes
 
-# Written by Edness   v0.7d   2021-06-23 - 2023-04-06
+# Written by Edness   v0.8   2021-06-23 - 2023-05-04
 
 BoDebug = False
 BoModels = False
@@ -498,39 +500,31 @@ def boMdlVtxClrPreview(clrData, clrOffset, clrStride):
     if not rapi.noesisIsExporting():
         clrData[clrOffset + 3::clrStride] = b"\xFF" * (len(clrData) // clrStride)
 
-    # Multiply the vertex RGB by 2 for better previewing (seems closer to in-game)
-    # and the range always being 0-128 (but occasionally 129 in Dominator though?)
-    for clr in range(3):
-        clrChannel = clrData[clrOffset + clr::clrStride]
-        clrMultiply = list()
-        clrTest = sorted(set(clrChannel))[-1]
-        if 131 < clrTest < 255:  # 131 because PSP RGBA5551
-            noesis.messagePrompt("VtxClr mul {}\nContact Edness!".format(clrTest))
-        for byte in clrChannel:
-            byte *= 2
-            if byte > 255:
-                byte = 255
-            clrMultiply.append(byte)
-        clrData[clrOffset + clr::clrStride] = bytes(clrMultiply)
-
-def boMdlXboxReadLine(mdl, faceCount):
-    # Converts Xbox/Xbox 360 line meshtype to fake triangles
-    faceData = list()
-    for idx in range(faceCount):
-        faceData.extend(mdl.readBytes(0x2) + mdl.readBytes(0x2) * 2)
-    return bytearray(faceData)
+        # Multiply the vertex RGB by 2 for better previewing (seems closer to in-game)
+        # and the range always being 0-128 (but occasionally 129 in Dominator though?)
+        for clr in range(3):
+            clrChannel = clrData[clrOffset + clr::clrStride]
+            clrMultiply = list()
+            clrTest = sorted(set(clrChannel))[-1]
+            if 131 < clrTest < 255:  # 131 because PSP RGBA5551
+                noesis.messagePrompt("VtxClr mul {}\nContact Edness!".format(clrTest))
+            for byte in clrChannel:
+                byte *= 2
+                if byte > 255:
+                    byte = 255
+                clrMultiply.append(byte)
+            clrData[clrOffset + clr::clrStride] = bytes(clrMultiply)
 
 def boMdlPS2(mdl, vifOffset):
-    def boPS2Read12(rData):  # (1 << 12) - 1
-        rSize = len(rData) // 2  # Would be  // vif.numElems  if it weren't for car UVs
-        rData = [int / 0xFFF for int in noeUnpack("<{}h".format(rSize), rData)]
+    def boPS2Read12(rData):
+        rSize = len(rData) // 2  # 0xFFFF / (0x10000 / (1 << 12)) = 4095.9375 ?
+        rData = [int / 4096 for int in noeUnpack("<{}h".format(rSize), rData)]
         return noePack("<{}f".format(rSize), *rData)
 
     mdl.seek(vifOffset)
     vifSize = mdl.readUShort()
     mdl.seek(vifOffset + 0x4)
     vifData = rapi.unpackPS2VIF(mdl.read(0xC + vifSize * 0x10))
-    #print("MdlOffs", hex(vifOffset))  # NoePS2VIFUnpack
 
     # Many submeshes have both V3-8 and V4-8 data, V3-8 seems to take precedence for
     # vertex colors. If V3-8 (RGB24) data doesn't exist then V4-8 is used as RGBA32.
@@ -710,109 +704,205 @@ def boMdlPS2PropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
                 if vifOffset != subOffset:  # not NULL
                     boMdlPS2(mdl, vifOffset)
 
-def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
-    def boPSPRead11(rSize):  # (1 << 11 ) - 1
-        rData = [int / 0x7FF for int in noeUnpack("<{}h".format(rSize), mdl.readBytes(rSize * 2))]
+def boMdlPSP(mdl, mdlOffset, hdrSkip, geOffset, vertTag, clrFix=True):
+    def boPSPRead11(rSize):
+        rData = [int / 2048 for int in noeUnpack("<{}h".format(rSize), mdl.readBytes(rSize * 2))]
         return noePack("<{}f".format(rSize), *rData)
 
-    # Parts of this will need to be moved to its own func (11-bit UV & Face indices generation)
+    def boPSPReadIdx():
+        geInstr = mdl.readUInt()
+        geFmt = geInstr >> 16 & 0xFF
+        geCmd = geInstr >> 24
+        if geCmd == 0x0B:
+            return -1
+        if geCmd != 0x04:
+            noesis.doException("Unexpected GE command {:02X}".format(geCmd))
+        if geFmt != vertType:
+            noesis.doException("Vertex type mismatch! Expected {:02X}, got {:02X}".format(vertType, geFmt))
+        return geInstr & 0xFFFF
 
+    mdl.seek(hdrSkip + mdlOffset)
+    vertType = mdl.readUInt()
+    vertCount = mdl.readUInt()
+    vertOffset = mdl.readUInt() + mdlOffset
+
+    mdl.seek(hdrSkip + mdlOffset + 0x10)
+    mdlBias = NoeVec3.fromBytes(mdl.readBytes(0xC))
+    mdl.seek(hdrSkip + mdlOffset + 0x20)
+    mdlScale = NoeVec3.fromBytes(mdl.readBytes(0xC))
+    rapi.rpgSetPosScaleBias(mdlScale, mdlBias)
+
+    mdl.seek(hdrSkip + mdlOffset + geOffset)
+    cmdOffset = mdl.readUInt() + mdlOffset
+    cmdCount = mdl.readUInt()
+
+    if BoDebug:
+        print("Model offset: 0x{:X}".format(hdrSkip + mdlOffset)
+            + "\nVertex data offset: 0x{:X}".format(vertOffset)
+            + "\nVertex data amount: {}".format(vertCount)
+            + "\nVertex data format: {}".format(vertType)
+            + "\nVertex data tag: {:X}".format(vertTag)
+            + "\nGE data offset: 0x{:X}".format(cmdOffset)
+            + "\nGE data amount: {}".format(cmdCount))
+
+    if vertCount == 0:
+        return
+
+    #mdl.seek(vertOffset)
+    # no vertex colors & broken UVs
+    #vertData = mdl.readBytes(vertCount * 0xC)
+    #rapi.decodePSPVert(vertTag).bindBuffers(vertData)
+
+    # not stored in the model header, unsuse where it originates from
+    vertFmt = rapi.decodePSPVert(vertTag)
+
+    uvData = list()
+    clrData = list()
+    vertData = list()
+    for vtx in range(vertCount):
+        # I'm aware of the NoePSPVert format returns, but many aren't used by the game
+        # and would likely require more extensive testing before i can just add them
+        if vertFmt.uvType == 2:
+            mdl.seek(vertOffset + vertFmt.vertexSize * vtx + vertFmt.uvOfs)
+            uvData.extend(boPSPRead11(0x2))
+        elif vertFmt.uvType:
+            noesis.doException("Unhandled UV format {}".format(vertFmt.uvType))
+
+        if vertFmt.colorType == 5:
+            mdl.seek(vertOffset + vertFmt.vertexSize * vtx + vertFmt.colorOfs)
+            clrData.extend(mdl.readBytes(0x2))
+        elif vertFmt.colorType:
+            noesis.doException("Unhandled vertex color format {}".format(vertFmt.colorType))
+
+        if vertFmt.posType == 2:
+            mdl.seek(vertOffset + vertFmt.vertexSize * vtx + vertFmt.posOfs)
+            vertData.extend(mdl.readBytes(0x6))
+        elif vertFmt.posType:
+            noesis.doException("Unhandled vertex format {}".format(vertFmt.posType))
+
+    uvData = bytes(uvData)
+    clrData = bytes(clrData)
+    vertData = bytes(vertData)
+
+    if not clrData:
+        clrData = b"\xFF" * vertCount * 2
+
+    clrData = rapi.imageDecodeRaw(clrData, vertCount, 1, "R5G5B5A1")
+    if clrFix:  # Legends' vertex colors use the full range
+        boMdlVtxClrPreview(clrData, 0x0, 0x4)
+
+    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_SHORT, 0x6)
+    rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
+    rapi.rpgBindUV1Buffer(uvData, noesis.RPGEODATA_FLOAT, 0x8)
+
+    mdl.seek(cmdOffset)
+    if vertType == 0x1:    # Lines
+        faceData = list()
+        if cmdCount - 1 != 1:  # 1 command + RET
+            noesis.doException("Wire mesh with more than 1 command")
+        faceData.extend(range(boPSPReadIdx()))
+        # convert to fake tris until RPGEO_LINE gets added, if ever
+        for idx in range(len(faceData) - 1, 0, -2):
+            faceData.insert(idx, faceData[idx])
+        faceType = noesis.RPGEO_TRIANGLE
+
+    elif vertType == 0x4:  # Tri-Strips
+        faceData = [-1, -1]
+        for face in range(cmdCount):  # in theory always cmdCount - 1 but just in case
+            faceStart = faceData[-2] + 1
+            faceEnd = faceStart + boPSPReadIdx()
+            if faceEnd < faceStart:  # RET (-1)
+                break
+            faceData.extend(range(faceStart, faceEnd))
+            faceData.append(-1)
+        faceData = faceData[2:]
+        faceType = noesis.RPGEO_TRIANGLE_STRIP
+
+    else:
+        noesis.doException("Unhandled PSP vertex type {}".format(vertType))
+
+    faceCount = len(faceData)
+    faceData = noePack("<{}h".format(faceCount), *faceData)
+    rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, faceType)
+
+    rapi.rpgSetPosScaleBias(None, None)
+
+def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
     mdl.seek(mdlOffset)
     subOffset = mdl.readUInt() + mdlOffset
     subCount = mdl.readUInt()
-    matIdxOffset = boMdlGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, 0x24 if mdlVer < 0x30 else 0x104)
+    #matIdxOffset = boMdlGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, 0x24 if mdlVer < 0x30 else 0x104)
+    matIdxOffset = boMdlGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, 0x0)
 
-    mdl.seek(matIdxOffset)
-    matIdx = [mdl.readUShort() for mat in range(subCount)]
+    if matIdxOffset != mdlOffset:
+        mdl.seek(matIdxOffset)
+        matIdx = [mdl.readUShort() for mat in range(subCount)]
 
-    # BoDebug
+    if BoDebug:
+        print("\nPlayStation Portable track model detected!"
+            + ("\nModel group offset: 0x{:X}".format(grpOffset) if grpOffset is not None else "")
+            + "\nModel info offset: 0x{:X}".format(mdlOffset)  # - 0x40
+            + "\nSubmesh info offset: 0x{:X}".format(subOffset)
+            + "\nSubmesh amount: {}".format(subCount)
+            + ("\nMaterial index offset: 0x{:X}".format(matIdxOffset) if matIdxOffset != mdlOffset else ""))
 
-    for blk in range(subCount):
-        mdlName = mdlBaseName + "{:03}".format(blk)
+    for sub in range(subCount):
+        mdlOffset = subOffset + 0xA0 * sub
+
+        mdlName = mdlBaseName + "{:03}".format(sub)
         rapi.rpgSetName(mdlName)
-        rapi.rpgSetMaterial(BoMatName.format(matIdx[blk]))
 
-        vertOffset = subOffset + 0xA0 * blk
+        if mdlBaseName.startswith("unit"):
+            mdl.seek(mdlOffset + 0x88)
+            rapi.rpgSetMaterial(BoMatName.format(mdl.readUShort()))
+        else:
+            rapi.rpgSetMaterial(BoMatName.format(matIdx[sub]))
 
-        mdl.seek(vertOffset + 0x40)
-        vertType = mdl.readUInt()
-        if vertType not in {1, 4}:
-            noesis.doException("Unhandled PSP vertex type")
-        vertCount = mdl.readUInt()
-        vertData = mdl.readUInt() + vertOffset
-        if vertCount == 0:
-            continue  # classic Legends...
+        if BoDebug:
+            print("\nSubmesh data offset: 0x{:X}".format(mdlOffset))
 
-        mdl.seek(vertOffset + 0x8C)
-        faceData = mdl.readUInt() + vertOffset
-        faceCount = mdl.readUInt()
-        #mdlData = rapi.decodePSPVert(0x12000116)
+        boMdlPSP(mdl, mdlOffset, 0x40, 0x4C, 0x12000116, clrFix=True if mdlVer > 0x27 else False)
 
-        mdl.seek(vertOffset + 0x60)
-        mdlTransform = [
-            (mdl.readFloat(), 0, 0),
-            (0, mdl.readFloat(), 0),
-            (0, 0, mdl.readFloat()),
-        ]
-        mdl.seek(vertOffset + 0x50)
-        mdlTransform.append((mdl.readFloat(), mdl.readFloat(), mdl.readFloat()))
-        rapi.rpgSetTransform(NoeMat43(mdlTransform))
-        #rapi.rpgSetTransform(NoeMat43(*mdlScale, mdlPos))
-
-        if (faceData - vertData) // 0xC != vertCount:
-            noesis.doException("Unhandled datatypes")
-
-        mdl.seek(vertData)
-        # no vertex colors & broken UVs (bound as 16-bit when they're 11-bit)
-        #vertData = mdl.readBytes(vertCount * 0xC)
-        #rapi.decodePSPVert(0x12000116).bindBuffers(vertData)
-
-        uvData = list()
-        clrData = list()
-        vertData = list()
-        for vtx in range(vertCount):
-            uvData.extend(boPSPRead11(0x2))
-            clrData.extend(mdl.readBytes(0x2))
-            vertData.extend(mdl.readBytes(0x6))
-
-        uvData = bytes(uvData)
-        vertData = bytes(vertData)
-        clrData = rapi.imageDecodeRaw(bytes(clrData), vertCount, 1, "R5G5B5A1")
-        if mdlVer > 0x27:  # Legends fucking sucks LOL
-            boMdlVtxClrPreview(clrData, 0x0, 0x4)
-
-        rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_SHORT, 0x6)
-        rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
-        rapi.rpgBindUV1Buffer(uvData, noesis.RPGEODATA_FLOAT, 0x8)
-
-        mdl.seek(faceData)
-        if vertType == 0x1:  # Lines
-            faceData = list()
-            if faceCount - 1 != 1:
-                noesis.doException("Wire mesh with more than 1 split")
-            faceData.extend(range(mdl.readUInt() & 0xFFFF))
-            for idx in range(len(faceData) - 1, 0, -2):
-                faceData.insert(idx, faceData[idx])
-                faceType = noesis.RPGEO_TRIANGLE
-
-        elif vertType == 0x4:  # Tri-Strips
-            faceData = [-1, -1]
-            for face in range(faceCount - 1):
-                faceRange = faceData[-2] + 1
-                # this is kinda messy looking, it'll be improved if possible
-                faceData.extend(range(faceRange, faceRange + mdl.readUInt() & 0xFFFF))
-                faceData.append(-1)
-                faceType = noesis.RPGEO_TRIANGLE_STRIP
-            faceData = faceData[2:]
-
-        faceCount = len(faceData)
-        faceData = noePack("<{}h".format(faceCount), *faceData)
-        rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, faceType)
-
-    rapi.rpgSetTransform(None)
+        if BoDebug:
+            print("Submesh {} of {}".format(sub + 1, subCount))
 
 def boMdlPSPPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
-    pass
+    if mdlBaseName.startswith("prop") and mdlVer >= 0x30:
+        # Dominator props
+        mdl.seek(mdlOffset + 0x20)  # has up to 4 lod/dmg meshes, but all are empty?
+        subOffset = mdl.readUInt() + mdlOffset
+        if subOffset > mdl.getSize():
+            return
+        mdl.seek(mdlOffset + 0x34)
+        matIdx = mdl.readUShort()
+
+        #rapi.rpgSetName(mdlBaseName + "dmg_{:03}_lod_{:03}".format(idx, lod))
+        rapi.rpgSetName(mdlBaseName + "dmg_000")
+        rapi.rpgSetMaterial(BoMatName.format(matIdx))
+        boMdlPSP(mdl, subOffset, 0x0, 0x44, 0x12000102)
+
+    else:
+        # All instances and Legends props
+        mdl.seek(mdlOffset + 0x110)
+        matIdx = [mdl.readUShort() for mat in range(3)]
+
+        callExtra = (0x12000102, True) if mdlVer > 0x27 else (0x12000116, False)
+
+        for lod in range(3 if BoLOD else 1): # if BoLOD else 1
+            subOffset = mdlOffset + 0x50 * lod + 0x20
+
+            mdlName = mdlBaseName + "lod_{:03}".format(lod)
+            rapi.rpgSetName(mdlName)
+            rapi.rpgSetMaterial(BoMatName.format(matIdx[lod]))
+
+            boMdlPSP(mdl, subOffset, 0x0, 0x44, *callExtra)
+
+def boMdlXboxReadLine(mdl, faceCount):
+    # Converts Xbox/Xbox 360 line meshtype to fake triangles
+    faceData = list()
+    for idx in range(faceCount):
+        faceData.extend(mdl.readBytes(0x2) + mdl.readBytes(0x2) * 2)
+    return bytearray(faceData)
 
 def boMdlXboxTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
     mdl.seek(mdlOffset)
@@ -878,7 +968,54 @@ def boMdlXboxTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
         rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, BoXboxTris.get(triFmt))
 
 def boMdlXboxPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
-    pass
+    def boXboxReadMdl():
+        rapi.rpgClearBufferBinds()
+        #mdl.seek(subOffset)
+        #if mdl.readUInt() != 0x1:
+        #    noesis.doException("Invalid block header!")
+        mdl.seek(subOffset + 0x4)
+        vertOffset = mdl.readUInt() + subOffset
+        mdl.seek(subOffset + 0xC)
+        faceCount = mdl.readUInt()
+        faceOffset = mdl.readUInt() + subOffset
+
+        if not faceCount:
+            return
+
+        mdl.seek(vertOffset)
+        vertData = mdl.readBytes(faceOffset - vertOffset)
+
+        mdl.seek(faceOffset)
+        faceData = mdl.readBytes(faceCount * 2)
+
+        if len(vertData) % 0x14 == 0:
+            rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x14)
+            rapi.rpgBindUV1BufferOfs(vertData, noesis.RPGEODATA_FLOAT, 0x14, 0xC)
+
+        elif len(vertData) % 0x18 == 0:
+            rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x18)
+            rapi.rpgBindUV1BufferOfs(vertData, noesis.RPGEODATA_FLOAT, 0x18, 0x10)
+            #rapi.rpgBindColorBufferOfs(vertData, noesis.RPGEODATA_UBYTE, 0x18, 0xC, 4)
+
+        rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, noesis.RPGEO_TRIANGLE_STRIP)
+
+    if mdlBaseName.startswith("prop") and mdlVer >= 0x30:
+        # Revenge props
+        mdl.seek(mdlOffset + 0x44)
+        matIdx = [mdl.readUShort() for mat in range(3)]
+
+        for idx in range(3 if BoDmg else 1):
+            rapi.rpgSetName(mdlBaseName + "dmg_{:03}".format(idx))
+            rapi.rpgSetMaterial(BoMatName.format(matIdx[idx]))
+
+            mdl.seek(mdlOffset + 0x30 + idx * 0x4)
+            subOffset = mdl.readUInt() + mdlOffset
+            if subOffset != mdlOffset and subOffset < mdl.getSize():
+                boXboxReadMdl()
+
+    else:
+        # All instances and B3 props
+        pass
 
 def boMdlXbox360Track(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
     mdl.seek(mdlOffset + 0x10)
@@ -986,7 +1123,7 @@ def boMdlParsePropInst(mdl, mdlVer, mdlSystem, mdlOffset, subCount, mdlType, mdl
     if mdlIdx is None:
         # For debugging, loads everything at their default position
         for sub in range(subCount):  # or alternatively separated every sub*x units
-            rapi.rpgSetTransform(NoeMat43(((1, 0, 0), (0, 1, 0), (0, 0, 1), (0, 0, sub * 3))))
+            rapi.rpgSetTransform(NoeMat43(((1, 0, 0), (0, 1, 0), (0, 0, 1), (0, 0, sub * 8))))
             mdlName = "{}_{:03}_".format(mdlType, sub)
             if mdlSystem == BoPS2:
                 boMdlPS2PropInst(mdl, mdlVer, mdlOffset, mdlName)
@@ -1573,7 +1710,7 @@ def boArcMdlDatStatic(data, mdlList):
     matList = list()
 
     if arcEndian == "big":
-        rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, 1)
+        rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, True)
 
     arc.seek(0x8)
     matOffset = arc.readUInt()
@@ -1590,12 +1727,13 @@ def boArcMdlDatStatic(data, mdlList):
 
         matType = arc.readUInt()  # Render type (normal, wireframe, use alpha specular etc.) NEEDED FOR PS2 LINE DRAWS
         arc.seek(matOffset + 0xC)
-        # The byte after the pointer offsets the index, but I don't think it's ever used (always NULL)
-        texPtrOffset = arc.readInt() + arc.readByte() * 0x4
+        texPtrOffset = arc.readInt()
         if texPtrOffset != 0x0:
             arc.seek(texPtrOffset + matOffset)
             texOffset = arc.readInt() + matOffset
             mat.setTexture(texName.get(texOffset))
+
+        # stuff here is related to material animation (texture cycling and uv scrolling)
 
         # Texture rendering parameters
         matFlags = 0
@@ -1617,9 +1755,21 @@ def boArcMdlDatStatic(data, mdlList):
                 if matInfoAlpha & 0xFF != 0xD:
                     mat.setDefaultBlend(0)
 
-        else:  # PSP(?), Xbox, Xbox 360?  to be split
+        elif arcSystem == BoPSP:
+            #if matType == 0x2:  # skip render?
             arc.seek(matOffset + 0x24)
-            #matAlphaTest = arc.readUByte() / 100  # Xbox
+            matInfo = arc.readUShort()
+            # Legends has some screwed up materials and sets these flags from previous ones???
+            if matInfo & 0x0020 or matType in {0x8, 0x9}:
+                matFlags |= noesis.NMATFLAG_TWOSIDED
+            #matInfo & 0x0010 only sometimes applies???
+            if not matInfo & 0x0011:
+                mat.setDefaultBlend(0)
+            #if matInfo & 0x0200:  # use uv scrolling
+
+        else:  # Xbox, Xbox 360?  not yet parsed properly
+            arc.seek(matOffset + 0x24)
+            matAlphaTest = arc.readUByte() / 100  # Xbox
             matBlend2 = arc.readUByte()
 
             if not 0x2 <= matType <= 0x6:
@@ -1656,7 +1806,7 @@ def boArcMdlDatStatic(data, mdlList):
     # Everything beyond this point has 0x70 bytes of nothing on PSP
 
     # Props & Instances
-    # not a fan of relative seeks for readability, to be redone
+    # not a fan of relative seeks for readability, to be redone (maybe)
     arc.seek(0x34)
     if arcSystem == BoPSP:
         arc.seek(0x70, 1)
@@ -1666,20 +1816,33 @@ def boArcMdlDatStatic(data, mdlList):
     propOffset = arc.readUInt()
     if arcVer >= 0x30:
         if propCount != 0:
-            noesis.doException("Invalid State! Expected 0 for props at 0x36 for Static version {:02X}, got {}".format(arcVer, propCount))
+            noesis.doException("Invalid State! Expected 0 for old props in Static version {:02X}, got {}".format(arcVer, propCount))
         propCount = arc.readUInt()
-    if arcSystem == BoXbox360:
-        arc.seek(0x4, 1)  # unk
-    arc.seek(0x4, 1)  # also unk
+        if arcSystem == BoXbox360:
+            arc.seek(0x4, 1)  # unk
+        arc.seek(0x4, 1)  # also unk
     propSpawns = arc.readUInt()
-    # other pointers beyond this are null if PropInst.dat exists (B3/Legends)
+    if arcVer < 0x30:
+        # B3/Legends props only
+        propUnkOffset = arc.readUInt()  # bytearray, same length as propCount
+        propMatOffset = arc.readUInt()
+        propPtrOffset = arc.readUInt()
+        propUnkOffset = arc.readUInt()  # animated blinking lights?
+        propNum = 0
+
+    instLodPtr = {
+        BoPS2: 0x88,
+        BoPSP: 0x88 if arcVer == 0x27 else 0x168,
+        BoXbox: 0x98,
+        BoXbox360: 0xA8
+    }.get(arcSystem)
 
     # probably just have to call with a specific index and scale/transform params
     #boMdlParsePropInst(arc, arcVer, arcSystem, instOffset, instCount, "inst")
-    #boMdlParsePropInst(arc, arcVer, arcSystem, propOffset, propCount, "prop", 0)
+    #boMdlParsePropInst(arc, arcVer, arcSystem, propOffset, propCount, "prop")
 
     propFile = os.path.join(os.path.split(rapi.getInputName())[0], "PropInst.dat")
-    if os.path.exists(propFile) and os.path.getsize(propFile):
+    if arcVer >= 0x30 and os.path.exists(propFile) and os.path.getsize(propFile):
         data = rapi.loadIntoByteArray(propFile)
         if boChkDatPropInst(data):
             prop = NoeBitStream(data)
@@ -1707,7 +1870,7 @@ def boArcMdlDatStatic(data, mdlList):
                 rapi.rpgSetTransform(NoeMat44.fromBytes(prop.readBytes(0x40)).toMat43())
                 boMdlParsePropInst(arc, arcVer, arcSystem, propOffset, propCount, propName, propIdx)
 
-            rapi.rpgSetTransform(None)
+        rapi.rpgSetTransform(None)
 
     # Streamed Units
     streamFile = os.path.join(os.path.split(rapi.getInputName())[0], "streamed.dat")
@@ -1730,18 +1893,65 @@ def boArcMdlDatStatic(data, mdlList):
         arc.seek(0x2, 1)
         unitOffset = arc.readUInt()
 
-        arc.seek(unitOffset)
-        for idx in range(unitCount):
+        for unit in range(unitCount):
+            arc.seek(unitOffset + 0x10 * unit)
             subOffset = arc.readUInt() + 0x10
             lodOffset = arc.readUInt() + 0x10
             subSize = arc.readUInt()
             lodSize = arc.readUInt()
-            boMdlParseTrack(mdl, arcVer, arcSystem, subOffset, 1, idx)
-            # material array is nonexistent and instead inherited from above
-            #boMdlParseTrack(mdl, arcVer, arcSystem, lodOffset, 1, idx)
+
+            if subSize:
+                boMdlParseTrack(mdl, arcVer, arcSystem, subOffset, 1, unit)
+
+            # material array is nonexistent and instead inherited from above(?)
+            # the data below also contains collisions and vehicle lighting data
+            if lodSize:
+                #boMdlParseTrack(mdl, arcVer, arcSystem, lodOffset, 1, unit)
+
+                instDataOffset = lodOffset + instLodPtr
+                
+                mdl.seek(instDataOffset)
+                instIdxOffset = mdl.readUInt() + instDataOffset
+                instPtrOffset = mdl.readUInt() + instDataOffset
+                # only in PS2 Dominator?
+                #animIdxOffset = mdl.readUInt() + instDataOffset
+                #animPtrOffset = mdl.readUInt() + instDataOffset
+
+                instNum = 0
+                for idx in range(instCount):
+                    mdl.seek(instIdxOffset + idx)
+                    instIdxCount = mdl.readUByte()
+                    mdl.seek(instPtrOffset + 0x4 * idx)
+                    instMatOffset = mdl.readUInt() + instDataOffset
+
+                    for inst in range(instIdxCount):
+                        instName = "unit_{:03}_inst_{:03}_mdl".format(unit, instNum)
+                        mdl.seek(instMatOffset + 0x40 * inst)
+                        rapi.rpgSetTransform(NoeMat44.fromBytes(mdl.readBytes(0x40)).toMat43())
+                        boMdlParsePropInst(arc, arcVer, arcSystem, instOffset, instCount, instName, idx)
+                        instNum += 1
+
+            # for B3/Legends streamed props are set in static.dat, maybe should be loaded outside of here?
+            if arcVer < 0x30:
+                propIdx = 0
+                arc.seek(propPtrOffset + 0x4 * unit)
+                propIdxOffset = arc.readUInt()
+                for idx in range(propCount):
+                    arc.seek(propIdxOffset + idx)
+                    propIdxCount = arc.readUByte()
+
+                    for prop in range(propIdxCount):
+                        arc.seek(propMatOffset + 0x40 * propNum)
+                        propName = "unit_{:03}_prop_{:03}_mdl".format(unit, propIdx)
+                        rapi.rpgSetTransform(NoeMat44.fromBytes(arc.readBytes(0x40)).toMat43())
+                        boMdlParsePropInst(arc, arcVer, arcSystem, propOffset, propCount, propName, idx)
+                        propIdx += 1
+                        propNum += 1
+
+            rapi.rpgSetTransform(None)
 
             if BoDebug:
-                print("Unit {} of {}".format(idx + 1, unitCount))
+                print("Unit {} of {}".format(unit + 1, unitCount))
 
     try:
         mdl = rapi.rpgConstructModel()
@@ -2038,7 +2248,7 @@ def nfsArcMdlTmm(data, mdlList):
     vertCount = arc.readUInt()
 
     mat = NoeMaterial("mat0", "")
-    mat.setFlags(noesis.NMATFLAG_TWOSIDED)
+    mat.setFlags(noesis.NMATFLAG_TWOSIDED, 1)
     matList.append(mat)
 
     rapi.rpgSetMaterial("mat0")
