@@ -663,7 +663,6 @@ def boMdlPS2PropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
         # Revenge/Dominator props
         mdl.seek(mdlOffset + 0x44)
         matIdx = [mdl.readUShort() for mat in range(3)]
-        print("{:X}".format(mdlOffset))
 
         for idx in range(3 if BoDmg else 1):
             mdl.seek(mdlOffset + 0x30 + 0x4 * idx)
