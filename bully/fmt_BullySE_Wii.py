@@ -13,7 +13,7 @@
 
 # TODO:
 #   Bones, animations
-#   Some potential material issues?
+#   Some potential material issues? (moped.dff)
 #   Better day/night vertex color toggle
 #   Model default rotation check, if possible
 
@@ -110,7 +110,7 @@ class BseMdlParseChunk:
 
         elif self.fmt == 0x40:  # floats
             self.stride = self.elems * 0x4
-            self.data = [mdl.readBytes(self.elems * 0x4) for x in range(self.count)]
+            self.data = [mdl.readBytes(self.stride) for x in range(self.count)]
 
         elif self.fmt == 0x50:  # bytes (2 x BGR-565)
             if self.elems != 4:
