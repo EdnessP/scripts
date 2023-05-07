@@ -20,6 +20,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 - BullyHash &mdash; Hashing functions used by **Bully** for RSTM audio and string label lookup hashes. [Live version](https://ednessp.github.io/live/strings#Bully_(Canis_Canem_Edit)).
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
+- fmt_BullySE_Wii.py &mdash; **Bully: Scholarship Edition** Wii Noesis plugin for textures and models
 
 </details>
 
@@ -30,13 +31,13 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 - BurnoutCRASH_BIG.bms &mdash; **Burnout CRASH!** .BIG archives.
 - BurnoutCRASH_CSVparse.py &mdash; Split **Burnout CRASH!** texture sheets using the .CSV files.
 - bxv_palsplit.bms &mdash; Split and re-merge interleaved-grouped palettes from .BGV and .BTV files.
-- fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).  Currently only supports textures.
+- fmt_Burnout3LRD.py &mdash; All-in-One Noesis plugin for the **Takedown**-era games (as well as **Black** and the PSP version of **NFS: Shift**).
 - fmt_Burnout3LRD_changelog.txt &mdash; Update history for the Noesis plugin.
 - fmt_BurnoutCRASH.py &mdash; **Burnout CRASH!** PS3, Xbox 360, iOS model and texture Noesis plugin.
 - GtHash.py &mdash; Python reimplementation of GtHash string hashing. [Live version](https://ednessp.github.io/live/strings#Criterion_Games).
 - GtID.py &mdash; Python reimplementation of GtID EA string compression and decompression. [Live version](https://ednessp.github.io/live/strings#Criterion_Games).
 - tex_Burnout1.py &mdash; **Burnout** PS2 and Xbox Noesis texture plugin.
-- tex_Burnout2.py &mdash; **Burnout 2: Point of Impact** PS2 and Xbox Noesis texture plugin.
+- tex_Burnout2.py &mdash; **Burnout 2: Point of Impact** GameCube, PS2, Xbox Noesis texture plugin.
 - txdscanner.bms &mdash; Extracts .TXDs from containers.  Only really needed for fonts stored in the executable.
 
 </details>
