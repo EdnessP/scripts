@@ -1,4 +1,4 @@
-# Written by Edness   v1.0   2023-05-07
+# Written by Edness   v1.0b   2023-05-07 - 2023-05-08
 
 # Textures require the following plugins to be installed
 #  * lib_zq_nintendo_tex   (Author: Zheneq)
@@ -99,7 +99,7 @@ class BseMdlParseChunk:
             self.data = list()
             dataBits = (1 << (self.fmt & 0xF)) - 1
             for i in range(self.count):
-                dataTmp = [x / dataBits for x in noeUnpack(">{}h".format(self.elems), mdl.readBytes(self.elems * 2))]
+                dataTmp = [x / dataBits for x in noeUnpack(">{}h".format(self.elems), mdl.readBytes(self.elems * 0x2))]
                 self.data.append(noePack(">{}f".format(self.elems), *dataTmp))
 
         elif self.fmt == 0x20:  # bytes (1 x BGR-888) padded?
@@ -131,7 +131,7 @@ def bseMdlHeader(data):
     if BseDebug:
         print(mdl.readString())
 
-def bseMdlMain(data, texNames, clrNight=False):
+def bseMdlMain(data, texNames):
     rapi.rpgClearBufferBinds()
     mdl = NoeBitStream(data, NOE_BIGENDIAN)
     if mdl.readUInt() != 0x00B749E0:
@@ -221,13 +221,12 @@ def bseMdlMain(data, texNames, clrNight=False):
             vtxReloc.extend(vtx.data[readIdx(vtxFmt)])
             nrmIdx = readIdx(nrmFmt)
             if nrmIdx != -1 and nrm.offset != mdlInfo:
-                #nrmReloc.extend(noePack(">3f", *[x / 16383 for x in noeUnpack(">3h", vertData[nrmIdx][6:])]))
                 nrmReloc.extend(nrm.data[nrmIdx])
             clrIdxDay = readIdx(clrFmtDay)
-            if not clrNight and clrIdxDay != -1:
+            if not BseNightColors and clrIdxDay != -1:
                 clrReloc.extend(clr.data[clrIdxDay])
             clrIdxNight = readIdx(clrFmtNight)
-            if clrNight and clrIdxNight != -1:
+            if BseNightColors and clrIdxNight != -1:
                 clrReloc.extend(clr.data[clrIdxNight])
             uvsIdx = readIdx(uvsFmt)
             if uvsIdx != -1:
@@ -260,7 +259,7 @@ def bseMdlMain(data, texNames, clrNight=False):
             rapi.rpgBindNormalBuffer(nrmReloc, noesis.RPGEODATA_FLOAT, nrm.stride)
             #rapi.rpgBindNormalBufferOfs(nrmReloc, noesis.RPGEODATA_SHORT, nrmSize, nrmOffset - vertOffset)
         if clrReloc:
-            rapi.rpgBindColorBufferOfs(clrReloc, noesis.RPGEODATA_UBYTE, clr.stride, 0x0 if not clrNight else 0x4, 4)
+            rapi.rpgBindColorBufferOfs(clrReloc, noesis.RPGEODATA_UBYTE, clr.stride, 0x0 if not BseNightColors else 0x4, 4)
         if uvsReloc:
             rapi.rpgBindUV1Buffer(uvsReloc, noesis.RPGEODATA_FLOAT, uvs.stride)
         rapi.rpgCommitTriangles(None, noesis.RPGEODATA_USHORT, idxElems, noesis.RPGEO_TRIANGLE)
