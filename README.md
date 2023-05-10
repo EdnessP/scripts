@@ -52,6 +52,13 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 </details>
 
 <details>
+<summary>jak-daxter\</summary>
+
+- jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
+
+</details>
+
+<details>
 <summary>midnight-club\</summary>
 
 - MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations. [Live version](https://ednessp.github.io/live/strings#Midnight_Club).
@@ -70,7 +77,6 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 - BombermanActZero.bms &mdash; **Bomberman Act:Zero** .DAT files.
 - cstrikeRDA.bms &mdash; **Castle Strike** .RDA archives.
 - driversf-chnk.bms &mdash; **Driver: San Francisco** CHNK archives (.DNGC, .FCHUNK, .SP).
-- jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
 - mst-freaky_flyers.bms &mdash; **Freaky Flyers** .MST files.  (Has 24 byte name fields and LZO1X compression)
 - mst-saints_row_uc.bms &mdash; **Saints Row Undercover** .MST files.  (Has hashed filenames)
 - mst-scooby_doo_www&#x200b;.bms &mdash; **Scooby-Doo! Who's Watching Who?** .MST files.  (Has 16 byte name fields)
