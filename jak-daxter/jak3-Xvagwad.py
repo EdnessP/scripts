@@ -37,7 +37,7 @@ class DecompressEntry:
             return
 
         cmp_name = cmp_int & 0x3FFFFFFFFFF
-        self.mono = cmp_int >> 42 & 0x1
+        self.stereo = cmp_int >> 42 & 0x1
         self.int_wad = cmp_int >> 43 & 0x1
         self.frequency = cmp_int >> 44 & 0xF  # ???
         self.offset = cmp_int >> 48 << 15  # * 0x8000
