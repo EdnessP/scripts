@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Jak 3 and Jak X VAGWAD/VAGDIR extract
-# Written by Edness   v1.0   2023-05-10
+# Jak 3 & Jak X: Combat Racing VAGWAD/VAGDIR extract
+# Written by Edness   v1.1   2023-05-10 - 2023-05-12
 
 # Usage:
 #   script.py  "X:\PATH\TO\VAGWAD.ENG"
@@ -12,7 +12,6 @@
 
 import argparse, os
 
-EXT = ".VAG"
 FREQ_MAP = {
     0x2: 16000,
     0x3: 24000,
@@ -23,7 +22,7 @@ FREQ_MAP = {
     0xF: 36000
 }
 
-CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
+CMP_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
 
 def read_int(file, bytes):
     return int.from_bytes(file.read(bytes), "little")
@@ -33,6 +32,10 @@ class DecompressEntry:
     # of the  OVERLRD2.IRX  module in the PAL version of Jak 3
     def __init__(self, file):
         cmp_int = read_int(file, 0x8)
+        if not cmp_int:
+            self.eof = True
+            return
+
         cmp_name = cmp_int & 0x3FFFFFFFFFF
         self.mono = cmp_int >> 42 & 0x1
         self.int_wad = cmp_int >> 43 & 0x1
@@ -45,12 +48,13 @@ class DecompressEntry:
         for idx in range(8):
             if idx == 4:
                 tmp_name = cmp_name >> 21
-            self.name += CHARS[tmp_name % len(CHARS)]
-            tmp_name //= len(CHARS)
+            self.name += CMP_CHARS[tmp_name % len(CMP_CHARS)]
+            tmp_name //= len(CMP_CHARS)
         #print(self.name[::-1], f"{flags:06b}", f"{self.offset:X}")
 
-        self.name = self.name[::-1].strip() + EXT
+        self.name = self.name[::-1].strip() + ".VAG"
         #self.frequency = FREQ_MAP.get(self.frequency)
+        self.eof = False
 
 def extract_vagwad(vagwad, outpath=""):
     int_wad = os.path.splitext(vagwad)[1].upper() == ".INT"
@@ -77,20 +81,32 @@ def extract_vagwad(vagwad, outpath=""):
         entries = read_int(dir, 0x4)
         dir_size = os.path.getsize(vagdir)
 
+        # seek to the first correct entry
+        entry = DecompressEntry(dir)
+        while not entry.eof and entry.int_wad != int_wad:
+            entry = DecompressEntry(dir)
+        dir.seek(-0x8, 1)
+
+        if entry.eof:
+            print("No sound file entries for this container!")
+            return
+
         #for i in range(entries):
         while dir.tell() < dir_size:
             entry = DecompressEntry(dir)
-            while entry.int_wad != int_wad and entry.name != EXT:
-                entry = DecompressEntry(dir)
 
-            # not using the stored VAG size, instead skipping ahead to the next correct entry
+            if entry.int_wad != int_wad:
+                print("VAGWAD.INT check failed!")
+                return
+
+            # not using the stored .VAG size, instead seeking ahead to the next correct entry
             entry_next = DecompressEntry(dir)
-            while entry_next.int_wad != entry.int_wad and entry_next.name != EXT:
+            while not entry_next.eof and entry_next.int_wad != entry.int_wad:
                 entry_next = DecompressEntry(dir)
             dir.seek(-0x8, 1)
 
             wad.seek(entry.offset)
-            if entry_next.name == EXT:
+            if entry_next.eof:
                 vag_data = wad.read()  # until EOF
             else:
                 vag_size = entry_next.offset - entry.offset
@@ -105,9 +121,9 @@ def extract_vagwad(vagwad, outpath=""):
             #wad.seek(entry.offset + 0x10)
             #frequency = read_int(wad, 0x4)
             #if entry.frequency is None:
-            #    print(f"New frequency sample! {frequency}")
+            #    print("New sample rate detected!", frequency)
             #if frequency != entry.frequency:
-            #    print(f"Failed to decompress entry! (Sample rate error) {frequency}")
+            #    print("Failed to decompress entry! (Sample rate error)", frequency)
             #    return
 
             #print(entry.name.ljust(12), f"{entry.offset:X}")
@@ -116,7 +132,7 @@ def extract_vagwad(vagwad, outpath=""):
                 print("Writing", out_vag)
                 vag.write(vag_data)
 
-            if entry_next.name == EXT:
+            if entry_next.eof:
                 return
 
 if __name__ == "__main__":
