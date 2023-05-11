@@ -55,6 +55,8 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 <summary>jak-daxter\</summary>
 
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
+- jak3-Xvagwad.py &mdash; **Jak 3** & **Jak X: Combat Racing** VAGWAD files.
+- jak3-Xvagdir_algo.py &mdash; **Jak 3** & **Jak X: Combat Racing** filename compression function reimplementation. [Live version](https://ednessp.github.io/live/strings#Jak_&_Daxter).
 
 </details>
 
