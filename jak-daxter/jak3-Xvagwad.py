@@ -41,12 +41,12 @@ class DecompressEntry:
         #flags = cmp_int >> 42 & ((1 << 6) - 1)
 
         self.name = ""
-        name_tmp = cmp_name & 0x1FFFFF
+        tmp_name = cmp_name & 0x1FFFFF
         for idx in range(8):
             if idx == 4:
-                name_tmp = cmp_name >> 21
-            self.name += CHARS[name_tmp % len(CHARS)]
-            name_tmp //= len(CHARS)
+                tmp_name = cmp_name >> 21
+            self.name += CHARS[tmp_name % len(CHARS)]
+            tmp_name //= len(CHARS)
         #print(self.name[::-1], f"{flags:06b}", f"{self.offset:X}")
 
         self.name = self.name[::-1].strip() + EXT
@@ -60,7 +60,7 @@ def extract_vagwad(vagwad, outpath=""):
         return
 
     if not outpath:
-        outpath = os.path.split(vagwad)[0]
+        outpath = os.path.join(os.path.split(vagwad)[0], "VAGWAD")
     outpath = os.path.abspath(outpath)
     os.makedirs(outpath, exist_ok=True)
 
@@ -80,9 +80,8 @@ def extract_vagwad(vagwad, outpath=""):
         #for i in range(entries):
         while dir.tell() < dir_size:
             entry = DecompressEntry(dir)
-
-            if entry.int_wad != int_wad:
-                continue
+            while entry.int_wad != int_wad and entry.name != EXT:
+                entry = DecompressEntry(dir)
 
             # not using the stored VAG size, instead skipping ahead to the next correct entry
             entry_next = DecompressEntry(dir)
@@ -101,7 +100,7 @@ def extract_vagwad(vagwad, outpath=""):
                 print("Failed to decompress entry! (Offset error)")
                 return
 
-            # not even entirely sure if this is even correct but it seems to match most of the time.
+            # Not even entirely sure if this is even correct but it seems to match most of the time.
             # only seems to correspond to .ENG/.INT containers, others can have different sample rates
             #wad.seek(entry.offset + 0x10)
             #frequency = read_int(wad, 0x4)
