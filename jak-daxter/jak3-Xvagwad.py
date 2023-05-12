@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Jak 3 & Jak X: Combat Racing VAGWAD/VAGDIR extract
-# Written by Edness   v1.1   2023-05-10 - 2023-05-12
+# Written by Edness   v1.2   2023-05-10 - 2023-05-12
 
 # Usage:
 #   script.py  "X:\PATH\TO\VAGWAD.ENG"
@@ -48,13 +48,19 @@ class DecompressEntry:
         for idx in range(8):
             if idx == 4:
                 tmp_name = cmp_name >> 21
-            self.name += CMP_CHARS[tmp_name % len(CMP_CHARS)]
-            tmp_name //= len(CMP_CHARS)
+            tmp_name, char_idx = divmod(tmp_name, len(CMP_CHARS))
+            self.name += CMP_CHARS[char_idx]
         #print(self.name[::-1], f"{flags:06b}", f"{self.offset:X}")
 
         self.name = self.name[::-1].strip() + ".VAG"
         #self.frequency = FREQ_MAP.get(self.frequency)
         self.eof = False
+
+def find_entry(file, int_wad):
+    entry = DecompressEntry(file)
+    while not entry.eof and entry.int_wad != int_wad:
+        entry = DecompressEntry(file)
+    return entry
 
 def extract_vagwad(vagwad, outpath=""):
     int_wad = os.path.splitext(vagwad)[1].upper() == ".INT"
@@ -82,28 +88,19 @@ def extract_vagwad(vagwad, outpath=""):
         dir_size = os.path.getsize(vagdir)
 
         # seek to the first correct entry
-        entry = DecompressEntry(dir)
-        while not entry.eof and entry.int_wad != int_wad:
-            entry = DecompressEntry(dir)
-        dir.seek(-0x8, 1)
+        entry_next = find_entry(dir, int_wad)
 
-        if entry.eof:
+        if entry_next.eof:
             print("No sound file entries for this container!")
             return
 
         #for i in range(entries):
         while dir.tell() < dir_size:
-            entry = DecompressEntry(dir)
-
-            if entry.int_wad != int_wad:
-                print("VAGWAD.INT check failed!")
-                return
+            #entry = DecompressEntry(dir)
+            entry = entry_next
 
             # not using the stored .VAG size, instead seeking ahead to the next correct entry
-            entry_next = DecompressEntry(dir)
-            while not entry_next.eof and entry_next.int_wad != entry.int_wad:
-                entry_next = DecompressEntry(dir)
-            dir.seek(-0x8, 1)
+            entry_next = find_entry(dir, int_wad)
 
             wad.seek(entry.offset)
             if entry_next.eof:
