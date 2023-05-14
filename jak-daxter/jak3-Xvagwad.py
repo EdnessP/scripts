@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Jak 3 & Jak X: Combat Racing VAGWAD/VAGDIR extract
-# Written by Edness   v1.2   2023-05-10 - 2023-05-12
+# Written by Edness   v1.3   2023-05-10 - 2023-05-14
 
 # Usage:
 #   script.py  "X:\PATH\TO\VAGWAD.ENG"
@@ -32,10 +32,6 @@ class DecompressEntry:
     # of the  OVERLRD2.IRX  module in the PAL version of Jak 3
     def __init__(self, file):
         cmp_int = read_int(file, 0x8)
-        if not cmp_int:
-            self.eof = True
-            return
-
         cmp_name = cmp_int & 0x3FFFFFFFFFF
         self.stereo = cmp_int >> 42 & 0x1
         self.int_wad = cmp_int >> 43 & 0x1
@@ -43,34 +39,31 @@ class DecompressEntry:
         self.offset = cmp_int >> 48 << 15  # * 0x8000
         #flags = cmp_int >> 42 & ((1 << 6) - 1)
 
-        self.name = ""
+        name = ""
         tmp_name = cmp_name & 0x1FFFFF
         for idx in range(8):
             if idx == 4:
                 tmp_name = cmp_name >> 21
             tmp_name, char_idx = divmod(tmp_name, len(CMP_CHARS))
-            self.name += CMP_CHARS[char_idx]
-        #print(self.name[::-1], f"{flags:06b}", f"{self.offset:X}")
-
-        self.name = self.name[::-1].strip() + ".VAG"
-        #self.frequency = FREQ_MAP.get(self.frequency)
-        self.eof = False
-
-def find_entry(file, int_wad):
-    entry = DecompressEntry(file)
-    while not entry.eof and entry.int_wad != int_wad:
-        entry = DecompressEntry(file)
-    return entry
+            name += CMP_CHARS[char_idx]
+        self.name = name[::-1].strip() + ".VAG"
+        #print(name[::-1], f"{flags:06b}", f"{self.offset:X}")
 
 def extract_vagwad(vagwad, outpath=""):
-    int_wad = os.path.splitext(vagwad)[1].upper() == ".INT"
+    if not os.path.exists(vagwad):
+        print("Provided VAGWAD file could not be found!")
+        return
+
+    split_ext = os.path.splitext(vagwad)
+    int_wad = split_ext[1].upper() == ".INT"
     vagdir = os.path.join(os.path.split(vagwad)[0], "VAGDIR.AYB")
+
     if not os.path.exists(vagdir):
         print("VAGDIR.AYB needs to be in the same directory as the input file!")
         return
 
     if not outpath:
-        outpath = os.path.join(os.path.split(vagwad)[0], "VAGWAD")
+        outpath = split_ext[0]
     outpath = os.path.abspath(outpath)
     os.makedirs(outpath, exist_ok=True)
 
@@ -80,46 +73,42 @@ def extract_vagwad(vagwad, outpath=""):
             return
 
         if dir.read(0x8) != b"VGWADDIR":
-            print("Invalid VAGDIR file in the same directory as the input file!")
+            print("Invalid VAGDIR.AYB file in the same directory as the input file!")
             return
 
         version = read_int(dir, 0x4)
         entries = read_int(dir, 0x4)
-        dir_size = os.path.getsize(vagdir)
+        #dir_size = 0x10 + entries * 0x8
 
-        # seek to the first correct entry
-        entry_next = find_entry(dir, int_wad)
+        entries = [DecompressEntry(dir) for entry in range(entries)]
+        entries = [entry for entry in entries if entry.int_wad == int_wad]
+        entries.sort(key=lambda entry: entry.offset)  # shouldn't be needed but just in case
 
-        if entry_next.eof:
+        if not entries:
             print("No sound file entries for this container!")
             return
 
-        #for i in range(entries):
-        while dir.tell() < dir_size:
-            #entry = DecompressEntry(dir)
-            entry = entry_next
-
-            # not using the stored .VAG size, instead seeking ahead to the next correct entry
-            entry_next = find_entry(dir, int_wad)
-
+        entry_eof = len(entries) - 1
+        for idx, entry in enumerate(entries):
             wad.seek(entry.offset)
-            if entry_next.eof:
+
+            if idx == entry_eof:
                 vag_data = wad.read()  # until EOF
             else:
-                vag_size = entry_next.offset - entry.offset
+                vag_size = entries[idx + 1].offset - entry.offset
                 vag_data = wad.read(vag_size)
 
             if not vag_data.startswith(b"pGAV"):
                 print("Failed to decompress entry! (Offset error)")
                 return
 
-            # Not even entirely sure if this is even correct but it seems to match most of the time.
-            # only seems to correspond to .ENG/.INT containers, others can have different sample rates
+            # Not even entirely sure if this is even correct but it seems to match most of the time...
+            # Only seems to correspond to .ENG/.INT containers, others can have different sample rates
             #wad.seek(entry.offset + 0x10)
             #frequency = read_int(wad, 0x4)
-            #if entry.frequency is None:
+            #if entry.frequency not in FREQ_MAP:
             #    print("New sample rate detected!", frequency)
-            #if frequency != entry.frequency:
+            #if frequency != FREQ_MAP.get(entry.frequency):
             #    print("Failed to decompress entry! (Sample rate error)", frequency)
             #    return
 
@@ -128,9 +117,6 @@ def extract_vagwad(vagwad, outpath=""):
             with open(out_vag, "wb") as vag:
                 print("Writing", out_vag)
                 vag.write(vag_data)
-
-            if entry_next.eof:
-                return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
