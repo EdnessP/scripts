@@ -78,8 +78,8 @@ def extract_vagwad(vagwad, outpath=""):
 
         version = read_int(dir, 0x4)
         entries = read_int(dir, 0x4)
-        #dir_size = 0x10 + entries * 0x8
 
+        # Filters through the entries and retrieves the correct ones for the input container
         entries = [DecompressEntry(dir) for entry in range(entries)]
         entries = [entry for entry in entries if entry.int_wad == int_wad]
         entries.sort(key=lambda entry: entry.offset)  # shouldn't be needed but just in case
@@ -92,6 +92,7 @@ def extract_vagwad(vagwad, outpath=""):
         for idx, entry in enumerate(entries):
             wad.seek(entry.offset)
 
+            # Not using the stored .VAG size, instead retrieving from the next entry
             if idx == entry_eof:
                 vag_data = wad.read()  # until EOF
             else:
