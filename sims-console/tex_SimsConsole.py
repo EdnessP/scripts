@@ -7,7 +7,7 @@ def registerNoesisTypes():
     #handleArc = noesis.register("The Sims 1, 2, 3 & The Urbz Console", ".arc")
     #noesis.setHandlerExtractArc(handleArc, tscLoadArc)
 
-    handleTxfl = noesis.register("The Sims 1, 2, 3 & The Urbz Console TXFL [PS2]", ".arc")
+    handleTxfl = noesis.register("The Sims 1, 2 & The Urbz Console TXFL [PS2]", ".arc")
     noesis.setHandlerTypeCheck(handleTxfl, tscCheckTxfl)
     noesis.setHandlerLoadRGBA(handleTxfl, tscLoadTxfl)
     return True
