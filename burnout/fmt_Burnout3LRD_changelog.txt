@@ -1,3 +1,14 @@
+2023-05-29  -  v0.8b
+    Added features:
+     * PS2 streamed material support.
+     * Xbox streamed material support.
+     * Xbox 360 streamed material support.
+     * Redone relative pointer parsing.
+     * Slightly altered PS2 model support.
+    Known issues:
+     * Burnout 3: Takedown Alpha 1 breaks Enviro DAT files occasionally.
+
+
 2023-05-04  -  v0.8
     Added features:
      * PS2 streamed prop and instance support.
