@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Call of Duty: Finest Hour .PAK extract w/ filename support
-# Written by Edness   v1.16   2022-12-01 - 2023-03-15
+# Written by Edness   v1.17   2022-12-01 - 2023-06-07
 
 import os
 
@@ -211,6 +211,7 @@ HASH_DICT = {
     0x03752A781C601374: r"SB_AWD\90_119\SPANISH\XBX_0110.awd",
     0x037B547E7DE0A40F: r"SB_AGD\240_269\FRENCH\NGC_0257.agd",
     0x0387A524B39508D9: r"LEVELS\L_2_1\SECTIONS\s_10.rws",
+    0x0390EA7B0B469D14: r"NetworkDisconnectWarning.layout",
     0x039A36306753C837: r"SB_AGD\210_239\FRENCH\PS2_0234.agd",
     0x03A7BCFC6C1A942A: r"SB_AGD\150_179\FRENCH\PS2_0172.agd",
     0x03AA11F6B50101AA: r"SB_AGD\120_149\SPANISH\NGC_0124.agd",
