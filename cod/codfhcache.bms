@@ -1,0 +1,32 @@
+# COD:FH cache(?) file (11CC2379432E0C9B) extract
+# Written by Edness   v1.0   2023-06-09
+
+idstring "\x04\x00\x00\x00\x87\xD2\x46\x00"
+
+get INFOEND long
+get DUMMY long # 0x1
+get INFOOFS long
+
+goto INFOOFS
+getdstring ALL 0x28
+if ALL != "All"
+    print "Unexpected identifier!"
+    cleanexit
+endif
+get FILES long
+get ENTRYOFS long
+get FIRSTFILEOFS long
+get LASTFILEOFS long
+# a bunch of other stuff
+
+for i = 0 < FILES
+    goto ENTRYOFS
+    get NAMEOFS longlong
+    get OFFSET long
+    get SIZE long
+    # a bunch more other stuff
+    goto NAMEOFS
+    get NAME string
+    math ENTRYOFS += 0x18
+    log NAME OFFSET SIZE
+next i
