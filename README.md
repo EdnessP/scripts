@@ -47,7 +47,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 
 - codfh_hash.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox filename hashing function reimplementation. [Live version](https://ednessp.github.io/live/strings#Call_of_Duty).
 - codfh_pak_filenames.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK extractor with filename support.
-- codfhcache.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox 11CC2379432E0C9B archive extractor.
+- codfh_bigfile.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .BDS archive extractor.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 
 </details>
