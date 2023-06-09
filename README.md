@@ -47,6 +47,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 
 - codfh_hash.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox filename hashing function reimplementation. [Live version](https://ednessp.github.io/live/strings#Call_of_Duty).
 - codfh_pak_filenames.py &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK extractor with filename support.
+- codfhcache.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox 11CC2379432E0C9B archive extractor.
 - codfhpak.bms &mdash; **Call of Duty: Finest Hour** PS2 & Xbox .PAK files.
 
 </details>
@@ -121,6 +122,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 <summary>sims-console\</summary>
 
 - Sims2PetsKeyGen.py &mdash; **The Sims 2: Pets** Unlock Code gift key generator and decoder. [Live version](https://ednessp.github.io/live/strings#The_Sims_(Console))
+- tex_SimsConsole.py &mdash; **The Sims: Bustin' Out**, **The Urbz: Sims in the City**, **The Sims 2**, **The Sims 2: Pets**, **The Sims 2: Castaway** PS2 Noesis TEXTURES.ARC plugin.
 
 </details>
 
