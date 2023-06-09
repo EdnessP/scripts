@@ -6,7 +6,7 @@
 # My Scripts
 This repository contains random scripts I've written at one point or another.  I've written additional info in the header for some of them just for uploading them here.  Most of them are written for QuickBMS, but there are a few Python (both regular and Noesis) scripts, and one GreaseMonkey script too.
 
-If any problems arise, contact Edness#2203 on Discord.
+If any problems arise, contact Edness on Discord.
 
 If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 
