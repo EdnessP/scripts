@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Jak 3 & Jak X: Combat Racing VAGWAD/VAGDIR extract
-# Written by Edness   v1.3   2023-05-10 - 2023-05-14
+# Written by Edness   v1.4   2023-05-10 - 2023-06-25
 
 # Usage:
 #   script.py  "X:\PATH\TO\VAGWAD.ENG"
@@ -22,6 +22,11 @@ FREQ_MAP = {
     0xF: 36000
 }
 
+INTERLEAVE_MAP = {
+    0x2: 0x2000,
+    0x3: 0x1000
+}
+
 CMP_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
 
 def read_int(file, bytes):
@@ -39,7 +44,7 @@ class DecompressEntry:
         self.offset = cmp_int >> 48 << 15  # * 0x8000
         #flags = cmp_int >> 42 & ((1 << 6) - 1)
 
-        name = ""
+        name = str()
         tmp_name = cmp_name & 0x1FFFFF
         for idx in range(8):
             if idx == 4:
@@ -78,6 +83,7 @@ def extract_vagwad(vagwad, outpath=""):
 
         version = read_int(dir, 0x4)
         entries = read_int(dir, 0x4)
+        #interleave = INTERLEAVE_MAP.get(version)
 
         # Filters through the entries and retrieves the correct ones for the input container
         entries = [DecompressEntry(dir) for entry in range(entries)]
@@ -102,6 +108,11 @@ def extract_vagwad(vagwad, outpath=""):
             if not vag_data.startswith(b"pGAV"):
                 print("Failed to decompress entry! (Offset error)")
                 return
+
+            # Early builds of Jak X still use ver 2 but with 0x1000 interleave
+            #if entry.stereo and not vag_data[:interleave + 4].endswith(b"pGAV"):
+            #    print("Failed to decompress entry! (Interleave error)")
+            #    return
 
             # Not even entirely sure if this is even correct but it seems to match most of the time...
             # Only seems to correspond to .ENG/.INT containers, others can have different sample rates
