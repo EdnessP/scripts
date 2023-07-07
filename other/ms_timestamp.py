@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness   2021-10-23 - 2022-11-10   v1.5.4
+# Written by jason098 & Edness    2021-10-23 - 2023-07-07    v1.6
 # Original base script written on 2021-03-17
 
 import argparse, os
 from datetime import datetime
 
 parser = argparse.ArgumentParser()
-parser.add_argument("file", type=str)
+parser.add_argument("file", type=str, help="path to a file to read")
+parser.add_argument("-np", "--noprefix", action="store_true", help="don't print prefixes (e.g. \"EXE date:\")")
 args = parser.parse_args()
 
 file = open(args.file, "rb")
@@ -27,7 +28,8 @@ def read_str(bytes):
 def print_time(type):
     time = (read_int(0x4), 0) if (time_t) else divmod(read_int(0x8) - 0x19DB1DED53E8000, 10000000)
     time = datetime.utcfromtimestamp(time[0]).replace(microsecond=time[1] // 10)
-    print(f"{type} date:".ljust(10), time.strftime(f"%Y-%m-%d %H:%M:%S{'' if (time_t) else '.%f'}"))
+    if not args.noprefix: print(f"{type} date:".ljust(10), end=" ")
+    print(time.strftime(f"%Y-%m-%d %H:%M:%S{'' if (time_t) else '.%f'}"))
 
 def parse_pdb(word, *c_dates):
     # Normally it's supposed to always be Stream 2, but a few edge cases have arisen
