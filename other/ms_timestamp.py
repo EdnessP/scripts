@@ -28,7 +28,7 @@ def read_str(bytes):
 def print_time(type):
     time = (read_int(0x4), 0) if (time_t) else divmod(read_int(0x8) - 0x19DB1DED53E8000, 10000000)
     time = datetime.utcfromtimestamp(time[0]).replace(microsecond=time[1] // 10)
-    if not args.noprefix: print(f"{type} date:".ljust(10), end=" ")
+    if (not args.noprefix): print(f"{type} date:".ljust(10), end=" ")
     print(time.strftime(f"%Y-%m-%d %H:%M:%S{'' if (time_t) else '.%f'}"))
 
 def parse_pdb(word, *c_dates):
@@ -39,7 +39,7 @@ def parse_pdb(word, *c_dates):
     if (streams < pages and streams != 0 and stream_dir < pages * page_size and
         stream_dir != 0 and os.path.getsize(args.file) == pages * page_size):
         global stream_ptr
-        while True:
+        while (True):
             file.seek(stream_ptr)
             stream = read_int(word)
             if (stream == 0 or stream > pages):
@@ -114,7 +114,7 @@ elif (magic[:0x4] in {b"\xD1\x0F\x31\x10", b"\xE1\x0F\x31\x10"}):  # Xbox, Xbox 
     print_time("Authoring")
     file.seek(0x5DF)
     print_time("Mastering")
-    if magic[:0x4] == b"\xD1\x0F\x31\x10":  # Xbox only
+    if (magic[:0x4] == b"\xD1\x0F\x31\x10"):  # Xbox only
         file.seek(0x41F)
         print_time("Creation(?)")
         time_t = True
