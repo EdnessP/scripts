@@ -135,7 +135,7 @@ elif (magic[:0x2C] == b"Microsoft C/C++ program database 2.00\r\n\x1AJG\x00\x00"
     file.seek(stream_dir)
     streams = read_int(0x2)
     stream_ptr = streams * 8 + 4 + stream_dir
-    parse_pdb(0x2, 19950814, 19960307, 19970604)
+    parse_pdb(0x2, 1995_08_14, 1996_03_07, 1997_06_04)
 
 elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(0x20)
@@ -148,7 +148,7 @@ elif (magic[:0x20] == b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\x00\x00\x00"):
     file.seek(stream_dir)
     streams = read_int(0x4)
     stream_ptr = streams * 4 + 4 + stream_dir
-    parse_pdb(0x4, 20000404)
+    parse_pdb(0x4, 2000_04_04)
 
 elif (magic[:0x20] == b"Microsoft Linker Database\n\n\x07\x1A\x00\x00\x00"):
     # There are both FILETIME and TIME_T timestamps, as well as PDB dates?
