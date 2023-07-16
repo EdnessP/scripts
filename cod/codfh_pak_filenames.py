@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Call of Duty: Finest Hour .PAK extract w/ filename support
-# Written by Edness   v1.19   2022-12-01 - 2023-06-10
+# Written by Edness   v1.2   2022-12-01 - 2023-07-16
 
 import os
 
@@ -20,14 +20,21 @@ def extract_pak(inpath, outpath=""):
         if not outpath:
             outpath = os.path.split(inpath)[0]
         outpath = os.path.abspath(outpath)
+        posix_separator = os.sep == "/"
 
         files = read_int(0x4)
         for idx in range(files):
             file.seek(0x80 + idx * 0x10)
             size = read_int(0x4)
             offset = read_int(0x4)
-            filename = read_int(0x8)
-            filename = HASH_DICT.get(filename, os.path.join("__hashed", f"{filename:016X}"))
+            hash = read_int(0x8)
+
+            filename = HASH_DICT.get(hash, os.path.join("__hashed", f"{hash:016X}"))
+
+            # The hash algorithm normally converts all forward slashes to backslashes
+            # but that doesn't get interpreted as a directory path on POSIX systems
+            if posix_separator:
+                filename = filename.replace("\\", "/")
 
             path = os.path.join(outpath, filename)
             os.makedirs(os.path.split(path)[0], exist_ok=True)
@@ -9593,6 +9600,7 @@ HASH_DICT = {
     0xF04984F700F62B42: r"SB_AWD\150_179\ITALIAN\PS2_0172.awd",
     0xF051CC4BA8EDB665: r"ANIMGRPS\Lvl_15\Lvl_15R.ads",
     0xF055DE0C74B0162C: r"SB_AWD\180_209\FRENCH\XBX_0190.awd",
+    0xF058C58D077C6ABF: r"filein.log",
     0xF05C54C697FD8CB0: r"LEVELS\L_3_1_C\SECTIONS\s_12.rws",
     0xF068191B0E0E3C24: r"SB_AGD\210_239\SPANISH\NGC_0232.agd",
     0xF06A8ED87BF8B0DA: r"SB_AGD\240_269\ENGLISH\XBX_0247.agd",
