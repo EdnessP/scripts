@@ -33,8 +33,8 @@
 
 # Written by Edness   v0.8c   2021-06-23 - 2023-07-01
 
-BoDebug = True
-BoModels = True
+BoDebug = False
+BoModels = False
 
 BoDmg = False  # Damage models
 BoLOD = False  # LOD models
