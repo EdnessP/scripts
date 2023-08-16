@@ -1,3 +1,11 @@
+2023-07-01  -  v0.8c
+    Added features:
+     * PS2 line geometry handling.
+    Fixed issues:
+     * PSP model UVs sometimes being broken.
+     * Reworked endianness handling and various other minor things.
+
+
 2023-05-29  -  v0.8b
     Added features:
      * PS2 streamed material support.
