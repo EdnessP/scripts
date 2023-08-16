@@ -5,11 +5,11 @@
 
 # https://EdnessP.github.io/live/strings#The_Sims_(Console)
 
-# Written by Edness   v1.1   2023-03-19 - 2023-03-27
+# Written by Edness   v1.2   2023-03-19 - 2023-08-16
 
 # Usage:
-#   script.py enc <key>
-#   script.py dec <gift_id> [-n | --name <name>]
+#   script.py enc <gift_id> [-n | --name <name>]
+#   script.py dec <key>
 
 import re, zlib
 
@@ -17,53 +17,53 @@ PETS_ENC_LEN = 19
 PETS_DEC_LEN = 13
 PETS_CHARS = "12346789ABCDEFGHIJKLMNPQRTUVWXYZO05SabcdefghijklmnopqrstuvwxyzÀÁÄÆÈÉÌÍÑÒÓÖÙÚÜŒàáâäæçèéêëìíîïñòóôöùúûüßœ -.!@#~%^&*()+=:;,\\/?'\"{}"
 PETS_GIFTS = {  # head fashion icons for cats reuse the ones for dogs
-     0: "Unused ID (Dog Hats)",
-     1: "Cat Neckwear - Pink Bandana",             # d_cl_bandana_pink
-     2: "Dog Shirts - Green Shirt",                # d_tm_shirt_green
-     3: "Cat Glasses - Magenta Aviators",          # d_gl_aviators_magenta
-     4: "Dog Hats - Green Tight Cowboy Hat",       # d_ht_cowboytight_green
-     5: "Cat Hats - Red-White Bucket Hat",         # d_ht_bucket_redwhite
-     6: "Dog Neckwear - Pink Bandana",             # d_cl_bandana_pink
-     7: "Dog Neckwear - Red Leather with Bone",    # d_cl_medal_leatherred
-     8: "Cat Fur Colors - Red",                    # f_furcolor_red
-     9: "Dog Fur Marking Colors - Pink",           # d_furcolor_pink
-    10: "Dog Fur Colors - Green",                  # d_furcolor_green
-    11: "Cat Fur Marking Colors - Pink",           # f_furcolor_pink
-    12: "Cat Shirts - Orange Shirt",               # f_tm_shirt_orange
-    13: "Cat Neckwear - Green Bandana",            # d_cl_bandana_green
     14: "Cat Fur Colors - Blue",                   # f_furcolor_blue
-    15: "Dog Glasses - Green Cat's Eyes",          # d_gl_catseyes
-    16: "Cat Glasses - Blue Elvis Glasses",        # d_gl_elvis_blue
-    17: "Dog Fur Marking Colors - Purple",         # d_furcolor_purple
-    18: "Dog Fur Colors - Red",                    # d_furcolor_redkisspoint
-    19: "Cat Fur Marking Colors - Purple",         # f_furcolor_purple
-    20: "Cat Neckwear - Green Leather with Bone",  # d_cl_medal_leathergreen
-    21: "Dog Fur Colors - Pink",                   # d_furcolor_pink
-    22: "Dog Neckwear - Green Bandana",            # d_cl_bandana_green
-    23: "Dog Glasses - Magenta Aviators",          # d_gl_aviators_magenta
-    24: "Cat Glasses - Green Cat's Eyes",          # d_gl_catseyes
-    25: "Dog Neckwear - Green Leather with Bone",  # d_cl_medal_leathergreen
-    26: "Dog Fur Marking Colors - Red",            # d_furcolor_redkisspoint
-    27: "Cat Fur Marking Colors - Blue",           # f_furcolor_blue
+    41: "Cat Fur Colors - Green",                  # f_furcolor_green
+    38: "Cat Fur Colors - Pink",                   # f_furcolor_pink
     28: "Cat Fur Colors - Purple",                 # f_furcolor_purple
-    29: "Cat Fur Marking Colors - Red",            # f_furcolor_red
-    30: "Cat Hats - Blue Head Bandana",            # d_ht_headbandana_blue
-    31: "Dog Fur Marking Colors - Green",          # d_furcolor_green
-    32: "Dog Fur Colors - Blue",                   # d_furcolor_blue
-    33: "Dog Glasses - Purple Elvis Glasses",      # d_gl_elvis_purple
+     8: "Cat Fur Colors - Red",                    # f_furcolor_red
+    27: "Cat Fur Marking Colors - Blue",           # f_furcolor_blue
     34: "Cat Fur Marking Colors - Green",          # f_furcolor_green
+    11: "Cat Fur Marking Colors - Pink",           # f_furcolor_pink
+    19: "Cat Fur Marking Colors - Purple",         # f_furcolor_purple
+    29: "Cat Fur Marking Colors - Red",            # f_furcolor_red
+    46: "Cat Fur Marking Patterns - Bandit Mask",  # f_mark_banditmask
+    42: "Cat Fur Marking Patterns - Panda",        # f_mark_panda
+    16: "Cat Glasses - Blue Elvis Glasses",        # d_gl_elvis_blue
+    24: "Cat Glasses - Green Cat's Eyes",          # d_gl_catseyes
+     3: "Cat Glasses - Magenta Aviators",          # d_gl_aviators_magenta
+    30: "Cat Hats - Blue Head Bandana",            # d_ht_headbandana_blue
+     5: "Cat Hats - Red-White Bucket Hat",         # d_ht_bucket_redwhite
+    13: "Cat Neckwear - Green Bandana",            # d_cl_bandana_green
+    20: "Cat Neckwear - Green Leather with Bone",  # d_cl_medal_leathergreen
+     1: "Cat Neckwear - Pink Bandana",             # d_cl_bandana_pink
     35: "Cat Neckwear - Red Leather with Bone",    # d_cl_medal_leatherred
     36: "Cat Shirts - Green Shirt",                # f_tm_shirt_green
-    37: "Dog Shirts - Orange Shirt",               # d_tm_shirt_orange
-    38: "Cat Fur Colors - Pink",                   # f_furcolor_pink
-    39: "Dog Hats - Blonde-Violet Golf Hat",       # d_ht_golf_blondeviolet
-    40: "Dog Fur Marking Colors - Blue",           # d_furcolor_blue
-    41: "Cat Fur Colors - Green",                  # f_furcolor_green
-    42: "Cat Fur Marking Patterns - Panda",        # f_mark_panda
-    43: "Dog Fur Marking Patterns - Zebra",        # d_mark_zebra
+    12: "Cat Shirts - Orange Shirt",               # f_tm_shirt_orange
+    32: "Dog Fur Colors - Blue",                   # d_furcolor_blue
+    10: "Dog Fur Colors - Green",                  # d_furcolor_green
+    21: "Dog Fur Colors - Pink",                   # d_furcolor_pink
     44: "Dog Fur Colors - Purple",                 # d_furcolor_purple
+    18: "Dog Fur Colors - Red",                    # d_furcolor_redkisspoint
+    40: "Dog Fur Marking Colors - Blue",           # d_furcolor_blue
+    31: "Dog Fur Marking Colors - Green",          # d_furcolor_green
+     9: "Dog Fur Marking Colors - Pink",           # d_furcolor_pink
+    17: "Dog Fur Marking Colors - Purple",         # d_furcolor_purple
+    26: "Dog Fur Marking Colors - Red",            # d_furcolor_redkisspoint
     45: "Dog Fur Marking Patterns - Stars",        # d_mark_stars
-    46: "Cat Fur Marking Patterns - Bandit Mask",  # f_mark_banditmask
+    43: "Dog Fur Marking Patterns - Zebra",        # d_mark_zebra
+    15: "Dog Glasses - Green Cat's Eyes",          # d_gl_catseyes
+    23: "Dog Glasses - Magenta Aviators",          # d_gl_aviators_magenta
+    33: "Dog Glasses - Purple Elvis Glasses",      # d_gl_elvis_purple
+    39: "Dog Hats - Blonde-Violet Golf Hat",       # d_ht_golf_blondeviolet
+     4: "Dog Hats - Green Tight Cowboy Hat",       # d_ht_cowboytight_green
+    22: "Dog Neckwear - Green Bandana",            # d_cl_bandana_green
+    25: "Dog Neckwear - Green Leather with Bone",  # d_cl_medal_leathergreen
+     6: "Dog Neckwear - Pink Bandana",             # d_cl_bandana_pink
+     7: "Dog Neckwear - Red Leather with Bone",    # d_cl_medal_leatherred
+     2: "Dog Shirts - Green Shirt",                # d_tm_shirt_green
+    37: "Dog Shirts - Orange Shirt",               # d_tm_shirt_orange
+     0: "Unused ID (Dog Hats)",
     47: "Unused ID",
     48: "Unused ID",
     49: "Unused ID",
