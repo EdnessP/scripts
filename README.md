@@ -64,8 +64,8 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 <details>
 <summary>midnight-club\</summary>
 
-- MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations. [Live version](https://ednessp.github.io/live/strings#Midnight_Club).
 - dave.py &mdash; **Angel Studios** / **Rockstar San Diego** Dave archive extractor and rebuilder.
+- MclHash.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** audio and string hash lookup reimplementations. [Live version](https://ednessp.github.io/live/strings#Midnight_Club).
 - mclub_strtbl.py &mdash; **Midnight Club 2** & **Midnight Club 3: DUB Edition** (and other earlier Angel Studios/Rockstar: San Diego) .STRTBL string table exporter and rebuilder
 
 </details>
