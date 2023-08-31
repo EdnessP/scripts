@@ -3,20 +3,20 @@
 
 # Usage:
 #   Extract:  X
-#       script.py  X  "/path/to/dave.dat"
+#       dave.py  X  "/path/to/dave.dat"
 #     Optional:
 #       -o | --output {str} Path to the output directory;  default is input folder
-#         script.py  X  "X:\path\to\dave.zip"  -o "Y:\path\to\folder"
+#         dave.py  X  "X:\path\to\dave.zip"  -o "Y:\path\to\folder"
 #
 #   Rebuild:  B
-#       script.py  B  "Y:\path\to\folder"  "X:\path\to\new_dave.dat"
+#       dave.py  B  "Y:\path\to\folder"  "X:\path\to\new_dave.dat"
 #     Optional:
 #       -cf | --compfiles   Compress all files
 #       -cn | --compnames   Compress filenames (build Dave instead of DAVE)
 #       -d  | --dirs        Include directory entries
 #       -a  | --align {int} 16 byte file alignment;  default is 128 (0x800 bytes)
 
-# Written by Edness   2022-01-09  -  2023-08-31   v1.4
+# Written by Edness   2022-01-09 - 2023-08-31   v1.4.1
 
 import glob, os, zlib
 
@@ -30,24 +30,26 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     def seek_align(align):
         return file.seek(calc_align(file.tell(), align))
 
+    def get_int(int, bytes):
+        return int.to_bytes(bytes, "little")
+
     def write_int(int):
-        return file.write(int.to_bytes(0x4, "little"))
+        return file.write(get_int(int, 0x4))
 
-    print("Preparing files...")
-
-    dave = b"DAVE" if not compnames else b"Dave"
+    dave = b"Dave" if compnames else b"DAVE"
     align *= 16
 
+    print("Preparing files...")
     path = os.path.join(os.path.abspath(path), "")  # force final path separator
-    file_paths = glob.glob(os.path.join(glob.escape(path), "**", "*"), recursive=True)
 
+    #file_paths = glob.glob(os.path.join(glob.escape(path), "**", "*"), recursive=True)
     #file_names = [path + "/" for path in file_paths if os.path.isdir(path)]
     #file_names = [name.removeprefix(path).replace("\\", "/") for name in file_paths]
     #file_names = zip(file_paths, file_names)
     #file_names.sort(key=lambda name: [CHARS.index(c) for c in name.lower()])
 
     file_sets = list()  # dict(zip())
-    for file_path in file_paths:
+    for file_path in glob.iglob(os.path.join(glob.escape(path), "**", "*"), recursive=True):
         if not dirs and os.path.isdir(file_path):
             continue
         file_name = file_path.removeprefix(path)
@@ -57,6 +59,8 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file_name += "/"
         #if compnames:
         #    file_name = file_name.lower()
+        for c in file_name.lower():
+            assert c in CHARS, f"Error! Filename contains illegal characters. ({file_name})"
         file_sets.append((file_name, file_path))
     file_sets.sort(key=lambda entry: [CHARS.index(c) for c in entry[0].lower()])
 
@@ -77,7 +81,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             #if prev_name == file_name:
             #    # in the name builder it'd rewrite the previous offset
             #    file_names.append(-1)
-            #    continue  # doesn't increment dedup_idx
+            #    continue  # doesn't increment dedup_idx either
 
             name = file_name
             if dedup_idx:
@@ -86,7 +90,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
                         idx -= 1
                         break
                 if idx:
-                    assert idx < 256, "Error! Filename too long."
+                    assert idx < 256, f"Error! Filename too long to deduplicate. ({file_name})"
                     dedup_info = divmod(idx, 8)
                     name = file_name[idx:]
                 else:  # reset counter at new name
@@ -101,9 +105,10 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
                 comp_name |= dedup_info[0] + 0x20 << 6 | dedup_info[1] + 0x38
                 byte_len += 2
             byte_len = (byte_len * 6 / 8).__ceil__()
-            file_names.append(int.to_bytes(comp_name, byte_len, "little"))
+            file_names.append(get_int(comp_name, byte_len))
 
-            dedup_idx = dedup_idx + 1 & 0x1F  # limit to 32
+            # limit is 32 dedupes, probably because the games parse them recursively...
+            dedup_idx = dedup_idx + 1 & 0x1F
 
     entries = len(file_names)
     # entry and name blocks are always 0x800 aligned
@@ -111,12 +116,8 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     names_size = calc_align(len(b"".join(file_names)), 0x800)
 
     entry_info = list()
+    os.makedirs(os.path.split(output)[0], exist_ok=True)
     with open(output, "wb") as file:
-        file.write(dave)
-        write_int(entries)
-        write_int(entry_size)
-        write_int(names_size)
-
         file_offs = 0x800 + entry_size + names_size
         file.seek(file_offs)
         for idx, (name, path) in enumerate(file_sets):
@@ -136,18 +137,22 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file.write(data)
             file_offs = seek_align(align)
 
-        print("Writing entry data...")
+        print("Writing archive header...")
+        file.seek(0x0)
+        file.write(dave)
+        write_int(entries)
+        write_int(entry_size)
+        write_int(names_size)
+
         file.seek(0x800)
-        for offset, size_full, size_comp in entry_info:
+        for file_offs, size_full, size_comp in entry_info:
             file.seek(0x4, 1)
-            write_int(offset)
+            write_int(file_offs)
             write_int(size_full)
             write_int(size_comp)
 
-        print("Writing name data...")
         name_offs = 0x0
-        entry_range = range(entries - 1, -1, -1) if compnames else range(entries)
-        for idx in entry_range:
+        for idx in range(entries - 1, -1, -1) if compnames else range(entries):
             file.seek(0x800 + idx * 0x10)
             write_int(name_offs)
             name_offs += len(file_names[idx])
@@ -157,7 +162,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         file.seek(0x800 + entry_size)
         file.write(b"".join(file_names))
 
-    print(f"\nSuccess! Done building.")
+    print("\nSuccess! Archive built at", os.path.abspath(output))
 
 def read_dave(path, outpath=str()):
     def read_int(bytes):
@@ -184,7 +189,6 @@ def read_dave(path, outpath=str()):
         info_size = read_int(0x4)
         name_size = read_int(0x4)
 
-        file.seek(0x800)
         for i in range(entries):
             file.seek(0x800 + i * 0x10)
             name_offs = read_int(0x4) + info_size + 0x800
@@ -226,18 +230,18 @@ def read_dave(path, outpath=str()):
                 print("Creaing", out_path)
                 os.makedirs(out_path, exist_ok=True)
 
-    print(f"\nSuccess! Done extracting.")
+    print("\nSuccess! Done extracting.")
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Extracts and builds Angel Studios / Rockstar San Diego DAVE/Dave archives")
-    subparsers = parser.add_subparsers(description="to view additional help for each subparser, add -h | --help after it")
+    subparsers = parser.add_subparsers(description="To view additional help for each subparser, add -h | --help after it")
 
     extract_parser = subparsers.add_parser("X", help="extracts a DAVE/Dave archive")
     extract_parser.add_argument("path", type=str, help="path to the DAVE/Dave archive")
-    extract_parser.add_argument("-o", "--output", type=str, default="", help="path to the output folder")
-    extract_parser.set_defaults(read=True)
+    extract_parser.add_argument("-o", "--output", type=str, default=str(), help="path to the output folder")
+    extract_parser.set_defaults(read=True, func=read_dave)
 
     build_parser = subparsers.add_parser("B", help="builds a new DAVE archive")
     build_parser.add_argument("path", type=str, help="path to the input directory")
@@ -246,8 +250,9 @@ if __name__ == "__main__":
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (use Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (0x800))")
-    build_parser.set_defaults(read=False)
+    build_parser.set_defaults(read=False, func=build_dave)
 
     args = parser.parse_args()
-    try: read_dave(args.path, args.output) if args.read else build_dave(args.path, args.output, args.compfiles, args.compnames, args.dirs, args.align)
+    func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.compnames, args.dirs, args.align)
+    try: args.func(*func_args)
     except AttributeError: print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
