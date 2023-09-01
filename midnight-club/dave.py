@@ -137,7 +137,8 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             entry_info.append((file_offs, os.path.getsize(path), len(data)))
             file.write(data)
             if align:
-                file_offs = seek_align(align)
+                seek_align(align)
+            file_offs = file.tell()
         if align:  # pad last file 
             file.seek(-1, 1)
             file.write(bytes(0x1))
