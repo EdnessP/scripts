@@ -14,7 +14,7 @@
 #       -cf | --compfiles   Compress all files
 #       -cn | --compnames   Compress filenames (build Dave instead of DAVE)
 #       -d  | --dirs        Include directory entries
-#       -a  | --align {int} 16 byte file alignment;  default is 128 (0x800 bytes)
+#       -a  | --align {int} 16 byte file alignment;  default is 128 (2048 bytes)
 
 # Written by Edness   2022-01-09 - 2023-08-31   v1.4.2
 
@@ -36,7 +36,6 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     def write_int(int):
         return file.write(get_int(int, 0x4))
 
-    dave = b"Dave" if compnames else b"DAVE"
     assert align >= 0, "Error! Invalid alignment size."
     align *= 16
 
@@ -139,10 +138,13 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file.write(data)
             if align:
                 file_offs = seek_align(align)
+        if align:  # pad last file 
+            file.seek(-1, 1)
+            file.write(bytes(0x1))
 
         print("Writing archive header...")
         file.seek(0x0)
-        file.write(dave)
+        file.write(b"Dave" if compnames else b"DAVE")
         write_int(entries)
         write_int(entry_size)
         write_int(names_size)
