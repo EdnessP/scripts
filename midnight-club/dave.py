@@ -257,6 +257,8 @@ if __name__ == "__main__":
     build_parser.set_defaults(read=False, func=build_dave)
 
     args = parser.parse_args()
-    try: func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.compnames, args.dirs, args.align)
-    except AttributeError: print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
-    args.func(*func_args)
+    try:
+        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.compnames, args.dirs, args.align)
+        args.func(*func_args)
+    except AttributeError:
+        print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
