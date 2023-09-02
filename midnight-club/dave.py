@@ -16,7 +16,7 @@
 #       -d  | --dirs        Include directory entries
 #       -a  | --align {int} 16 byte file alignment;  default is 128 (2048 bytes)
 
-# Written by Edness   2022-01-09 - 2023-08-31   v1.4.2
+# Written by Edness   2022-01-09 - 2023-08-31   v1.4.3
 
 import glob, os, zlib
 
@@ -39,7 +39,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     assert align >= 0, "Error! Invalid alignment size."
     align *= 16
 
-    output = os.path.abspath(output)  # cleans up path separators and stuff
+    output = os.path.abspath(output)  # normalizes path separators and stuff
     path = os.path.join(os.path.abspath(path), "")  # force final path separator
 
     #file_paths = glob.glob(os.path.join(glob.escape(path), "**", "*"), recursive=True)
@@ -62,10 +62,13 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         #    file_name = file_name.lower()
         for c in set(file_name.lower()):
             assert c in CHARS, f"Error! Filename contains illegal characters. (\"{c}\" in {file_name})"
+            #if c not in CHARS: file_name = file_name.replace(c, "_")  # DEBUG
         file_sets.append((file_name, file_path))
     file_sets.sort(key=lambda entry: [CHARS.index(c) for c in entry[0].lower()])
 
+    # prepare the filename block
     if not compnames:
+        # not sure if identical names are also handled by this variant
         file_names = [entry[0].encode("ASCII") + b"\x00" for entry in file_sets]
     else:  # compress and deduplicate names
         dedup_idx = 0
@@ -77,12 +80,12 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             prev_name = file_name
             file_name = entry[0].lower()
 
-            # identical files at different offsets copy instead of full-dedup
+            # identical files at diff offsets copy the name instead of full-dedup
             # while not really handled by the script, this is original behaviour
-            #if prev_name == file_name:
-            #    # in the name builder it'd rewrite the previous offset
-            #    file_names.append(-1)
-            #    continue  # doesn't increment dedup_idx
+            if prev_name == file_name:
+                # in the name builder it'd rewrite the previous offset
+                file_names.append(b"")
+                continue  # doesn't increment dedup_idx
 
             name = file_name
             if dedup_idx:
@@ -91,6 +94,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
                         idx -= 1
                         break
                 if idx:
+                # probably could just limit idx to 255 but names that long are problematic in general
                     assert idx < 256, f"Error! Filename too long to deduplicate. ({file_name})"
                     dedup_info = divmod(idx, 8)
                     name = file_name[idx:]
@@ -137,11 +141,22 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             entry_info.append((file_offs, os.path.getsize(path), len(data)))
             file.write(data)
             file_offs = seek_align(align) if align else file.tell()
-        if align:  # pad last file 
+        if align:  # pad last file
             file.seek(-1, 1)
             file.write(bytes(0x1))
 
         print("Writing archive header...")
+        name_offs = [0x0]
+        for idx in range(entries - 1, -1, -1) if compnames else range(entries):
+            #file.seek(0x800 + idx * 0x10)
+            #write_int(name_offs)
+            name_offs.append(name_offs[-1] + len(file_names[idx]))
+        name_offs.pop()
+
+        if compnames:
+            name_offs.reverse()
+            file_names.reverse()
+
         file.seek(0x0)
         file.write(b"Dave" if compnames else b"DAVE")
         write_int(entries)
@@ -149,26 +164,18 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         write_int(names_size)
 
         file.seek(0x800)
-        for file_offs, size_full, size_comp in entry_info:
-            file.seek(0x4, 1)
+        for name_offs, (file_offs, size_full, size_comp) in zip(name_offs, entry_info):
+            write_int(name_offs)
             write_int(file_offs)
             write_int(size_full)
             write_int(size_comp)
-
-        name_offs = 0x0
-        for idx in range(entries - 1, -1, -1) if compnames else range(entries):
-            file.seek(0x800 + idx * 0x10)
-            write_int(name_offs)
-            name_offs += len(file_names[idx])
-        if compnames:
-            file_names.reverse()
 
         file.seek(0x800 + entry_size)
         file.write(b"".join(file_names))
 
     print("\nSuccess! Archive built at", output)
 
-def read_dave(path, outpath=str()):
+def read_dave(path, output=str()):
     def read_int(bytes):
         return int.from_bytes(file.read(bytes), "little")
 
@@ -179,10 +186,10 @@ def read_dave(path, outpath=str()):
         comp_data = read_int(0x3)
         return [comp_data >> mul * 6 & 0x3F for mul in range(4)]
 
-    if not outpath:
-        outpath = os.path.splitext(path)[0]
-    outpath = os.path.abspath(outpath)
-    #os.makedirs(os.path.split(outpath)[0], exist_ok=True)
+    if not output:
+        output = os.path.splitext(path)[0]
+    output = os.path.abspath(output)
+    #os.makedirs(os.path.split(output)[0], exist_ok=True)
 
     with open(path, "rb") as file:
         dave = file.read(0x4)
@@ -215,9 +222,9 @@ def read_dave(path, outpath=str()):
                     if not name_bits:
                         name_bits = read_bits()
 
-            out_path = os.path.join(outpath, file_name)
+            outpath = os.path.join(output, file_name)
             if not POSIX_SEP:
-                out_path = out_path.replace("/", "\\")
+                outpath = outpath.replace("/", "\\")
 
             if not file_name.endswith("/"):
                 file.seek(file_offs)
@@ -226,13 +233,13 @@ def read_dave(path, outpath=str()):
                     data = zlib.decompress(data, -15)
                 assert len(data) == file_size_full, f"Error! Data decompression size mismatch. ({file_name})"
 
-                print("Writing", out_path)
-                os.makedirs(os.path.split(out_path)[0], exist_ok=True)
-                with open(out_path, "wb") as out:
+                print("Writing", outpath)
+                os.makedirs(os.path.split(outpath)[0], exist_ok=True)
+                with open(outpath, "wb") as out:
                     out.write(data)
             else:
-                print("Creaing", out_path)
-                os.makedirs(out_path, exist_ok=True)
+                print("Creaing", outpath)
+                os.makedirs(outpath, exist_ok=True)
 
     print("\nSuccess! Done extracting.")
 
