@@ -5,7 +5,7 @@
 #   Extract:  X
 #       dave.py  X  "/path/to/dave.dat"
 #     Optional:
-#       -o | --output {str} Path to the output directory;  default is input folder
+#       -o | --output <str> Path to the output directory;  default is input folder
 #         dave.py  X  "X:\path\to\dave.zip"  -o "Y:\path\to\folder"
 #
 #   Rebuild:  B
@@ -14,7 +14,7 @@
 #       -cf | --compfiles   Compress all files
 #       -cn | --compnames   Compress filenames (build Dave instead of DAVE)
 #       -d  | --dirs        Include directory entries
-#       -a  | --align {int} 16 byte file alignment;  default is 128 (2048 bytes)
+#       -a  | --align <int> 16 byte file alignment;  default is 128 (2048 bytes)
 
 # Written by Edness   2022-01-09 - 2023-08-31   v1.4.3
 
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files")
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (use Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
-    build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (0x800))")
+    build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
     build_parser.set_defaults(read=False, func=build_dave)
 
     args = parser.parse_args()
