@@ -123,9 +123,8 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     entry_info = list()
     os.makedirs(os.path.split(output)[0], exist_ok=True)
     with open(output, "wb") as file:
-        file_offs = 0x800 + entry_size + names_size
-        file.seek(file_offs)
-        for idx, (name, path) in enumerate(file_sets):
+        file_offs = file.seek(0x800 + entry_size + names_size)
+        for name, path in file_sets:
             print("Writing", name)  # path
             if name.endswith("/"):
                 entry_info.append((file_offs, 0x0, 0x0))
@@ -143,17 +142,15 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file_offs = seek_align(align) if align else file.tell()
         if align:  # pad last file
             file.seek(-1, 1)
-            file.write(bytes(0x1))
+            file.write(b"\x00")
 
         print("Writing archive header...")
         name_offs = [0x0]
         for idx in range(entries - 1, -1, -1) if compnames else range(entries):
-            #file.seek(0x800 + idx * 0x10)
-            #write_int(name_offs)
             name_offs.append(name_offs[-1] + len(file_names[idx]))
         name_offs.pop()
 
-        if compnames:
+        if compnames:  # compressed names are stored backwards
             name_offs.reverse()
             file_names.reverse()
 
