@@ -16,12 +16,22 @@
 #       -d  | --dirs        Include directory entries
 #       -a  | --align <int> 16 byte file alignment;  default is 128 (2048 bytes)
 
-# Written by Edness   2022-01-09 - 2023-08-31   v1.4.3
+# Written by Edness   2022-01-09 - 2023-09-05   v1.4.4
 
 import glob, os, zlib
 
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~"
 POSIX_SEP = os.sep == "/"
+
+def prompt(output, prompt):
+    if os.path.exists(output):
+        response = input(prompt + " (Y/N): ")[0].upper()
+        if response != "Y":
+            if response != "N":
+                print("Invalid response!", end=" ")
+            print("Exiting...")
+            return False
+    return True
 
 def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align=128):
     def calc_align(size, align):
@@ -36,17 +46,30 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     def write_int(int):
         return file.write(get_int(int, 0x4))
 
-    assert align >= 0, "Error! Invalid alignment size."
-    align *= 16
+    def size_assert_help():
+        help = list()
+        if dirs:
+            help.append("not including directory entries")
+        if not compfiles:
+            help.append("compressing files")
+        if not compnames:
+            if not "compressing files" in help:
+                help.append("compressing filenames")
+            else:
+                help[-1] += " or filenames"
+        if align:
+            help.append("reducing the alignment size")
+        help = ", or ".join(help)
+        return "" if not help else f"\nTry {help}."
 
     output = os.path.abspath(output)  # normalizes path separators and stuff
     path = os.path.join(os.path.abspath(path), "")  # force final path separator
 
-    #file_paths = glob.glob(os.path.join(glob.escape(path), "**", "*"), recursive=True)
-    #file_names = [path + "/" for path in file_paths if os.path.isdir(path)]
-    #file_names = [name.removeprefix(path).replace("\\", "/") for name in file_paths]
-    #file_names = zip(file_paths, file_names)
-    #file_names.sort(key=lambda name: [CHARS.index(c) for c in name.lower()])
+    if not prompt(output, "Output file already exists. Overwrite?"):
+        return
+
+    assert align >= 0, "Error! Invalid alignment size."
+    align *= 16
 
     print("Preparing files...")
     file_sets = list()  # dict(zip())
@@ -126,6 +149,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         file_offs = file.seek(0x800 + entry_size + names_size)
         for name, path in file_sets:
             print("Writing", name)  # path
+            assert file_offs <= 0xFFFFFFFF, "Error! Archive too large." + size_assert_help()
             if name.endswith("/"):
                 entry_info.append((file_offs, 0x0, 0x0))
                 continue  # dirs don't increase file_offs
@@ -186,7 +210,9 @@ def read_dave(path, output=str()):
     if not output:
         output = os.path.splitext(path)[0]
     output = os.path.abspath(output)
-    #os.makedirs(os.path.split(output)[0], exist_ok=True)
+
+    if not prompt(output, "Output directory already exists. Overwrite files?"):
+        return
 
     with open(path, "rb") as file:
         dave = file.read(0x4)
