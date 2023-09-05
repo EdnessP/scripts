@@ -23,12 +23,12 @@ import glob, os, zlib
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~"
 POSIX_SEP = os.sep == "/"
 
-def prompt(output, prompt):
+def exists_prompt(output, prompt):
     if os.path.exists(output):
-        response = input(prompt + " (Y/N): ")[0].upper()
+        response = input(f"Warning! {prompt} (Y/N): ")[:1].upper()
         if response != "Y":
             if response != "N":
-                print("Invalid response!", end=" ")
+                print("Error! Invalid response.", end=" ")
             print("Exiting...")
             return False
     return True
@@ -60,12 +60,12 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         if align:
             help.append("reducing the alignment size")
         help = ", or ".join(help)
-        return "" if not help else f"\nTry {help}."
+        return str() if not help else f"\nTry {help}."
 
     output = os.path.abspath(output)  # normalizes path separators and stuff
     path = os.path.join(os.path.abspath(path), "")  # force final path separator
 
-    if not prompt(output, "Output file already exists. Overwrite?"):
+    if not exists_prompt(output, "Output file already exists. Overwrite?"):
         return
 
     assert align >= 0, "Error! Invalid alignment size."
@@ -211,7 +211,7 @@ def read_dave(path, output=str()):
         output = os.path.splitext(path)[0]
     output = os.path.abspath(output)
 
-    if not prompt(output, "Output directory already exists. Overwrite files?"):
+    if not exists_prompt(output, "Output directory already exists. Overwrite files?"):
         return
 
     with open(path, "rb") as file:
