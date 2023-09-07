@@ -16,7 +16,7 @@
 #       -d  | --dirs        Include directory entries
 #       -a  | --align <int> 16 byte file alignment;  default is 128 (2048 bytes)
 
-# Written by Edness   2022-01-09 - 2023-09-05   v1.4.4
+# Written by Edness   2022-01-09 - 2023-09-07   v1.4.5
 
 import glob, os, zlib
 
@@ -53,10 +53,10 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         if not compfiles:
             help.append("compressing files")
         if not compnames:
-            if not "compressing files" in help:
-                help.append("compressing filenames")
-            else:
+            if help[-1] == "compressing files":
                 help[-1] += " or filenames"
+            else:
+                help.append("compressing filenames")
         if align:
             help.append("reducing the alignment size")
         help = ", or ".join(help)
@@ -83,6 +83,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file_name += "/"
         #if compnames:
         #    file_name = file_name.lower()
+        assert len(file_name) < 256, f"Error! Filename too long. ({file_name})"
         for c in set(file_name.lower()):
             assert c in CHARS, f"Error! Filename contains illegal characters. (\"{c}\" in {file_name})"
             #if c not in CHARS: file_name = file_name.replace(c, "_")  # DEBUG
@@ -117,8 +118,6 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
                         idx -= 1
                         break
                 if idx:
-                # probably could just limit idx to 255 but names that long are problematic in general
-                    assert idx < 256, f"Error! Filename too long to deduplicate. ({file_name})"
                     dedup_info = divmod(idx, 8)
                     name = file_name[idx:]
                 else:  # reset counter at new name
@@ -132,7 +131,7 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
                 comp_name <<= 12
                 comp_name |= dedup_info[0] + 0x20 << 6 | dedup_info[1] + 0x38
                 name_size += 2
-            name_size = (name_size * 6 / 8).__ceil__()
+            name_size = (name_size * 6 / 8).__ceil__()  # * 0.75
             file_names.append(get_int(comp_name, name_size))
 
             # limit is 32 dedupes, probably because the games parse them recursively...
@@ -149,10 +148,10 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
         file_offs = file.seek(0x800 + entry_size + names_size)
         for name, path in file_sets:
             print("Writing", name)  # path
-            assert file_offs <= 0xFFFFFFFF, "Error! Archive too large." + size_assert_help()
             if name.endswith("/"):
                 entry_info.append((file_offs, 0x0, 0x0))
                 continue  # dirs don't increase file_offs
+            assert file_offs <= 0xFFFFFFFF, "Error! Archive too large." + size_assert_help()
             with open(path, "rb") as tmp:
                 data = tmp.read()
             #file_size_full = len(data)
@@ -260,8 +259,8 @@ def read_dave(path, output=str()):
                 os.makedirs(os.path.split(outpath)[0], exist_ok=True)
                 with open(outpath, "wb") as out:
                     out.write(data)
-            else:
-                print("Creaing", outpath)
+            else:  # looks very jarring if the length isn't the same, so it isn't "Creating" or "Making"
+                print("Opening", outpath)
                 os.makedirs(outpath, exist_ok=True)
 
     print("\nSuccess! Done extracting.")
