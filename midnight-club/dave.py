@@ -11,17 +11,30 @@
 #   Rebuild:  B
 #       dave.py  B  "Y:\path\to\folder"  "X:\path\to\new_dave.dat"
 #     Optional:
-#       -cf | --compfiles   Compress all files
-#       -cn | --compnames   Compress filenames (build Dave instead of DAVE)
-#       -d  | --dirs        Include directory entries
-#       -a  | --align <int> 16 byte file alignment;  default is 128 (2048 bytes)
+#       -cf | --compfiles       Compress all files
+#       -cn | --compnames       Compress filenames (build Dave instead of DAVE)
+#       -d  | --dirs            Include directory entries
+#       -a  | --align     <int> 16 byte file alignment;  default is 128 (2048 bytes)
+#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cn  -a 0
+#     Optional (with -cf | --compfiles):
+#       -bl | --blocklist       Prevent certain files from being compressed (MC3 Assets)
+#       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
+#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -bl
 
-# Written by Edness   2022-01-09 - 2023-09-07   v1.4.5
+# Written by Edness   2022-01-09 - 2023-09-15   v1.4.6
 
 import glob, os, zlib
 
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~"
+DAVE = (b"DAVE", b"Dave")
 POSIX_SEP = os.sep == "/"
+
+# Midnight Club 3 expects certain files to always be decompressed
+# so it never checks if those need to be decompressed first, and
+# just tries to read those as-is, which causes the game to hang
+# This seemingly does not apply to any other game of theirs...
+BLOCKLIST_DIR = ("flash/", "resources/vehicle/")
+BLOCKLIST_EXT = (".pck", ".ppf")
 
 def exists_prompt(output, prompt):
     if os.path.exists(output):
@@ -33,7 +46,7 @@ def exists_prompt(output, prompt):
             return False
     return True
 
-def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align=128):
+def build_dave(path, output, compfiles=False, complevel=9, blocklist=False, compnames=False, dirs=False, align=128):
     def calc_align(size, align):
         return (size // align + 1) * align
 
@@ -46,10 +59,17 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     def write_int(int):
         return file.write(get_int(int, 0x4))
 
+    def is_blocked():
+        if not blocklist:  # -bl | --blocklist
+            return False
+        if data.startswith(DAVE):  # doesn't break but just to be safe
+            return True
+        if name.startswith(BLOCKLIST_DIR) and name.endswith(BLOCKLIST_EXT):
+            return True
+        return False
+
     def size_assert_help():
         help = list()
-        if dirs:
-            help.append("not including directory entries")
         if not compfiles:
             help.append("compressing files")
         if not compnames:
@@ -57,8 +77,12 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
                 help[-1] += " or filenames"
             else:
                 help.append("compressing filenames")
+        if compfiles and complevel < 9:
+            help.append("increasing the compression level")
         if align:
             help.append("reducing the alignment size")
+        if dirs:
+            help.append("not including directory entries")
         help = ", or ".join(help)
         return str() if not help else f"\nTry {help}."
 
@@ -68,7 +92,9 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
     if not exists_prompt(output, "Output file already exists. Overwrite?"):
         return
 
-    assert align >= 0, "Error! Invalid alignment size."
+    if compfiles:
+        assert 1 <= complevel <= 9, ERR_COMPLVL
+    assert align >= 0, ERR_ALIGN
     align *= 16
 
     print("Preparing files...")
@@ -83,9 +109,9 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file_name += "/"
         #if compnames:
         #    file_name = file_name.lower()
-        assert len(file_name) < 256, f"Error! Filename too long. ({file_name})"
+        assert len(file_name) < 256, ERR_NAMELEN.format(file_name)
         for c in set(file_name.lower()):
-            assert c in CHARS, f"Error! Filename contains illegal characters. (\"{c}\" in {file_name})"
+            assert c in CHARS, ERR_NAMECHARS.format(c, file_name)
             #if c not in CHARS: file_name = file_name.replace(c, "_")  # DEBUG
         file_sets.append((file_name, file_path))
     file_sets.sort(key=lambda entry: [CHARS.index(c) for c in entry[0].lower()])
@@ -151,12 +177,11 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             if name.endswith("/"):
                 entry_info.append((file_offs, 0x0, 0x0))
                 continue  # dirs don't increase file_offs
-            assert file_offs <= 0xFFFFFFFF, "Error! Archive too large." + size_assert_help()
+            assert file_offs <= 0xFFFFFFFF, ERR_ARCSIZE + size_assert_help()
             with open(path, "rb") as tmp:
                 data = tmp.read()
-            #file_size_full = len(data)
-            if compfiles:
-                zlib_obj = zlib.compressobj(9, zlib.DEFLATED, -15)
+            if compfiles and not is_blocked():
+                zlib_obj = zlib.compressobj(complevel, zlib.DEFLATED, -15)
                 comp_data = zlib_obj.compress(data) + zlib_obj.flush()
                 if len(comp_data) < len(data):
                     data = comp_data
@@ -168,12 +193,11 @@ def build_dave(path, output, compfiles=False, compnames=False, dirs=False, align
             file.write(b"\x00")
 
         print("Writing archive header...")
-        name_offs = [0x0]
+        name_offs = [0x0]  # compressed names are stored backwards
         for idx in range(entries - 1, -1, -1) if compnames else range(entries):
             name_offs.append(name_offs[-1] + len(file_names[idx]))
         name_offs.pop()
-
-        if compnames:  # compressed names are stored backwards
+        if compnames:
             name_offs.reverse()
             file_names.reverse()
 
@@ -215,7 +239,7 @@ def read_dave(path, output=str()):
 
     with open(path, "rb") as file:
         dave = file.read(0x4)
-        assert dave in {b"DAVE", b"Dave"}, "Error! Not a DAVE/Dave archive."
+        assert dave in DAVE, ERR_DAVE
 
         entries = read_int(0x4)
         info_size = read_int(0x4)
@@ -253,7 +277,7 @@ def read_dave(path, output=str()):
                 data = file.read(file_size_comp)
                 if file_size_full != file_size_comp:
                     data = zlib.decompress(data, -15)
-                assert len(data) == file_size_full, f"Error! Data decompression size mismatch. ({file_name})"
+                assert len(data) == file_size_full, ERR_DECOMP.format(file_name)
 
                 print("Writing", outpath)
                 os.makedirs(os.path.split(outpath)[0], exist_ok=True)
@@ -264,6 +288,15 @@ def read_dave(path, output=str()):
                 os.makedirs(outpath, exist_ok=True)
 
     print("\nSuccess! Done extracting.")
+
+# Assertion messages, so they're not visible twice
+ERR_ALIGN = "Error! Invalid alignment size."
+ERR_ARCSIZE = "Error! Archive too large."
+ERR_COMPLVL = "Error! Invalid compression level."
+ERR_DAVE = "Error! Not a DAVE/Dave archive."
+ERR_DECOMP = "Error! Data decompression size mismatch. ({})"
+ERR_NAMECHARS = "Error! Filename contains illegal characters. (\"{}\" in {})"
+ERR_NAMELEN = "Error! Filename too long. ({})"
 
 if __name__ == "__main__":
     import argparse
@@ -280,14 +313,16 @@ if __name__ == "__main__":
     build_parser.add_argument("path", type=str, help="path to the input directory")
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files")
-    build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (use Dave instead of DAVE)")
+    build_parser.add_argument("-cl", "--complevel", type=int, default=9, help="set the file compression level (default=9; (1=fastest, 9=smallest))")
+    build_parser.add_argument("-bl", "--blocklist", action="store_true", help="prevent certain files from being compressed (for MC3 Assets.dat)")
+    build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (build Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
     build_parser.set_defaults(read=False, func=build_dave)
 
     args = parser.parse_args()
     try:
-        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.compnames, args.dirs, args.align)
+        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.complevel, args.blocklist, args.compnames, args.dirs, args.align)
         args.func(*func_args)
     except AttributeError:
         print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
