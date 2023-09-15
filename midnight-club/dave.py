@@ -11,30 +11,33 @@
 #   Rebuild:  B
 #       dave.py  B  "Y:\path\to\folder"  "X:\path\to\new_dave.dat"
 #     Optional:
-#       -cf | --compfiles       Compress all files
+#       -cf | --compfiles       Compress all files (with exceptions, see below)
 #       -cn | --compnames       Compress filenames (build Dave instead of DAVE)
 #       -d  | --dirs            Include directory entries
 #       -a  | --align     <int> 16 byte file alignment;  default is 128 (2048 bytes)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cn  -a 0
 #     Optional (with -cf | --compfiles):
-#       -bl | --blocklist       Prevent certain files from being compressed (MC3 Assets)
+#       -fc | --forcecomp       Force compress all files (Bypass blocklist, see comment)
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
-#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -bl
+#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -fc
+
+# Midnight Club 3 and Red Dead Revolver seem to expect PCKs and PPFs
+# to always be decompressed on PS2 (not on PSP though), as it never
+# checks if it's compressed, just reads the data as-is, and points
+# to it thinking it's completely fine, which causes it to hang...
+#
+# There are some nuances to it too, such as the PCKs in MC3 that are
+# outside of  flash/  and  resources/vehicle/  can be compressed but
+# it's easier to just not deal with that headache and have a general
+# -fc | --forcecomp  toggle to allow compressing all files if needed
 
 # Written by Edness   2022-01-09 - 2023-09-15   v1.4.6
 
 import glob, os, zlib
 
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~"
-DAVE = (b"DAVE", b"Dave")
+DAVES = (DAVE := b"DAVE", Dave := b"Dave")
 POSIX_SEP = os.sep == "/"
-
-# Midnight Club 3 expects certain files to always be decompressed
-# so it never checks if those need to be decompressed first, and
-# just tries to read those as-is, which causes the game to hang
-# This seemingly does not apply to any other game of theirs...
-BLOCKLIST_DIR = ("flash/", "resources/vehicle/")
-BLOCKLIST_EXT = (".pck", ".ppf")
 
 def exists_prompt(output, prompt):
     if os.path.exists(output):
@@ -46,7 +49,7 @@ def exists_prompt(output, prompt):
             return False
     return True
 
-def build_dave(path, output, compfiles=False, complevel=9, blocklist=False, compnames=False, dirs=False, align=128):
+def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, compnames=False, dirs=False, align=128):
     def calc_align(size, align):
         return (size // align + 1) * align
 
@@ -60,11 +63,13 @@ def build_dave(path, output, compfiles=False, complevel=9, blocklist=False, comp
         return file.write(get_int(int, 0x4))
 
     def is_blocked():
-        if not blocklist:  # -bl | --blocklist
+        if forcecomp:  # -fc | --forcecomp
             return False
-        if data.startswith(DAVE):  # doesn't break but just to be safe
+        # doesn't break AFAIK but just to be safe (mini Daves)
+        if data.startswith(DAVES):
             return True
-        if name.startswith(BLOCKLIST_DIR) and name.endswith(BLOCKLIST_EXT):
+        #if name.lower().endswith((".pck", ".ppf")):
+        if os.path.splitext(name)[1].upper() in {".PCK", ".PPF"}:
             return True
         return False
 
@@ -202,7 +207,7 @@ def build_dave(path, output, compfiles=False, complevel=9, blocklist=False, comp
             file_names.reverse()
 
         file.seek(0x0)
-        file.write(b"Dave" if compnames else b"DAVE")
+        file.write(Dave if compnames else DAVE)
         write_int(entries)
         write_int(entry_size)
         write_int(names_size)
@@ -239,7 +244,7 @@ def read_dave(path, output=str()):
 
     with open(path, "rb") as file:
         dave = file.read(0x4)
-        assert dave in DAVE, ERR_DAVE
+        assert dave in DAVES, ERR_DAVE
 
         entries = read_int(0x4)
         info_size = read_int(0x4)
@@ -254,9 +259,9 @@ def read_dave(path, output=str()):
             file_size_comp = read_int(0x4)
 
             file.seek(name_offs)
-            if dave == b"DAVE":
+            if dave == DAVE:
                 file_name = read_str()
-            else:  # == "Dave":
+            else:  # = Dave:
                 name_bits = read_bits()
                 prev_name = file_name
                 file_name = str()
@@ -312,9 +317,9 @@ if __name__ == "__main__":
     build_parser = subparsers.add_parser("B", help="builds a new DAVE archive")
     build_parser.add_argument("path", type=str, help="path to the input directory")
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
-    build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files")
+    build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files (with exceptions, see -fc | --forcecomp)")
     build_parser.add_argument("-cl", "--complevel", type=int, default=9, help="set the file compression level (default=9; (1=fastest, 9=smallest))")
-    build_parser.add_argument("-bl", "--blocklist", action="store_true", help="prevent certain files from being compressed (for MC3 Assets.dat)")
+    build_parser.add_argument("-fc", "--forcecomp", action="store_true", help="force compress all files (see comment near the top of the script)")
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (build Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
@@ -322,7 +327,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     try:
-        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.complevel, args.blocklist, args.compnames, args.dirs, args.align)
+        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.complevel, args.forcecomp, args.compnames, args.dirs, args.align)
         args.func(*func_args)
     except AttributeError:
         print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
