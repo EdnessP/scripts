@@ -32,11 +32,14 @@
 # it's easier to just not deal with that headache and have a general
 # -fc | --forcecomp  toggle to allow compressing all files if needed
 
-# Written by Edness   2022-01-09 - 2023-09-16   v1.4.7
+# Written by Edness   2022-01-09 - 2023-09-17   v1.4.8
 
 import glob, os, zlib
 
-CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~"
+# The games only store all the chars until ~, but I've seen a few
+# files that use the (normally) invalid index 0x30 which I assume
+# was a fallback in their own packer for unsupported chars as DEL
+CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~\x7F"
 DAVES = (DAVE := b"DAVE", Dave := b"Dave")
 POSIX_SEP = os.sep == "/"
 COMP_EXT_BLOCKLIST = (
@@ -120,7 +123,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
         #if compnames:
         #    file_name = file_name.lower()
         assert len(file_name) < 256, ERR_NAMELEN.format(file_name)
-        for c in set(file_name.lower()):
+        for c in set(file_name.lower()):  # fallback to \x7F DEL?
             assert c in CHARS, ERR_NAMECHARS.format(c, file_name)
             #if c not in CHARS: file_name = file_name.replace(c, "_")  # DEBUG
         file_sets.append((file_name, file_path))
