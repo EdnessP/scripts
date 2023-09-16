@@ -68,8 +68,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
         # doesn't break AFAIK but just to be safe (mini Daves)
         if data.startswith(DAVES):
             return True
-        #if name.lower().endswith((".pck", ".ppf")):
-        if os.path.splitext(name)[1].upper() in {".PCK", ".PPF"}:
+        if name.lower().endswith((".pck", ".ppf")):
             return True
         return False
 
