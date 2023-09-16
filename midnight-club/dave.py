@@ -16,13 +16,14 @@
 #       -d  | --dirs            Include directory entries
 #       -a  | --align     <int> 16 byte file alignment;  default is 128 (2048 bytes)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cn  -a 0
+#
 #     Optional (with -cf | --compfiles):
 #       -fc | --forcecomp       Force compress all files (Bypass blocklist, see comment)
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -fc
 
-# Midnight Club 3 and Red Dead Revolver seem to expect PCKs and PPFs
-# to always be decompressed on PS2 (not on PSP though), as it never
+# Midnight Club 3, Midnight Club: L.A. Remix, and Red Dead Revolver
+# seem to expect PCKs and PPFs to always be decompressed; it never
 # checks if it's compressed, just reads the data as-is, and points
 # to it thinking it's completely fine, which causes it to hang...
 #
@@ -31,13 +32,17 @@
 # it's easier to just not deal with that headache and have a general
 # -fc | --forcecomp  toggle to allow compressing all files if needed
 
-# Written by Edness   2022-01-09 - 2023-09-15   v1.4.6
+# Written by Edness   2022-01-09 - 2023-09-16   v1.4.7
 
 import glob, os, zlib
 
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~"
 DAVES = (DAVE := b"DAVE", Dave := b"Dave")
 POSIX_SEP = os.sep == "/"
+COMP_EXT_BLOCKLIST = (
+    ".pck", ".psppck", ".xbck",
+    ".ppf", ".pspppf", ".xbpf",
+)
 
 def exists_prompt(output, prompt):
     if os.path.exists(output):
@@ -62,13 +67,14 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
     def write_int(int):
         return file.write(get_int(int, 0x4))
 
-    def is_blocked():
+    def data_comp_blocked():
         if forcecomp:  # -fc | --forcecomp
             return False
         # doesn't break AFAIK but just to be safe (mini Daves)
         if data.startswith(DAVES):
             return True
-        if name.lower().endswith((".pck", ".ppf")):
+        if name.lower().endswith(COMP_EXT_BLOCKLIST):
+            #if not "/" in name or name.startswith(COMP_DIR_BLOCKLIST):
             return True
         return False
 
@@ -184,7 +190,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
             assert file_offs <= 0xFFFFFFFF, ERR_ARCSIZE + size_assert_help()
             with open(path, "rb") as tmp:
                 data = tmp.read()
-            if compfiles and not is_blocked():
+            if compfiles and not data_comp_blocked():
                 zlib_obj = zlib.compressobj(complevel, zlib.DEFLATED, -15)
                 comp_data = zlib_obj.compress(data) + zlib_obj.flush()
                 if len(comp_data) < len(data):
