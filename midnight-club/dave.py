@@ -28,7 +28,7 @@ import glob, os, zlib
 
 # The games only store all the chars until ~, but I've seen a few
 # files that use the (normally) invalid index 0x30 which I assume
-# was a fallback in their own packer for unsupported chars as DEL
+# was a fallback to DEL in their own packer for unsupported chars
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~\x7F"
 DAVES = (DAVE := b"DAVE", Dave := b"Dave")
 POSIX_SEP = os.sep == "/"
