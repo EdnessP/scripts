@@ -22,7 +22,7 @@
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -fc
 
-# Written by Edness   2022-01-09 - 2023-09-17   v1.4.8
+# Written by Edness   2022-01-09 - 2023-09-17   v1.4.9
 
 import glob, os, zlib
 
@@ -119,14 +119,13 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
             file_name = file_name.replace("\\", "/")
         if os.path.isdir(file_path) and not file_name.endswith("/"):
             file_name += "/"
-        #if compnames:
-        #    file_name = file_name.lower()
         assert len(file_name) < 256, ERR_NAMELEN.format(file_name)
-        for c in set(file_name.lower()):  # fallback to \x7F DEL?
-            assert c in CHARS, ERR_NAMECHARS.format(c, file_name)
-            #if c not in CHARS: file_name = file_name.replace(c, "_")  # DEBUG
+        #if compnames:  # earlier games using DAVE have other chars
+        for c in set(file_name.lower()):  # fallback to \x7F DEL for Dave/compnames?
+            assert c in CHARS if compnames else c.isascii(), ERR_NAMECHARS.format(c, file_name)
         file_sets.append((file_name, file_path))
-    file_sets.sort(key=lambda entry: [CHARS.index(c) for c in entry[0].lower()])
+    # none of the games seemed to use "?" in names so it's probably safe to just use str.lower alone for sorting...
+    file_sets.sort(key=lambda entry: [CHARS.index(c) for c in entry[0].lower()] if compnames else entry[0].lower())
 
     # prepare the filename block
     if not compnames:
