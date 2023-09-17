@@ -111,7 +111,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
 
     print("Preparing files...")
     file_sets = list()  # dict(zip())
-    for file_path in glob.iglob(os.path.join(glob.escape(path), "**", "*"), recursive=True):  # include_hidden=True
+    for file_path in glob.iglob(os.path.join(glob.escape(path), "**", "*"), recursive=True, include_hidden=True):
         if not dirs and os.path.isdir(file_path):
             continue
         file_name = file_path.removeprefix(path)  # file_path[len(path):]
