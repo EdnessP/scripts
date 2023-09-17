@@ -22,16 +22,6 @@
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -fc
 
-# Midnight Club 3, Midnight Club: L.A. Remix, and Red Dead Revolver
-# seem to expect PCKs and PPFs to always be decompressed; it never
-# checks if it's compressed, just reads the data as-is, and points
-# to it thinking it's completely fine, which causes it to hang...
-#
-# There are some nuances to it too, such as the PCKs in MC3 that are
-# outside of  flash/  and  resources/vehicle/  can be compressed but
-# it's easier to just not deal with that headache and have a general
-# -fc | --forcecomp  toggle to allow compressing all files if needed
-
 # Written by Edness   2022-01-09 - 2023-09-17   v1.4.8
 
 import glob, os, zlib
@@ -42,6 +32,15 @@ import glob, os, zlib
 CHARS = "\x00 #$()-./?0123456789_abcdefghijklmnopqrstuvwxyz~\x7F"
 DAVES = (DAVE := b"DAVE", Dave := b"Dave")
 POSIX_SEP = os.sep == "/"
+# Midnight Club 3, Midnight Club: L.A. Remix, and Red Dead Revolver
+# seem to expect PCKs and PPFs to always be decompressed; it never
+# checks if it's compressed, just reads the data as-is, and points
+# to it thinking it's completely fine, which causes it to hang...
+#
+# There are some nuances to it too, such as the PCKs in MC3 that are
+# outside of  flash/  and  resources/vehicle/  can be compressed but
+# it's easier to just not deal with that headache and have a general
+# -fc | --forcecomp  toggle to allow compressing all files if needed
 COMP_EXT_BLOCKLIST = (
     ".pck", ".psppck", ".xbck",
     ".ppf", ".pspppf", ".xbpf",
