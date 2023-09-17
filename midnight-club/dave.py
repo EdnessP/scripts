@@ -2,13 +2,14 @@
 # Extract and build Angel Studios / Rockstar San Diego DAVE/Dave archives
 
 # Usage:
-#   Extract:  X
+#   Extract:  X  (Python 3.8 or newer)
 #       dave.py  X  "/path/to/dave.dat"
 #     Optional:
 #       -o | --output <str> Path to the output directory;  default is input folder
 #         dave.py  X  "X:\path\to\dave.zip"  -o "Y:\path\to\folder"
 #
-#   Rebuild:  B
+#
+#   Rebuild:  B  (Python 3.11 or newer)
 #       dave.py  B  "Y:\path\to\folder"  "X:\path\to\new_dave.dat"
 #     Optional:
 #       -cf | --compfiles       Compress all files (with exceptions, see below)
@@ -20,7 +21,7 @@
 #     Optional (with -cf | --compfiles):
 #       -fc | --forcecomp       Force compress all files (Bypass blocklist, see comment)
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
-#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cf  -fc
+#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc
 
 # Written by Edness   2022-01-09 - 2023-09-17   v1.4.9
 
@@ -122,7 +123,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
         assert len(file_name) < 256, ERR_NAMELEN.format(file_name)
         #if compnames:  # earlier games using DAVE have other chars
         for c in set(file_name.lower()):  # fallback to \x7F DEL for Dave/compnames?
-            assert c in CHARS if compnames else c.isascii(), ERR_NAMECHARS.format(c, file_name)
+            assert c in CHARS if compnames else c.isascii(), ERR_NAMECHAR.format(c, file_name)
         file_sets.append((file_name, file_path))
     # none of the games seemed to use "?" in names so it's probably safe to just use str.lower alone for sorting...
     file_sets.sort(key=lambda entry: [CHARS.index(c) for c in entry[0].lower()] if compnames else entry[0].lower())
@@ -301,13 +302,13 @@ def read_dave(path, output=str()):
     print("\nSuccess! Done extracting.")
 
 # Assertion messages, so they're not visible twice
-ERR_ALIGN = "Error! Invalid alignment size."
-ERR_ARCSIZE = "Error! Archive too large."
-ERR_COMPLVL = "Error! Invalid compression level."
-ERR_DAVE = "Error! Not a DAVE/Dave archive."
-ERR_DECOMP = "Error! Data decompression size mismatch. ({})"
-ERR_NAMECHARS = "Error! Filename contains illegal characters. (\"{}\" in {})"
-ERR_NAMELEN = "Error! Filename too long. ({})"
+ERR_ALIGN    = "Error! Invalid alignment size."
+ERR_ARCSIZE  = "Error! Archive too large."
+ERR_COMPLVL  = "Error! Invalid compression level."
+ERR_DAVE     = "Error! Not a DAVE/Dave archive."
+ERR_DECOMP   = "Error! Data decompression size mismatch. ({})"
+ERR_NAMECHAR = "Error! Filename contains illegal characters. (\"{}\" in {})"
+ERR_NAMELEN  = "Error! Filename too long. ({})"
 
 if __name__ == "__main__":
     import argparse
@@ -315,12 +316,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extracts and builds Angel Studios / Rockstar San Diego DAVE/Dave archives")
     subparsers = parser.add_subparsers(description="To view additional help for each subparser, add -h | --help after it")
 
-    extract_parser = subparsers.add_parser("X", help="extracts a DAVE/Dave archive")
+    extract_parser = subparsers.add_parser("X", help="extracts a DAVE/Dave archive (Python 3.8 or newer)")
     extract_parser.add_argument("path", type=str, help="path to the DAVE/Dave archive")
     extract_parser.add_argument("-o", "--output", type=str, default=str(), help="path to the output folder")
     extract_parser.set_defaults(read=True, func=read_dave)
 
-    build_parser = subparsers.add_parser("B", help="builds a new DAVE archive")
+    build_parser = subparsers.add_parser("B", help="builds a new DAVE archive (Python 3.11 or newer)")
     build_parser.add_argument("path", type=str, help="path to the input directory")
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files (with exceptions, see -fc | --forcecomp)")
