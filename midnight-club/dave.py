@@ -19,11 +19,12 @@
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cn  -a 0
 #
 #     Optional (with -cf | --compfiles):
-#       -fc | --forcecomp       Force compress all files (Bypass blocklist, see comment)
+#       -fc | --forcecomp <int> Force compress all files (Bypass blocklist, see comment);
+#                               default is 0 (1=compress assumed safe files, 2=all files)
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc
 
-# Written by Edness   2022-01-09 - 2023-09-17   v1.4.9
+# Written by Edness   2022-01-09 - 2023-10-26   v1.5
 
 import glob, os, zlib
 
@@ -39,12 +40,16 @@ POSIX_SEP = os.sep == "/"
 # to it thinking it's completely fine, which causes it to hang...
 #
 # There are some nuances to it too, such as the PCKs in MC3 that are
-# outside of  flash/  and  resources/vehicle/  can be compressed but
-# it's easier to just not deal with that headache and have a general
-# -fc | --forcecomp  toggle to allow compressing all files if needed
+# outside of  flash/  and  resources/vehicle/  can be compressed, so
+# the  -fc | --forcecomp  argument can take either  1  to compress
+# the files that are assumed to be safe, or to  2  for everything.
 COMP_EXT_BLOCKLIST = (
     ".pck", ".psppck", ".xbck",
     ".ppf", ".pspppf", ".xbpf",
+)
+COMP_DIR_BLOCKLIST = (
+    "flash/",
+    "resources/vehicle/",
 )
 
 def exists_prompt(output, prompt):
@@ -57,7 +62,7 @@ def exists_prompt(output, prompt):
             return False
     return True
 
-def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, compnames=False, dirs=False, align=128):
+def build_dave(path, output, compfiles=False, complevel=9, forcecomp=0, compnames=False, dirs=False, align=128):
     def calc_align(size, align):
         return (size // align + 1) * align
 
@@ -70,16 +75,19 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
     def write_int(int):
         return file.write(get_int(int, 0x4))
 
-    def data_comp_blocked():
-        if forcecomp:  # -fc | --forcecomp
-            return False
+    def comp_allow():
+        if forcecomp == 2:
+            return True
         # doesn't break AFAIK but just to be safe (mini Daves)
-        if data.startswith(DAVES):
-            return True
+        if forcecomp == 0 and data.startswith(DAVES):
+            return False
+        # maybe restrict PPF compression to --forcecomp 2
         if name.lower().endswith(COMP_EXT_BLOCKLIST):
-            #if not "/" in name or name.startswith(COMP_DIR_BLOCKLIST):
-            return True
-        return False
+            # root folder PCKs are blocked from compressing for Red Dead Revolver
+            if forcecomp == 1 and "/" in name and not name.lower().startswith(COMP_DIR_BLOCKLIST):
+                return True
+            return False
+        return True
 
     def size_assert_help():
         help = list()
@@ -107,6 +115,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
 
     if compfiles:
         assert 1 <= complevel <= 9, ERR_COMPLVL
+        assert 0 <= forcecomp <= 2, ERR_COMPFRC
     assert align >= 0, ERR_ALIGN
     align *= 16
 
@@ -192,7 +201,7 @@ def build_dave(path, output, compfiles=False, complevel=9, forcecomp=False, comp
             assert file_offs <= 0xFFFFFFFF, ERR_ARCSIZE + size_assert_help()
             with open(path, "rb") as tmp:
                 data = tmp.read()
-            if compfiles and not data_comp_blocked():
+            if compfiles and comp_allow():
                 zlib_obj = zlib.compressobj(complevel, zlib.DEFLATED, -15)
                 comp_data = zlib_obj.compress(data) + zlib_obj.flush()
                 if len(comp_data) < len(data):
@@ -305,6 +314,7 @@ def read_dave(path, output=str()):
 ERR_ALIGN    = "Error! Invalid alignment size."
 ERR_ARCSIZE  = "Error! Archive too large."
 ERR_COMPLVL  = "Error! Invalid compression level."
+ERR_COMPFRC  = "Error! Invalid compression force level."
 ERR_DAVE     = "Error! Not a DAVE/Dave archive."
 ERR_DECOMP   = "Error! Data decompression size mismatch. ({})"
 ERR_NAMECHAR = "Error! Filename contains illegal characters. (\"{}\" in {})"
@@ -326,7 +336,7 @@ if __name__ == "__main__":
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files (with exceptions, see -fc | --forcecomp)")
     build_parser.add_argument("-cl", "--complevel", type=int, default=9, help="set the file compression level (default=9; (1=fastest, 9=smallest))")
-    build_parser.add_argument("-fc", "--forcecomp", action="store_true", help="force compress all files (see comment near the top of the script)")
+    build_parser.add_argument("-fc", "--forcecomp", type=int, default=0, help="{1,2} force compress all files (see comment near the top of the script)")
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (build Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
