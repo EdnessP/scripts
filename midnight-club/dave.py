@@ -22,7 +22,7 @@
 #       -fc | --forcecomp <int> Force compress all files (Bypass blocklist, see comment);
 #                               default is 0 (1=compress assumed safe files, 2=all files)
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
-#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc
+#         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc 1
 
 # Written by Edness   2022-01-09 - 2023-10-26   v1.5
 
