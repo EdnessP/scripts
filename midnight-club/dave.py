@@ -24,7 +24,7 @@
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc 1
 
-# Written by Edness   2022-01-09 - 2023-10-26   v1.5
+# Written by Edness   2022-01-09 - 2023-10-27   v1.5.1
 
 import glob, os, zlib
 
@@ -62,7 +62,7 @@ def exists_prompt(output, prompt):
             return False
     return True
 
-def build_dave(path, output, compfiles=False, complevel=9, forcecomp=0, compnames=False, dirs=False, align=128):
+def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compnames=False, dirs=False, align=128):
     def calc_align(size, align):
         return (size // align + 1) * align
 
@@ -335,8 +335,8 @@ if __name__ == "__main__":
     build_parser.add_argument("path", type=str, help="path to the input directory")
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files (with exceptions, see -fc | --forcecomp)")
-    build_parser.add_argument("-cl", "--complevel", type=int, default=9, help="set the file compression level (default=9; (1=fastest, 9=smallest))")
     build_parser.add_argument("-fc", "--forcecomp", type=int, default=0, help="{1,2} force compress all files (1=assumed safe files, 2=all files, unsafe)")
+    build_parser.add_argument("-cl", "--complevel", type=int, default=9, help="set the file compression level (default=9; (1=fastest, 9=smallest))")
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (build Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
@@ -344,7 +344,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     try:
-        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.complevel, args.forcecomp, args.compnames, args.dirs, args.align)
+        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.forcecomp, args.complevel, args.compnames, args.dirs, args.align)
         args.func(*func_args)
     except AttributeError:
         print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
