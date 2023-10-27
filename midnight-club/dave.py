@@ -19,8 +19,8 @@
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cn  -a 0
 #
 #     Optional (with -cf | --compfiles):
-#       -fc | --forcecomp <int> Force compress all files (Bypass blocklist, see comment);
-#                               default is 0 (1=compress assumed safe files, 2=all files)
+#       -fc | --forcecomp <int> Force compress all files (Bypass blocklist, see comment)
+#                               default is 0 (1=assumed safe files, 2=all files, unsafe)
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc 1
 
