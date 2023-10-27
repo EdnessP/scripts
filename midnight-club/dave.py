@@ -336,7 +336,7 @@ if __name__ == "__main__":
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files (with exceptions, see -fc | --forcecomp)")
     build_parser.add_argument("-cl", "--complevel", type=int, default=9, help="set the file compression level (default=9; (1=fastest, 9=smallest))")
-    build_parser.add_argument("-fc", "--forcecomp", type=int, default=0, help="{1,2} force compress all files (see comment near the top of the script)")
+    build_parser.add_argument("-fc", "--forcecomp", type=int, default=0, help="{1,2} force compress all files (1=assumed safe files, 2=all files, unsafe)")
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (build Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
