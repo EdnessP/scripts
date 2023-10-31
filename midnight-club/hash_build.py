@@ -6,10 +6,12 @@
 #   Extract:  X
 #       hash_build.py  X  "/path/to/streams.dat"
 #     Optional:
-#       -o  | --output   <str> Path to the output directory;  default is input folder
-#       -nl | --namelist <str> Path to the filename text file
-#       -a  | --algo     <str> {Bully,MClub} Filename hashing algorithm
-#         hash_build.py  X  "X:\path\to\streams.dat"  -o "Y:\path\to\folder"  -nl "Z:\path\to\streams.lst"  -a mclub
+#       -o  | --output    <str> Path to the output directory;  default is input folder
+#       -nl | --namelist  <str> Path to the filename text file
+#       -a  | --algo      <str> {Bully,MClub} Filename hashing algorithm
+#       -th | --threshold <int> Percentage threshold how many names should match to accept;  default is 70
+#         hash_build.py  X  "X:\path\to\streams.dat"  -o "Y:\path\to\folder"
+#         hash_build.py  X  "X:\path\to\streams.dat"  -nl "Z:\path\to\streams.lst"  -a mclub  -th 45
 #
 #   Rebuild:  B
 #       -a  | --algo      <str> {Bully,MClub} Filename hashing algorithm
@@ -18,12 +20,13 @@
 #       -be | --bigendian       Build in big endian (Wii, Xbox 360)
 #         hash_build.py  B  "/path/to/folder"  "/path/to/music.bin"  -a bully  -be
 
-# Written by Edness   2022-07-05 - 2023-10-29   v1.1
+# Written by Edness   2022-07-05 - 2023-10-31   v1.2
 
 import glob, os
 
 HASHED = "__hashed"
 HASHES = (HASH := b"Hash", HSAH := b"hsaH")
+INT_MAX_RANGE = range(1 << 32)
 POSIX_SEP = os.sep == "/"
 
 def __bully_hash(str):
@@ -75,7 +78,7 @@ def build_hash(path, output, algo=str(), big_endian=False):
         file_name = file_path.removeprefix(path)
         hash = int(os.path.splitext(os.path.split(file_name)[-1])[0], 16) if \
                file_name.startswith(HASHED) else calc_hash(file_name.strip())[0]
-        assert 0x00000000 <= hash <= 0xFFFFFFFF, ERR_HASH.format(file_name)  # bad hashed entries
+        assert hash in INT_MAX_RANGE, ERR_HASH.format(file_name)  # bad hashed entries
         assert hash not in hash_dict, ERR_COLL.format(hash, hash_dict[hash], file_name)
         hash_dict[hash] = file_name
     assert hash_dict, ERR_DICT
@@ -89,10 +92,10 @@ def build_hash(path, output, algo=str(), big_endian=False):
         file.seek(0x8 + entries * 0xC)
         for hash in hash_dict:
             print("Writing", hash_dict[hash])
-            with open(os.path.join(path, hash_dict[hash]), "rb") as infile:
-                data = infile.read()
+            with open(os.path.join(path, hash_dict[hash]), "rb") as in_file:
+                data = in_file.read()
             offs = seek_align()
-            assert offs <= 0xFFFFFFFF, ERR_SIZE
+            assert offs in INT_MAX_RANGE, ERR_SIZE
             size = file.write(data)
             offs_list.append(offs)
             size_list.append(size)
@@ -114,16 +117,18 @@ def build_hash(path, output, algo=str(), big_endian=False):
             write_int(offs)
             write_int(size)
 
-    outname = os.path.splitext(output)[0]
-    outname += ".TXT" if os.path.split(outname)[-1].isupper() else ".txt"
-    with open(outname, "w") as file:
-        file.write("\n".join(name_list))
-        #file.write("\n".join([str() if hash_dict[hash].startswith(HASHED) else hash_dict[hash] for hash in sorted(hash_dict)]))
-
     print("\nSuccess! Archive built at", output)
-    print("Unhashed name list written at", outname)
 
-def read_hash(path, output=str(), namepath=str(), algo=str()):
+    if name_list:
+        outname = os.path.splitext(output)[0]
+        outname += ".TXT" if os.path.split(outname)[-1].isupper() else ".txt"
+        with open(outname, "w") as file:
+            file.write("\n".join(name_list))
+            #file.write("\n".join([str() if hash_dict[hash].startswith(HASHED) else hash_dict[hash] for hash in sorted(hash_dict)]))
+
+        print("File name list written at", outname)
+
+def read_hash(path, output=str(), namepath=str(), algo=str(), threshold=70):
     def read_int():
         return int.from_bytes(file.read(0x4), endian)
 
@@ -159,6 +164,7 @@ def read_hash(path, output=str(), namepath=str(), algo=str()):
         name_dict = dict()
         if namepath:
             calc_hash = get_hash_func(algo)
+            assert 0 <= threshold <= 100, ERR_THLD
             with open(namepath, "r") as name_file:
                 name_list = name_file.read().splitlines()
 
@@ -171,28 +177,27 @@ def read_hash(path, output=str(), namepath=str(), algo=str()):
                 if name_match[ext] >= file_count:
                     print("Name list validated" + ("!" if ext == "" else f" with the additional extension {ext}!"))
                     break
-            else:  # 70% threshold of matching hashes
+            else:
                 print("The provided name list does not match the Hash archive.")
                 for ext in name_match:
                     name_match[ext] = name_match[ext] / file_count * 100
-                threshold = max(name_match.values())
-                if threshold > 70:
-                    ext = list(name_match.keys())[list(name_match.values()).index(threshold)]
+                max_match = max(name_match.values())
+                if max_match > threshold:
+                    ext = list(name_match.keys())[list(name_match.values()).index(max_match)]
                     name_dict = get_name_dict()
-                    print("However, hashes", "without an additional extension" if ext == "" else f"with the additional extension {ext}", f"matched {round(threshold, 2)}% of the name list.")
+                    print("However, hashes", "without an additional extension" if ext == "" else f"with the additional extension {ext}", f"matched {round(max_match, 2)}% of the name list.")
                 else:
                     name_dict = dict()
 
         for hash, offs, size in zip(hash_list, offs_list, size_list):
-            file.seek(offs)
-            file_data = file.read(size)
             name = name_dict.get(hash, os.path.join(HASHED, f"{hash:08X}")) # + {b"RSTM": ".rsm", b"STMA": ".stm"}.get(file_data[:0x4], "")
             name = name.replace("\\", "/") if POSIX_SEP else name.replace("/", "\\")
             outpath = os.path.join(output, name)
+            file.seek(offs)
             print("Writing", outpath)
             os.makedirs(os.path.split(outpath)[0], exist_ok=True)
             with open(outpath, "wb") as out_file:
-                out_file.write(file_data)
+                out_file.write(file.read(size))
 
     print("\nSuccess! Done extracting.")
 
@@ -202,6 +207,7 @@ ERR_DICT = "Error! No files were found at the given path."
 ERR_HARC = "Error! Not a Hash archive."
 ERR_HASH = "Error! Invalid hash detected."
 ERR_SIZE = "Error! Archive too large."
+ERR_THLD = "Error! Invalid threshold value."
 
 if __name__ == "__main__":
     import argparse
@@ -214,6 +220,7 @@ if __name__ == "__main__":
     extract_parser.add_argument("-o", "--output", type=str, default=str(), help="path to the output folder")
     extract_parser.add_argument("-nl", "--namelist", type=str, default=str(), help="path to a text file of names")
     extract_parser.add_argument("-a", "--algo", type=str, default=str(), help="{Bully,MClub} filename hashing algorithm")
+    extract_parser.add_argument("-th", "--threshold", type=int, default=70, help="threshold percentage how many names should match to accept; (default=70)")
     extract_parser.set_defaults(read=True, func=read_hash)
 
     build_parser = subparsers.add_parser("B", help="builds a new Hash archive")
@@ -225,7 +232,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     try:
-        func_args = (args.path, args.output, args.namelist, args.algo) if args.read else (args.path, args.output, args.algo, args.bigendian)
+        func_args = (args.path, args.output, args.namelist, args.algo, args.threshold) if args.read else (args.path, args.output, args.algo, args.bigendian)
         args.func(*func_args)
     except AttributeError:
         print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
