@@ -194,8 +194,10 @@ def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compna
 
     entry_info = list()
     os.makedirs(os.path.split(output)[0], exist_ok=True)
-    with open(__file__) as file: dave = file.read(0x800).splitlines()
-    dave = " - ".join((os.path.split(__file__)[1], dave[0x1B][0x2:]))
+    with open(__file__) as file: dave = file.read(0x800)
+    dave = dave[dave.index(" ".join([chr(x) for x in (35, 87)])) + 0x2:]
+    dave = dave.splitlines()[0].split(); dave = " ".join(dave[:3]), dave[-1]
+    dave = " - ".join((os.path.split(__file__)[1], *dave[::-1]))
     with open(output, "wb") as file:
         file.seek(0x800 - len(dave))
         file.write(dave.encode("UTF-8"))
