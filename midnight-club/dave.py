@@ -63,7 +63,7 @@ def exists_prompt(output, prompt):
             return False
     return True
 
-def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compnames=False, dirs=False, align=128, compalign=False):
+def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compnames=False, dirs=False, align=128, compalign=False):
     def calc_align(size, align):
         return (size // align + 1) * align
 
@@ -111,7 +111,7 @@ def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compname
         return str() if not help else f"\nTry {help}."
 
     output = os.path.abspath(output)  # normalizes path separators and stuff
-    path = os.path.join(os.path.abspath(path), "")  # force final path separator
+    inpath = os.path.join(os.path.abspath(inpath), "")  # force final path separator
 
     if not exists_prompt(output, "Output file already exists. Overwrite?"):
         return
@@ -124,10 +124,10 @@ def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compname
 
     print("Preparing files...")
     file_sets = list()  # dict(zip())
-    for file_path in glob.iglob(os.path.join(glob.escape(path), "**", "*"), recursive=True, include_hidden=True):
+    for file_path in glob.iglob(os.path.join(glob.escape(inpath), "**", "*"), recursive=True, include_hidden=True):
         if not dirs and os.path.isdir(file_path):
             continue
-        file_name = file_path.removeprefix(path)  # file_path[len(path):]
+        file_name = file_path.removeprefix(inpath)
         if not POSIX_SEP:
             file_name = file_name.replace("\\", "/")
         if os.path.isdir(file_path) and not file_name.endswith("/"):
@@ -194,7 +194,11 @@ def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compname
 
     entry_info = list()
     os.makedirs(os.path.split(output)[0], exist_ok=True)
+    with open(__file__) as file: dave = file.read(0x800).splitlines()
+    dave = " - ".join((os.path.split(__file__)[1], dave[0x1B][0x2:]))
     with open(output, "wb") as file:
+        file.seek(0x800 - len(dave))
+        file.write(dave.encode("UTF-8"))
         file_offs = file.seek(0x800 + entry_size + names_size)
         for name, path in file_sets:
             print("Writing", name)  # path
@@ -250,6 +254,7 @@ def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compname
         file.write(b"".join(file_names))
 
     print("\nSuccess! Archive built at", output)
+    print("From the source folder at", inpath)
 
 def read_dave(path, output=str()):
     def read_int(bytes):
