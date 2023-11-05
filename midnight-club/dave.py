@@ -16,6 +16,7 @@
 #       -cn | --compnames       Compress filenames (build Dave instead of DAVE)
 #       -d  | --dirs            Include directory entries
 #       -a  | --align     <int> 16 byte file alignment;  default is 128 (2048 bytes)
+#       -ca | --compalign       Compact align (pack multiple files into a single chunk)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.zip"  -cn  -a 0
 #
 #     Optional (with -cf | --compfiles):
@@ -24,7 +25,7 @@
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc 1
 
-# Written by Edness   2022-01-09 - 2023-10-27   v1.5.1
+# Written by Edness   2022-01-09 - 2023-11-05   v1.5.2
 
 import glob, os, zlib
 
@@ -62,7 +63,7 @@ def exists_prompt(output, prompt):
             return False
     return True
 
-def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compnames=False, dirs=False, align=128):
+def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compnames=False, dirs=False, align=128, compalign=False):
     def calc_align(size, align):
         return (size // align + 1) * align
 
@@ -102,6 +103,8 @@ def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compname
             help.append("increasing the compression level")
         if align:
             help.append("reducing the alignment size")
+            if not compalign:
+                help[-1] += " or enabling compact alignment"
         if dirs:
             help.append("not including directory entries")
         help = ", or ".join(help)
@@ -206,6 +209,14 @@ def build_dave(path, output, compfiles=False, forcecomp=0, complevel=9, compname
                 comp_data = zlib_obj.compress(data) + zlib_obj.flush()
                 if len(comp_data) < len(data):
                     data = comp_data
+            # pack multiple tiny files into a single sector, if possible
+            # if dirs are included, it will create a new alignment zone.
+            if compalign and align > 0x20 and entry_info:
+                prev_offs = entry_info[-1][0]
+                prev_align = prev_offs & (align - 1)
+                prev_size = calc_align(entry_info[-1][2], 0x20)
+                if 0 < prev_size < align and prev_align + prev_size + len(data) < align:
+                    file_offs = file.seek(prev_offs + prev_size)
             entry_info.append((file_offs, os.path.getsize(path), len(data)))
             file.write(data)
             file_offs = seek_align(align) if align else file.tell()
@@ -340,11 +351,12 @@ if __name__ == "__main__":
     build_parser.add_argument("-cn", "--compnames", action="store_true", help="compress filenames (build Dave instead of DAVE)")
     build_parser.add_argument("-d", "--dirs", action="store_true", help="include directory entries")
     build_parser.add_argument("-a", "--align", type=int, default=128, help="set a multiple of 16 byte alignment (default=128 (2048 bytes))")
+    build_parser.add_argument("-ca", "--compalign", action="store_true", help="compact align (pack multiple files into a single chunk)")
     build_parser.set_defaults(read=False, func=build_dave)
 
     args = parser.parse_args()
     try:
-        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.forcecomp, args.complevel, args.compnames, args.dirs, args.align)
+        func_args = (args.path, args.output) if args.read else (args.path, args.output, args.compfiles, args.forcecomp, args.complevel, args.compnames, args.dirs, args.align, args.compalign)
         args.func(*func_args)
     except AttributeError:
         print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
