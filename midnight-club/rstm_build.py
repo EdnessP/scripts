@@ -172,7 +172,7 @@ def build_rstm(path, output=str(), loopfull=False, loop_start=int(), loop_end=in
 
     if ads_delete:
         os.remove(ads_path)
-    print("Success! RSM written to", output)
+    print("Success! RSTM sound file written to", output)
 
 ERR_ADS2 = "Error! Unsupported ADS/SS2 format.\nInput needs to be a PS-ADPCM encoded stream up to 2 channels with 16 byte interleaving."
 ERR_DATA = "Error! Couldn't locate the WAV data section."
