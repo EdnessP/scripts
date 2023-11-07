@@ -25,7 +25,7 @@
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc 1
 
-# Written by Edness   2022-01-09 - 2023-11-05   v1.5.2
+# Written by Edness   2022-01-09 - 2023-11-07   v1.5.3
 
 import glob, os, zlib
 
@@ -156,6 +156,7 @@ def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compna
 
             # identical files at diff offsets copy the name instead of full-dedup
             # while not really handled by the script, this is original behaviour
+            # but technically can be reproduced on case sensitive file systems
             if prev_name == file_name:
                 # in the name builder it'd rewrite the previous offset
                 file_names.append(b"")
@@ -181,7 +182,7 @@ def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compna
                 comp_name <<= 12
                 comp_name |= dedup_info[0] + 0x20 << 6 | dedup_info[1] + 0x38
                 name_size += 2
-            name_size = (name_size * 6 / 8).__ceil__()  # * 0.75
+            name_size = (name_size * 0.75).__ceil__()  # * 6 / 8
             file_names.append(get_int(comp_name, name_size))
 
             # limit is 32 dedupes, probably because the games parse them recursively...
@@ -197,10 +198,10 @@ def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compna
     with open(__file__) as file: dave = file.read(0x800)
     dave = dave[dave.index(" ".join([chr(x) for x in (35, 87)])) + 0x2:]
     dave = dave.splitlines()[0].split(); dave = " ".join(dave[:3]), dave[-1]
-    dave = " - ".join((os.path.split(__file__)[1], *dave[::-1]))
+    dave = " - ".join((os.path.split(__file__)[1], *dave[::-1])).encode("UTF-8")
     with open(output, "wb") as file:
         file.seek(0x800 - len(dave))
-        file.write(dave.encode("UTF-8"))
+        file.write(dave)
         file_offs = file.seek(0x800 + entry_size + names_size)
         for name, path in file_sets:
             print("Writing", name)  # path

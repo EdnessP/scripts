@@ -58,6 +58,16 @@ def get_hash_func(algo):
     assert hash_func is not None, ERR_ALGO
     return hash_func
 
+def exists_prompt(output, prompt):
+    if os.path.exists(output):
+        response = input(f"Warning! {prompt} (Y/N): ")[:1].upper()
+        if response != "Y":
+            if response != "N":
+                print("Error! Invalid response.", end=" ")
+            print("Exiting...")
+            return False
+    return True
+
 def build_hash(path, output, algo=str(), big_endian=False):
     def seek_align():
         return file.seek((file.tell() // 0x800 + 1) * 0x800)
@@ -69,6 +79,9 @@ def build_hash(path, output, algo=str(), big_endian=False):
     calc_hash = get_hash_func(algo)
     output = os.path.abspath(output)  # normalizes path separators and stuff
     path = os.path.join(os.path.abspath(path), "")  # force final path separator
+
+    if not exists_prompt(output, "Output file already exists. Overwrite?"):
+        return
 
     hash_dict = dict()
     print("Preparing files...")
@@ -138,6 +151,9 @@ def read_hash(path, output=str(), namepath=str(), algo=str(), threshold=70):
     if not output:
         output = os.path.splitext(path)[0]
     output = os.path.abspath(output)
+
+    if not exists_prompt(output, "Output directory already exists. Overwrite files?"):
+        return
 
     with open(path, "rb") as file:
         hash_id = file.read(0x4)
