@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Generates a RSTM sound file for Midnight Club 3: DUB Edition and Bully
-# The input type is usually meant to be ADS/SS2, but WAV is also accepted.
+# Generates an RSTM sound file for Midnight Club 3: DUB Edition and Bully
+# The input type is usually meant to be ADS/SS2 but WAV is also accepted.
 # If the input file is WAV, you must specify a path either for MFAudio or
 # PS2STR from the PS2 SDK.  PS2STR is given priority if both files exist.
 
