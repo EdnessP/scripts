@@ -25,7 +25,7 @@ def update_lip(world_dir, speech_path):
     # locate WORLD.BIN from the given WORLD.DIR path
     stream_split = os.path.split(world_dir)
     world_img = os.path.splitext(stream_split[1].lower())[0] + ".img"
-    for path in glob.iglob(os.path.join(glob.escape(stream_split[0]), "**", "*"), recursive=True):
+    for path in glob.iglob(os.path.join(glob.escape(stream_split[0]), "*")):
         if path.lower().endswith(world_img):
             world_img = path
             break
