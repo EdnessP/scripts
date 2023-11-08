@@ -22,7 +22,7 @@ def update_lip(world_dir, speech_path):
     world_dir = os.path.abspath(world_dir)
     speech_path = os.path.abspath(speech_path)
 
-    # locate WORLD.BIN from the given WORLD.DIR path
+    # locate WORLD.IMG from the given WORLD.DIR path
     stream_split = os.path.split(world_dir)
     world_img = os.path.splitext(stream_split[1].lower())[0] + ".img"
     for path in glob.iglob(os.path.join(glob.escape(stream_split[0]), "*")):
@@ -54,7 +54,7 @@ def update_lip(world_dir, speech_path):
             if is_wii_fsb:
                 bin.seek(0x8, 1)
 
-    print("Updating .LIP files in World.bin...")
+    print("Updating .LIP files in World.img...")
     dir_entries = os.path.getsize(world_dir) // 0x20
     with open(world_dir, "rb") as dir, open(world_img, "r+b") as img:
         for idx in range(dir_entries):
@@ -79,11 +79,11 @@ def update_lip(world_dir, speech_path):
                         write_int(img, e, offs_list[idx])
                         write_int(img, e, size_list[idx])
 
-    print("\nDone! If there are more World.bin files, please replace them with a copy of:\n" + world_img)
+    print("\nDone! If there are more World.img files, please replace them with a copy of:\n" + world_img)
 
 ERR_ENTR = "Error! Couldn't find the hash 0x{:08X}"
 ERR_HASH = "Error! Invalid Speech.bin Hash archive."
-ERR_WRLD = "Error! Couldn't find WORLD.BIN in the given folder."
+ERR_WRLD = "Error! Couldn't find WORLD.IMG in the given folder."
 
 if __name__ == "__main__":
     import argparse
