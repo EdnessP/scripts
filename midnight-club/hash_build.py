@@ -3,7 +3,7 @@
 # Midnight Club 2,  Midnight Club 3: DUB Edition,  Bully (Canis Canem Edit)
 
 # Usage:
-#   Extract:  X
+#   Extract:  X  (Python 3.8 or newer)
 #       hash_build.py  X  "/path/to/streams.dat"
 #     Optional:
 #       -o  | --output    <str> Path to the output directory;  default is input folder
@@ -13,7 +13,7 @@
 #         hash_build.py  X  "X:\path\to\streams.dat"  -o "Y:\path\to\folder"
 #         hash_build.py  X  "X:\path\to\streams.dat"  -nl "Z:\path\to\streams.lst"  -a mclub  -th 45
 #
-#   Rebuild:  B
+#   Rebuild:  B  (Python 3.9 or newer)
 #       -a  | --algo      <str> {Bully,MClub} Filename hashing algorithm
 #         hash_build.py  B  "Y:\path\to\folder"  "X:\path\to\music.bin"  -a bully
 #     Optional:
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extracts and builds Angel Studios / Rockstar San Diego Hash archives")
     subparsers = parser.add_subparsers(description="To view additional help for each subparser, add -h | --help after it")
 
-    extract_parser = subparsers.add_parser("X", help="extracts a Hash archive")
+    extract_parser = subparsers.add_parser("X", help="extracts a Hash archive (Python 3.8 or newer)")
     extract_parser.add_argument("path", type=str, help="path to the Hash archive")
     extract_parser.add_argument("-o", "--output", type=str, default=str(), help="path to the output folder")
     extract_parser.add_argument("-nl", "--namelist", type=str, default=str(), help="path to a text file of names")
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     extract_parser.add_argument("-th", "--threshold", type=int, default=70, help="threshold percentage how many names should match to accept; (default=70)")
     extract_parser.set_defaults(read=True, func=read_hash)
 
-    build_parser = subparsers.add_parser("B", help="builds a new Hash archive")
+    build_parser = subparsers.add_parser("B", help="builds a new Hash archive (Python 3.9 or newer)")
     build_parser.add_argument("path", type=str, help="path to the input directory")
     build_parser.add_argument("output", type=str, help="path to the output Hash archive")
     build_parser.add_argument("-a", "--algo", type=str, default=str(), help="{Bully,MClub} filename hashing algorithm")
