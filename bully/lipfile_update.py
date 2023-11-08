@@ -54,7 +54,7 @@ def update_lip(world_dir, speech_path):
             if is_wii_fsb:
                 bin.seek(0x8, 1)
 
-    print("Updating .LIP files in World.img...")
+    print("Loading World.img...")
     dir_entries = os.path.getsize(world_dir) // 0x20
     with open(world_dir, "rb") as dir, open(world_img, "r+b") as img:
         for idx in range(dir_entries):
