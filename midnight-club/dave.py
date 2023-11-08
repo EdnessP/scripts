@@ -222,7 +222,7 @@ def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compna
                 prev_offs = entry_info[-1][0]
                 prev_align = prev_offs & (align - 1)
                 prev_size = calc_align(entry_info[-1][2], 0x20)
-                if 0 < prev_size < align and prev_align + prev_size + len(data) < align:
+                if 0 < entry_info[-1][2] < align and prev_align + prev_size + len(data) < align:
                     file_offs = file.seek(prev_offs + prev_size)
             entry_info.append((file_offs, os.path.getsize(path), len(data)))
             file.write(data)
