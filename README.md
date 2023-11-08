@@ -20,7 +20,8 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 - BullyHash &mdash; Hashing functions used by **Bully** for RSTM audio and string label lookup hashes. [Live version](https://ednessp.github.io/live/strings#Bully_(Canis_Canem_Edit)).
 - BullyX360img.bms &mdash; Extract **Bully: Scholarship Edition** Wii and Xbox 360 .IMG files.
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
-- fmt_BullySE_Wii.py &mdash; **Bully: Scholarship Edition** Wii Noesis plugin for textures and models
+- fmt_BullySE_Wii.py &mdash; **Bully: Scholarship Edition** Wii Noesis plugin for textures and models.
+- lipfile_update.py &mdash; **Bully** .LIP file updater to allow for Speech.bin edits.
 
 </details>
 
