@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-# Scan WORLD.IMG and update the .LIP files
-# accordingly to match SPEECH.BIN metadata
+# Scan WORLD.IMG and update the .LIP files to match SPEECH.BIN metadata
 
 # Usage:
-#   lip_update.py  "X:\Stream\World.dir"  "X:\Audio\PlayList\Speech.bin"
+#   lipfile_update.py  "X:\Stream\World.dir"  "X:\Audio\PlayList\Speech.bin"
 
-# Written by Edness   2023-11-08   v1.0
+# Written by Edness   2023-11-08   v1.1
 
 import glob, os
 
-def read_int(file, endian, bytes=0x4):
+endian = str()
+
+def read_int(file, bytes=0x4):
     return int.from_bytes(file.read(bytes), endian)
 
 def read_str(file):
     return "".join(iter(lambda: file.read(0x1).decode("ASCII"), "\x00"))
 
-def write_int(file, endian, int):
+def write_int(file, int):
     return file.write(int.to_bytes(0x4, endian))
 
 def update_lip(world_dir, speech_path):
@@ -30,27 +31,28 @@ def update_lip(world_dir, speech_path):
             world_img = path
             break
     else:
-        raise RuntimeError(ERR_WRLD)
+        raise RuntimeError(ERR_WRLD.format(world_img.capitalize()))
 
+    global endian
     print("Loading Speech.bin...")
     with open(speech_path, "rb") as bin:
         header = bin.read(0x4)
         assert header in {b"Hash", b"hsaH"}, ERR_HASH
-        e = "little" if header == b"Hash" else "big"
-        bin_entries = read_int(bin, e)
+        endian = "little" if header == b"Hash" else "big"
+        bin_entries = read_int(bin)
 
         # Bully SE Wii fix (unlikely for full support)
         bin.seek(0x14)
-        is_wii_fsb = not read_int(bin, e) | read_int(bin, e)
+        is_wii_fsb = not read_int(bin) | read_int(bin)
         bin.seek(0x8)
 
         hash_list = list()
         offs_list = list()
         size_list = list()
         for i in range(bin_entries):
-            hash_list.append(read_int(bin, e))
-            offs_list.append(read_int(bin, e))
-            size_list.append(read_int(bin, e))
+            hash_list.append(read_int(bin))
+            offs_list.append(read_int(bin))
+            size_list.append(read_int(bin))
             if is_wii_fsb:
                 bin.seek(0x8, 1)
 
@@ -59,37 +61,37 @@ def update_lip(world_dir, speech_path):
     with open(world_dir, "rb") as dir, open(world_img, "r+b") as img:
         for idx in range(dir_entries):
             dir.seek(idx * 0x20)
-            offs = read_int(dir, e) * 0x800
-            size = read_int(dir, e) * 0x800
+            offs = read_int(dir) * 0x800
+            size = read_int(dir) * 0x800
             name = read_str(dir)
             if name.lower().endswith(".lip"):
                 print(f"Checking {name}...")
                 img.seek(offs)
-                lip_entries = read_int(img, e, 0x2)
-                #lipsync_size = read_int(img, e, 0x2)
+                lip_entries = read_int(img, 0x2)
+                #lipsync_size = read_int(img, 0x2)
                 for idx in range(lip_entries):
                     img.seek(offs + 0x10 + idx * 0x18)
-                    bin_offs = read_int(img, e)
-                    bin_size = read_int(img, e)
-                    bin_hash = read_int(img, e)
+                    bin_offs = read_int(img)
+                    bin_size = read_int(img)
+                    bin_hash = read_int(img)
                     assert bin_hash in hash_list, ERR_ENTR.format(bin_hash)
-                    img.seek(-0xC, 1)
                     idx = hash_list.index(bin_hash)
                     if (bin_offs, bin_size) != (offs_list[idx], size_list[idx]):
-                        write_int(img, e, offs_list[idx])
-                        write_int(img, e, size_list[idx])
+                        img.seek(-0xC, 1)
+                        write_int(img, offs_list[idx])
+                        write_int(img, size_list[idx])
 
-    print("\nDone! If there are more World.img files, please replace them with a copy of:\n" + world_img)
+    print("\nDone! If there are more World.img copies, please replace them with a copy of:\n" + world_img)
 
 ERR_ENTR = "Error! Couldn't find the hash 0x{:08X}"
 ERR_HASH = "Error! Invalid Speech.bin Hash archive."
-ERR_WRLD = "Error! Couldn't find WORLD.IMG in the given folder."
+ERR_WRLD = "Error! Couldn't find {} in the given folder."
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Updates Bully's .LIP files in WORLD.IMG to match SPEECH.BIN")
-    parser.add_argument("world_path", type=str, help="path to WORLD.DIR")
+    parser.add_argument("world_path", type=str, help="path to WORLD.DIR (not .IMG)")
     parser.add_argument("speech_path", type=str, help="path to SPEECH.BIN")
 
     args = parser.parse_args()
