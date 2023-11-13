@@ -20,7 +20,7 @@
 #       -be | --bigendian       Build in big endian (Wii, Xbox 360)
 #         hash_build.py  B  "/path/to/folder"  "/path/to/music.bin"  -a bully  -be
 
-# Written by Edness   2022-07-05 - 2023-10-31   v1.2
+# Written by Edness   2022-07-05 - 2023-11-13   v1.3
 
 import glob, os
 
@@ -70,7 +70,9 @@ def exists_prompt(output, prompt):
 
 def build_hash(path, output, algo=str(), big_endian=False):
     def seek_align():
-        return file.seek((file.tell() // 0x800 + 1) * 0x800)
+        offset = file.tell()
+        if not offset & 0x7FF: return offset
+        return file.seek((offset // 0x800 + 1) * 0x800)
 
     def write_int(int):
         return file.write(int.to_bytes(0x4, endian))
@@ -134,7 +136,7 @@ def build_hash(path, output, algo=str(), big_endian=False):
 
     if name_list:
         outname = os.path.splitext(output)[0]
-        outname += ".TXT" if os.path.split(outname)[-1].isupper() else ".txt"
+        outname += ".LST" if os.path.split(outname)[-1].isupper() else ".lst"
         with open(outname, "w") as file:
             file.write("\n".join(name_list))
             #file.write("\n".join([str() if hash_dict[hash].startswith(HASHED) else hash_dict[hash] for hash in sorted(hash_dict)]))
