@@ -114,8 +114,9 @@ def build_hash(path, output, algo=str(), big_endian=False):
             size = file.write(data)
             offs_list.append(offs)
             size_list.append(size)
-        file.seek(seek_align() - 1)
-        file.write(b"\x00")  # pad last file
+        if file.tell() & 0x7FF:
+            file.seek(seek_align() - 1)
+            file.write(b"\x00")  # pad last file
 
         print("Writing archive header...")
         file.seek(0x0)
