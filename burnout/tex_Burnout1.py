@@ -6,7 +6,7 @@
 # but the PS2 .TRA files have a tendency to duplicate a few textures.
 # This doesn't affect Burnout 2: Point of Impact's script in any way!
 
-# Written by Edness   2022-07-01   v1.0
+# Written by Edness   2022-07-01 - 2023-11-15   v1.1
 
 BoDebug = False
 
@@ -426,9 +426,9 @@ def boArcTexTra(data, texList):
 
     texOffsetList = []
     fileSize = arc.getSize()
-    # Both Demo and Retail have the same address, so I don't
-    # know where to reliably retrieve the RAM location from.
-    ramAddress = 0x01890000
+    # Beta v0.40 loads at 0x01860000
+    # Demo/Retail loads at 0x01890000
+    ramAddress = arc.readUInt() & ~0xFFFF
     for tex in range(80):
         arc.seek(tex * 0x4)
         texOffset = arc.readUInt() - ramAddress
