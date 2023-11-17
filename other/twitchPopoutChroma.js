@@ -3,7 +3,7 @@
 // @description  Adds a black outline to white text, and makes the background blue (had the best results chroma keying blue in OBS than any other color.)
 // @include      https://www.twitch.tv/popout/*
 // @namespace    Edness
-// @version      1.1 (2021-07-19 - 2022-02-01)
+// @version      1.2 (2021-07-19 - 2023-11-17)
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -37,7 +37,7 @@ GM_addStyle ( `
   .chat-line__timestamp {
     font-size: 12px
     }
-  .chat-room__content, .user-notice-line {
+  .chat-room__content, .user-notice-line, .chat-line__message-highlight {
     background-color: #00f !important;
     }
 ` );
