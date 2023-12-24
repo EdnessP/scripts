@@ -31,7 +31,7 @@
 #   Convert line geometry to fake quads
 #   Redo loop returns consistently
 
-# Written by Edness   v0.8c   2021-06-23 - 2023-07-01
+# Written by Edness   v0.8c   2021-06-23 - 2023-12-25
 
 BoDebug = False
 BoModels = False
@@ -127,6 +127,30 @@ def registerNoesisTypes():
 #  ##   ##  ##  ######    #####   
 
 
+def boSuper(clObj):
+    # Superclass base shortcut, noeSuper() "fix" for BoBitStream
+    return super(clObj.__class__.__base__, clObj)
+
+class BoBitStream(NoeBitStream):
+    #def __init__(self, data=None, bigEndian=NOE_LITTLEENDIAN):
+    #    noeSuper(self).__init__(data, bigEndian)
+
+    def seek(self, addr, isRelative=NOESEEK_ABS):
+        # Normally calling this would infinitely recurse on NoeBitStream instead of going to NoeUnpacker
+        # read() and checkOverrun() also use noeSuper() which would break here but I don't use them (yet)
+        #self.toUnpacker(); r = NoeUnpacker.seek(self, addr, isRelative); self.fromUnpacker(); return r
+        self.toUnpacker(); r = boSuper(self).seek(addr, isRelative); self.fromUnpacker(); return r
+
+    def tell(self):
+        # Normally I use getOffset() but for debugging I like to use tell() instead
+        self.toUnpacker(); r = boSuper(self).tell(); self.fromUnpacker(); return r
+
+    def readPtr(self, relOffset=0x0):
+        # For easier handling of relative null pointers
+        dataOffset = noesis.bsReadInt(self.h)  # self.readInt()
+        if dataOffset: dataOffset += relOffset
+        return dataOffset
+
 def boCalcAlign(padFrom, padTo):
     # Calculates alignment to a value
     return (padFrom // padTo + 1) * padTo
@@ -168,13 +192,6 @@ def boPrepExportPath(subDir):
         if subDir and os.path.exists(expDir):
             os.makedirs(os.path.join(expDir, subDir), exist_ok=True)
 
-def boReadPtr(noe, relOffset=0x0):
-    # For easier handling of relative null pointers
-    dataOffset = noe.readInt()
-    if dataOffset:
-        dataOffset += relOffset
-    return dataOffset
-
 def boSetDummyMdl(mdlList, texList):
     mdl = NoeModel()
     mdl.setModelMaterials(NoeModelMaterials(texList, list()))
@@ -204,11 +221,17 @@ BoPSP = 2
 BoXbox = 3
 BoXbox360 = 4
 
-# Global exception message
+# Global exception messages
 BoExcFmt = "Unsupported format! "
+BoExcVif = "Unhandled VIF unpack: "
 
 # Generic material name
 BoMatName = "material_{:03}"
+
+# PSP hardcoded vertex tags
+BoPSPVtagDef = 0x12000102  # pos uv
+BoPSPVtagClr = 0x12000116  # pos uv clr
+BoPSPVtagNrm = 0x12000122  # pos uv nrm
 
 # Xbox and Xbox 360 mesh format IDs
 BoXboxTris = {
@@ -227,13 +250,13 @@ BoXboxTris = {
 
 
 def boChkTxd(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     if chk.readBytes(0x8) in {G_TEXDIC, G_TEXDIC[::-1]}:
         return True
     return False
 
 def boChkBxv(data):
-    chk = NoeBitStream(boDecZlib(data[:256]) if data.startswith(b"\x78\xDA") else data)
+    chk = BoBitStream(boDecZlib(data[:256]) if data.startswith(b"\x78\xDA") else data)
     chkVer, chkEndian = boGetVerEndian(chk)
     if chkEndian is not None:
         chkSize = chk.readUInt()
@@ -242,7 +265,7 @@ def boChkBxv(data):
     return False
 
 def boChkDatStatic(data):
-    chk = NoeBitStream(boDecZlib(data[:256]) if data.startswith(b"\x78\xDA") else data)
+    chk = BoBitStream(boDecZlib(data[:256]) if data.startswith(b"\x78\xDA") else data)
     chkVer, chkEndian = boGetVerEndian(chk)
     if chkEndian is not None:
         chkSize = chk.readUInt()
@@ -251,7 +274,7 @@ def boChkDatStatic(data):
     return False
 
 def boChkDatPropInst(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     chkVer, chkEndian = boGetVerEndian(chk)
     if chkEndian is not None:
         chkSize = chk.readUInt()
@@ -260,7 +283,7 @@ def boChkDatPropInst(data):
     return False
 
 def boChkDatEnviro(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     chkSize = chk.getSize()
 
     # Minimum size check to not break Burnout Paradise .dats by seeking out of bounds
@@ -288,13 +311,13 @@ def boChkDatEnviro(data):
     return False
 
 def boChkBinFE(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     if chk.readBytes(8) in {G_MOVIEARRAY, G_MOVIEARRAY[::-1]}:
         return True
     return False
 
 def boChkBinFont(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     chkSize = chk.getSize()
 
     fontMagic = chk.readBytes(0x4)
@@ -302,7 +325,7 @@ def boChkBinFont(data):
         return True  # Revenge, Black
     elif chkSize > 0x2000:
         chk.seek(0x70)
-        texOffset = boReadPtr(chk)
+        texOffset = chk.readPtr()
         if texOffset < (chkSize // 2):
             chk.seek(texOffset)
             if chk.readBytes(0x8) == bytes(0x4) + b"\x50\x02\x00\x00":
@@ -310,7 +333,7 @@ def boChkBinFont(data):
     return False
 
 def boChkBinLoad(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     txdCount = chk.readUInt64()
     chkAlign = boCalcAlign(txdCount * 0x10 + 0x8, 0x800)
     if chkAlign < chk.getSize():
@@ -320,13 +343,13 @@ def boChkBinLoad(data):
     return False
 
 def boChkArena(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     if chk.readBytes(0x10) == b"Neko\x01" + bytes(0xB):
         return True
     return False
 
 def nfsChkTmm(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
     if chk.getSize() > 0x50:
         for hdr in range(3):
             chk.seek(0xC + hdr * 0x10)
@@ -336,7 +359,7 @@ def nfsChkTmm(data):
     return False
 
 def blkChkDb(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     chkSize = chk.getSize()
     chkVer = chk.readUInt()
@@ -352,7 +375,7 @@ def blkChkDb(data):
             G_SHAREDBNKS,
             G_RCBS
         )
-        txdOffset = boReadPtr(chk)
+        txdOffset = chk.readPtr()
         curChkOffset = chk.getOffset()
         if txdOffset < chkSize:
             chk.seek(txdOffset)
@@ -360,7 +383,7 @@ def blkChkDb(data):
                 return False
         for gtid in dctOrder:
             chk.seek(curChkOffset)
-            dctOffset = boReadPtr(chk)
+            dctOffset = chk.readPtr()
             curChkOffset = chk.getOffset()
             if dctOffset > chkSize:
                 return False
@@ -371,13 +394,13 @@ def blkChkDb(data):
     return False
 
 def blkChkBinGlob(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     chkSize = chk.getSize()
     chkVer = chk.readUInt()
     if chkVer in {0x8, 0x9}:
-        txdOffset = boReadPtr(chk)
-        dctOffset = boReadPtr(chk)
+        txdOffset = chk.readPtr()
+        dctOffset = chk.readPtr()
         if txdOffset > chkSize or dctOffset > chkSize:
             return False
         chk.seek(txdOffset)
@@ -390,11 +413,11 @@ def blkChkBinGlob(data):
     return False
 
 def blkChkBinGuns(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     chkSize = chk.getSize()
-    txdOffset = boReadPtr(chk)
-    mdlOffset = boReadPtr(chk)
+    txdOffset = chk.readPtr()
+    mdlOffset = chk.readPtr()
     if txdOffset > chkSize or mdlOffset > chkSize:
         return False
     chk.seek(txdOffset)
@@ -405,7 +428,7 @@ def blkChkBinGuns(data):
     return False
 
 def blkChkBinLevel(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     if chk.getSize() > 0x500:
         chkVer = chk.readUInt()
@@ -415,20 +438,20 @@ def blkChkBinLevel(data):
             chk.seek(0x390) # -> 0x400
         else:  # chkVer 0x1 has no textures
             return False
-        txdOffset = boReadPtr(chk)
+        txdOffset = chk.readPtr()
         chk.seek(txdOffset)
         if chk.readBytes(8) == G_TEXDIC:
             return True
     return False
 
 def blkChkBinStLevel(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     chkVer = chk.readUInt()
-    txdOffset = boReadPtr(chk)
+    txdOffset = chk.readPtr()
     if chkVer in {0x9, 0xA}:
         chk.seek(0xC)
-        hdrOffset = boReadPtr(chk)
+        hdrOffset = chk.readPtr()
         if hdrOffset < chk.getSize() - 0x8:
             chk.seek(hdrOffset + txdOffset)
             if chk.readBytes(0x8) == G_TEXTURE:
@@ -436,12 +459,12 @@ def blkChkBinStLevel(data):
     return False
 
 def blkChkBinStUnit(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     chkSize = chk.getSize()
     if chk.readUInt() == 0x3:
         chk.seek(0x8)
-        hdrOffset = boReadPtr(chk)
+        hdrOffset = chk.readPtr()
         chk.seek(hdrOffset + 0x18)
         if chk.readUInt() == 0x9:
             dctOrder = (
@@ -454,7 +477,7 @@ def blkChkBinStUnit(data):
                 G_RCBS
             )
             for gtid in dctOrder:
-                dctOffset = boReadPtr(chk, hdrOffset)
+                dctOffset = chk.readPtr(hdrOffset)
                 curChkOffset = chk.getOffset()
                 if dctOffset > chkSize:
                     return False
@@ -466,7 +489,7 @@ def blkChkBinStUnit(data):
     return False
 
 def blkChkBinUnit(data):
-    chk = NoeBitStream(data)
+    chk = BoBitStream(data)
 
     chkVer = chk.readUInt()
     if chkVer == 0xC:
@@ -475,7 +498,7 @@ def blkChkBinUnit(data):
         chk.seek(0x24)
     else:
         return False
-    txdOffset = boReadPtr(chk)
+    txdOffset = chk.readPtr()
     chk.seek(txdOffset)
     if chk.readBytes(0x8) == G_TEXTUREDICTI:
     # surrounded by G_MYDICTIONARY and G_ANIMDICTIONA
@@ -495,7 +518,7 @@ def blkChkBinUnit(data):
 def boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, mdlSystem):
     # Last known version to calculate the static pointer from the group offset is 0x30
     # Earliest known version to calculate it from the model offset is 0x32
-    matIdxOffset = boReadPtr(mdl, grpOffset if mdlVer <= 0x30 else mdlOffset - 0x40)
+    matIdxOffset = mdl.readPtr(grpOffset if mdlVer <= 0x30 else mdlOffset - 0x40)
 
     if matIdxOffset:  # Static
         mdl.seek(matIdxOffset)
@@ -505,7 +528,7 @@ def boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, mdlSystem):
         # while PSP has this data, they go unused in favor
         # of material indices stored in the submesh header
         if mdlSystem == BoPSP:
-            return list(), 0x0
+            return list(), int()
 
         pvsOffset = mdlOffset + {
             BoPS2: 0x10,
@@ -579,8 +602,8 @@ def boMdlVtxClrPreview(clrData, clrOffset, clrStride):
             clrChannel = clrData[clrOffset + clr::clrStride]
             clrMultiply = list()
             clrTest = sorted(set(clrChannel))[-1]
-            if 131 < clrTest < 255:  # 131 because PSP RGBA5551
-                noesis.messagePrompt("VtxClr mul {}\nContact Edness!".format(clrTest))
+            #if 131 < clrTest < 255:  # 131 because PSP RGBA5551
+            #    noesis.messagePrompt("VtxClr mul {}\nContact Edness!".format(clrTest))
             for byte in clrChannel:
                 byte *= 2
                 if byte > 255:
@@ -590,19 +613,27 @@ def boMdlVtxClrPreview(clrData, clrOffset, clrStride):
 
 def boMdlPS2(mdl, vifStart, vifFull, primLine=False):
     def boPS2Read12(rData):
-        rSize = len(rData) // 2  # 0xFFFF / (0x10000 / (1 << 12)) = 4095.9375 ?
+        rSize = len(rData) // 2  # 0xFFFF / (0x10000 / (1 << 12)) = 4095.9375?
         rData = [int / 4096 for int in noeUnpack("<{}h".format(rSize), rData)]
         return noePack("<{}f".format(rSize), *rData)
 
     def boPS2Unpack(vifOffset):
         mdl.seek(vifOffset)
-        vifSize = 0xC + mdl.readUShort() * 0x10
+        vifSize = mdl.readUShort()
+        if vifSize <= 0x2:
+            noesis.doException("Empty VIF packet")
+        vifSize = 0xC + vifSize * 0x10
         if mdl.readUShort() != 0x6000:
-            noesis.doException("Unexpected identifier!")
-        vifData.extend(rapi.unpackPS2VIF(mdl.readBytes(vifSize)))
+            noesis.doException("Unexpected VIF identifier!")
+        vifUnpack.extend(rapi.unpackPS2VIF(mdl.readBytes(vifSize)))
         return vifSize
 
-    vifData = list()
+    def boPS2UnpackFmt():
+        return "V{}-{}".format(vu.numElems, vu.elemBits).replace("V1", "S")
+
+    rapi.rpgClearBufferBinds()
+
+    vifUnpack = list()
     vifStartSize = boPS2Unpack(vifStart)
 
     # Many submeshes have both V3-8 and V4-8 data, V3-8 seems to take precedence for
@@ -610,18 +641,18 @@ def boMdlPS2(mdl, vifStart, vifFull, primLine=False):
     # Otherwise V4-8 is used for some reflection stuff which is usually placed after
     # V3-8, except for some cases where it's placed before V3-8 data. (if no V2-16?)
     # And for vehicles V3-8 seems to be used for normals and V4-16 is split in half,
-    # left half being used for UVs and right half being used for reflection stuff?
+    # left half being used for UVs, and right half being used for reflection stuff?
+    # ...Except for wheel models where the elem count is halved and all of it is UV.
     clr24 = True
     clr32 = True
-    vifOrder = list()
-    for vif in vifData:
-        vifIdx = (vif.numElems, vif.elemBits)
-        if vifIdx == (3, 8):
+    vuOrder = list()
+    for vu in vifUnpack:
+        if vu.numElems == 3 and vu.elemBits == 8:
             clr32 = False
-        elif vifIdx == (4, 16):
+        elif vu.numElems == 4 and vu.elemBits == 16:
             clr24 = False
-        # if V4-16 exists, V3-8 is used as normals?
-        vifOrder.append(vifIdx)
+        # if V4-16 exists, V3-8 is used as normals
+        vuOrder.append(boPS2UnpackFmt())
 
     if vifFull:
         vifFullSize = boPS2Unpack(vifFull)
@@ -631,87 +662,111 @@ def boMdlPS2(mdl, vifStart, vifFull, primLine=False):
             + "\nVIF data start size: 0x{:X}".format(vifStartSize + 0x4)
             + (("\nVIF data full offset: 0x{:X}".format(vifFull)
             + "\nVIF data full size: 0x{:X}".format(vifFullSize + 0x4)) if vifFull else "")
-            + "\nVIF data amount: {}".format(len(vifData))
-            + "\nVIF data order: {}".format(", ".join(["V{}-{}".format(*fmt) for fmt in vifOrder])))
+            + "\nVIF unpack amount: {}".format(len(vifUnpack))
+            + "\nVIF unpack order: {}".format(", ".join(vuOrder)))
 
-    vertData = list()
+    vtxData = list()
     clrData = list()
     nrmData = list()
     uvData = list()
-    for vif in vifData:
-        if vif.elemBits == 32 and vif.numElems == 4:    # Vertices, Normals?
-            for idx in range(len(vif.data) // 0x10):
-                if vif.data[0xC + idx * 0x10:][:0x4] not in (b"\x00\x00\x00\x00", b"\x00\x80\x00\x00"):
+    for vu in vifUnpack:
+        if vu.elemBits == 32 and vu.numElems == 4:    # Vertices, Normals (Tracks)
+            for idx in range(0xC, len(vu.data), 0x10):
+                if vu.data[idx:idx + 0x4] not in (b"\x00\x00\x00\x00", b"\x00\x80\x00\x00"):
                     break
             else:
-                vertData.append(vif.data)
+                vtxData.append(vu.data)
                 continue
-            for idx in range(len(vif.data) // 0x40):
-                if vif.data[0x30 + idx * 0x40:][:0x10] != bytes(0x10):
+            for idx in range(0x30, len(vu.data), 0x40):
+                if vu.data[idx:idx + 0x10] != bytes(0x10):
                     break
             else:
-                continue  #nrmData.append?
-            noesis.doException("Unhandled V2-32 data")
+                # Normals are interleaved as XXXXYYYYZZZZWWWW
+                nrmSplit = list()
+                for idx in range(0x0, len(vu.data), 0x40):
+                    for nrm in range(0x0, 0x10, 0x4):
+                        nrmSplit.extend(vu.data[idx + nrm + 0x00:][:0x4])
+                        nrmSplit.extend(vu.data[idx + nrm + 0x10:][:0x4])
+                        nrmSplit.extend(vu.data[idx + nrm + 0x20:][:0x4])
+                nrmSplit = bytes(nrmSplit)
+                nrmData.append(nrmSplit)
+                continue
+            noesis.doException(BoExcVif + boPS2UnpackFmt())
 
-        elif vif.elemBits == 32 and vif.numElems == 2:  # UVs (PropInst)
-            uvData.append(vif.data)
+        elif vu.elemBits == 32 and vu.numElems == 2:  # UVs (PropInst)
+            uvData.append(vu.data)
 
-        elif vif.elemBits == 16 and vif.numElems == 2:  # UVs (Tracks)
-            uvData.append(boPS2Read12(vif.data))
+        elif vu.elemBits == 16 and vu.numElems == 2:  # UVs (Tracks)
+            uvData.append(boPS2Read12(vu.data))
 
-        elif vif.elemBits == 16 and vif.numElems == 4:  # UVs (Vehicles), Envmap?
-            vifSplitUV = list()
-            vifSplitUnk = list()  # Envmap?
-            for idx in range(len(vif.data) // 0x10):  # (vif.elemBits // 8 * vif.numElems)
-                #(vifSplitUnk if idx % 2 else vifSplitUV).extend(vif.data[idx * 8:][:8])
-                vifSplitUV.extend(vifData[idx * 8:][:8])
-                vifSplitUnk.extend(vifData[8 + idx * 8:][:8])
-            uvData.append(boPS2Read12(bytes(vifSplitUV)))
+        elif vu.elemBits == 16 and vu.numElems == 4:  # UVs (Vehicles), Envmap?
+            # UVs are interleaved as UUVV, and with other
+            # data interleaved as AAAABBBB for body parts
+            if len(vtxData[-1]) // 16 - len(vu.data) // 8 <= 0:
+                uvStep = 0x10  # body
+            elif len(vtxData[-1]) // 32 - len(vu.data) // 8 <= 0:
+                uvStep = 0x8   # wheels
+            else:
+                noesis.doException(BoExcVif + boPS2UnpackFmt())
 
-        elif vif.elemBits == 8 and vif.numElems == 3:   # Colors (RGB24), Normals?
+            uvSplit = list()
+            #unkSplit = list()  # Envmap?
+            for idx in range(0x0, len(vu.data), uvStep * 2):
+                uvSplit.extend(vu.data[idx + 0x0:][:0x4])
+                uvSplit.extend(vu.data[idx + uvStep + 0x0:][:0x4])
+                uvSplit.extend(vu.data[idx + 0x4:][:0x4])
+                uvSplit.extend(vu.data[idx + uvStep + 0x4:][:0x4])
+                #if uvStep == 0x10:
+                #    unkSplit.extend(vu.data[idx +  0x8:][:0x8])
+                #    unkSplit.extend(vu.data[idx + 0x18:][:0x8])
+            uvData.append(boPS2Read12(bytes(uvSplit)))
+
+        elif vu.elemBits == 8 and vu.numElems == 3:   # Colors (RGB24), Normals (Vehicles)
             if clr24:
                 # Vertex colors need to be changed from RGB to RGBA
-                clrData.append(rapi.imageDecodeRaw(vif.data, len(vif.data) // 3, 1, "R8G8B8"))
+                clrData.append(rapi.imageDecodeRaw(vu.data, len(vu.data) // 3, 1, "R8G8B8"))
+            #else:
+                #nrmTemp = [int / 127 for int in noeUnpack("<{}b".format(len(vu.data)), vu.data)]
+                #nrmData.append(noePack("<{}f".format(len(nrmTemp)), *nrmTemp))
+                #nrmData.append(vu.data)  # unknown stride?
 
-        elif vif.elemBits == 8 and vif.numElems == 4:   # Colors (RGBA32), Envmap?
+        elif vu.elemBits == 8 and vu.numElems == 4:   # Colors (RGBA32), Envmap?
             if clr32:
-                clrData.append(vif.data)
+                clrData.append(vu.data)
             # if RGB24 exists, then these are used for some reflection stuff(?)
             # datasize seems to always be 3 more than vertex data, and never has uvs?
 
         else:
-            noesis.doException("Unhandled VIF data: (V{}-{}) {}".format(vif.numElems, vif.elemBits, vif))
+            noesis.doException(BoExcVif + boPS2UnpackFmt())
 
-    if not clrData:
-        clrData = [bytearray(b"\xFF" * (len(vtx) // 0x10 * 4)) for vtx in vertData]
+    for idx in range(len(vtxData)):  # not using enumerate() just because
+        vtxCount = len(vtxData[idx]) // 0x10
 
-    if not uvData:
-        uvData = [bytes(len(vtx) // 0x10 * 8) for vtx in vertData]
-
-    for vertData, clrData, uvData in zip(vertData, clrData, uvData):
         faceData = list()
-        vertSize = len(vertData) // 0x10
-
         if not primLine:
-            for vtx in range(vertSize - 2):
-                if vertData[vtx * 0x10:][:0x30].endswith(bytes(0x4)):
+            for vtx in range(vtxCount - 2):
+                if vtxData[idx][vtx * 0x10:][:0x30].endswith(bytes(0x4)):
                     faceData.extend((vtx, vtx + 2, vtx + 1) if vtx % 2 else (vtx, vtx + 1, vtx + 2))
         else:
-            for vtx in range(0, vertSize, 2):
+            for vtx in range(0, vtxCount, 2):
                 faceData.extend((vtx, vtx + 1, vtx))
-
         faceData = bytes(faceData)
-        boMdlVtxClrPreview(clrData, 0x0, 0x4)
 
-        rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x10)
-        rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
-        rapi.rpgBindUV1Buffer(uvData, noesis.RPGEODATA_FLOAT, 0x8)
+        rapi.rpgBindPositionBuffer(vtxData[idx], noesis.RPGEODATA_FLOAT, 0x10)
+        if clrData:
+            boMdlVtxClrPreview(clrData[idx], 0x0, 0x4)
+            rapi.rpgBindColorBuffer(clrData[idx], noesis.RPGEODATA_UBYTE, 0x4, 4)
+        if nrmData:
+            rapi.rpgBindNormalBuffer(nrmData[idx], noesis.RPGEODATA_FLOAT, 0xC)
+            #rapi.rpgBindNormalBuffer(nrmData[idx], noesis.RPGEODATA_BYTE, 0x3)
+        if uvData:
+            rapi.rpgBindUV1Buffer(uvData[idx], noesis.RPGEODATA_FLOAT, 0x8)
         rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_UBYTE, len(faceData), noesis.RPGEO_TRIANGLE)
 
 def boMdlPS2Track(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset, matList):
     mdl.seek(mdlOffset)
     subCount = mdl.readUInt()
-    subOffset = boReadPtr(mdl, mdlOffset)
+    subOffset = mdl.readPtr(mdlOffset)
     matIdx, matIdxOffset = boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, BoPS2)
 
     if BoDebug:
@@ -731,9 +786,9 @@ def boMdlPS2Track(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset, matList):
             print("\nSubmesh data offset: 0x{:X}".format(subOffset))
 
         mdl.seek(subOffset + 0xC)
-        vifStart = boReadPtr(mdl, subOffset)
+        vifStart = mdl.readPtr(subOffset)
         mdl.seek(subOffset + 0x1C)
-        vifFull = boReadPtr(mdl, subOffset)
+        vifFull = mdl.readPtr(subOffset)
 
         boMdlPS2(mdl, vifStart, vifFull, eval(matList[matIdx[blk]].userData))
 
@@ -749,7 +804,7 @@ def boMdlPS2PropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
 
         for idx in range(3 if BoDmg else 1):
             mdl.seek(mdlOffset + 0x30 + 0x4 * idx)
-            subOffset = boReadPtr(mdl, mdlOffset)
+            subOffset = mdl.readPtr(mdlOffset)
             if subOffset > mdl.getSize():
                 continue
 
@@ -760,8 +815,8 @@ def boMdlPS2PropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
                 rapi.rpgSetMaterial(BoMatName.format(matIdx[idx]))
 
                 mdl.seek(subOffset)
-                vifStart = boReadPtr(mdl, subOffset)
-                vifFull = boReadPtr(mdl, subOffset)
+                vifStart = mdl.readPtr(subOffset)
+                vifFull = mdl.readPtr(subOffset)
                 boMdlPS2(mdl, vifStart, vifFull)
 
     else:
@@ -780,15 +835,11 @@ def boMdlPS2PropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
             rapi.rpgSetMaterial(BoMatName.format(matIdx[idx]))
 
             mdl.seek(subOffset)
-            vifStart = boReadPtr(mdl, subOffset)
-            vifFull = boReadPtr(mdl, subOffset)
+            vifStart = mdl.readPtr(subOffset)
+            vifFull = mdl.readPtr(subOffset)
             boMdlPS2(mdl, vifStart, vifFull)
 
-def boMdlPSP(mdl, mdlOffset, hdrSkip, geOffset, vertTag, clrFix=True):
-    def boPSPRead11(rSize):
-        rData = [int / 2048 for int in noeUnpack("<{}H".format(rSize), mdl.readBytes(rSize * 2))]
-        return noePack("<{}f".format(rSize), *rData)
-
+def boMdlPSP(mdl, mdlOffset, hdrSkip, geOffset, vtxTag, clrFix=True):
     def boPSPReadIdx():
         geInstr = mdl.readUInt()
         geFmt = geInstr >> 16 & 0xFF
@@ -797,14 +848,14 @@ def boMdlPSP(mdl, mdlOffset, hdrSkip, geOffset, vertTag, clrFix=True):
             return -1
         if geCmd != 0x04:
             noesis.doException("Unexpected GE command {:02X}".format(geCmd))
-        if geFmt != vertType:
-            noesis.doException("Vertex type mismatch! Expected {:02X}, got {:02X}".format(vertType, geFmt))
+        if geFmt != vtxType:
+            noesis.doException("Vertex type mismatch! Expected {:02X}, got {:02X}".format(vtxType, geFmt))
         return geInstr & 0xFFFF
 
     mdl.seek(hdrSkip + mdlOffset)
-    vertType = mdl.readUInt()
-    vertCount = mdl.readUInt()
-    vertOffset = boReadPtr(mdl, mdlOffset)
+    vtxType = mdl.readUInt()
+    vtxCount = mdl.readUInt()
+    vtxOffset = mdl.readPtr(mdlOffset)
 
     mdl.seek(hdrSkip + mdlOffset + 0x10)
     mdlBias = NoeVec3.fromBytes(mdl.readBytes(0xC))
@@ -813,80 +864,52 @@ def boMdlPSP(mdl, mdlOffset, hdrSkip, geOffset, vertTag, clrFix=True):
     rapi.rpgSetPosScaleBias(mdlScale, mdlBias)
 
     mdl.seek(hdrSkip + mdlOffset + geOffset)
-    cmdOffset = boReadPtr(mdl, mdlOffset)
+    cmdOffset = mdl.readPtr(mdlOffset)
     cmdCount = mdl.readUInt()
 
     if BoDebug:
         print("Model offset: 0x{:X}".format(hdrSkip + mdlOffset)
-            + "\nVertex data offset: 0x{:X}".format(vertOffset)
-            + "\nVertex data amount: {}".format(vertCount)
-            + "\nVertex data format: {}".format(vertType)
-            + "\nVertex data tag: {:X}".format(vertTag)
+            + "\nVertex data offset: 0x{:X}".format(vtxOffset)
+            + "\nVertex data amount: {}".format(vtxCount)
+            + "\nVertex data format: {}".format(vtxType)
+            + "\nVertex data tag: 0x{:X}".format(vtxTag)
             + "\nGE data offset: 0x{:X}".format(cmdOffset)
             + "\nGE data amount: {}".format(cmdCount))
 
-    if vertCount == 0:
+    if vtxCount == 0:
         return
 
-    #mdl.seek(vertOffset)
-    # no vertex colors & broken UVs
-    #vertData = mdl.readBytes(vertCount * 0xC)
-    #rapi.decodePSPVert(vertTag).bindBuffers(vertData)
+    mdl.seek(vtxOffset)
+    vtxFmt = rapi.decodePSPVert(vtxTag)
+    vtxData = mdl.readBytes(vtxCount * vtxFmt.vertexSize)
+    rapi.rpgSetUVScaleBias(NoeVec3((32, 32, 0)), NoeVec3((-7, -7, 0)))
+    vtxFmt.bindBuffers(vtxData)
 
-    # not stored in the model header, unsuse where it originates from
-    vertFmt = rapi.decodePSPVert(vertTag)
-
-    uvData = list()
-    clrData = list()
-    vertData = list()
-    #rapi.rpgSetUVScaleBias(NoeVec3((8, 8, 0)), None)
-    for vtx in range(vertCount):
-        # I'm aware of the NoePSPVert format returns, but many aren't used by the game
-        # and would likely require more extensive testing before i can just add them
-        if vertFmt.uvType == 2:
-            mdl.seek(vertOffset + vertFmt.vertexSize * vtx + vertFmt.uvOfs)
-            uvData.extend(boPSPRead11(0x2))
-        elif vertFmt.uvType:
-            noesis.doException("Unhandled UV format {}".format(vertFmt.uvType))
-
-        if vertFmt.colorType == 5:
-            mdl.seek(vertOffset + vertFmt.vertexSize * vtx + vertFmt.colorOfs)
-            clrData.extend(mdl.readBytes(0x2))
-        elif vertFmt.colorType:
-            noesis.doException("Unhandled vertex color format {}".format(vertFmt.colorType))
-
-        if vertFmt.posType == 2:
-            mdl.seek(vertOffset + vertFmt.vertexSize * vtx + vertFmt.posOfs)
-            vertData.extend(mdl.readBytes(0x6))
-        elif vertFmt.posType:
-            noesis.doException("Unhandled vertex format {}".format(vertFmt.posType))
-
-    uvData = bytes(uvData)
-    clrData = bytes(clrData)
-    vertData = bytes(vertData)
-
-    if not clrData:
-        clrData = b"\xFF" * vertCount * 2
-
-    clrData = rapi.imageDecodeRaw(clrData, vertCount, 1, "R5G5B5A1")
-    if clrFix:  # Legends' vertex colors use the full range
-        boMdlVtxClrPreview(clrData, 0x0, 0x4)
-
-    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_SHORT, 0x6)
-    rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
-    rapi.rpgBindUV1Buffer(uvData, noesis.RPGEODATA_FLOAT, 0x8)
+    # 16-bit vertex colors don't get auto-bound
+    if 4 <= vtxFmt.colorType <= 6:
+        clrData = list()
+        for clr in range(vtxFmt.colorOfs, len(vtxData), vtxFmt.vertexSize):
+            clrData.extend(vtxData[clr:clr + 0x2])
+        clrData = rapi.imageDecodeRaw(bytes(clrData), vtxCount, 1, {
+            4: "R5G6B5",
+            5: "R5G5B5A1",
+            6: "R4G4B4A4"
+        }.get(vtxFmt.colorType))
+        if clrFix:  # Legends' vertex colors use the full range
+            boMdlVtxClrPreview(clrData, 0x0, 0x4)
+        rapi.rpgBindColorBuffer(clrData, noesis.RPGEODATA_UBYTE, 0x4, 4)
 
     mdl.seek(cmdOffset)
-    if vertType == 0x1:    # Lines
+    if vtxType == 0x1:    # Lines
         faceData = list()
         if cmdCount - 1 != 1:  # 1 command + RET
-            noesis.doException("Wire mesh with more than 1 command")
+            noesis.doException("GE Wire mesh with more than 1 command")
         faceData.extend(range(boPSPReadIdx()))
         for idx in range(len(faceData) - 1, 0, -2):
             faceData.insert(idx, faceData[idx])
         faceType = noesis.RPGEO_TRIANGLE
 
-    elif vertType == 0x4:  # Tri-Strips
+    elif vtxType == 0x4:  # Tri-Strips
         faceData = [-1, -1]
         for face in range(cmdCount):  # in theory always cmdCount - 1 but just in case
             faceStart = faceData[-2] + 1
@@ -899,17 +922,18 @@ def boMdlPSP(mdl, mdlOffset, hdrSkip, geOffset, vertTag, clrFix=True):
         faceType = noesis.RPGEO_TRIANGLE_STRIP
 
     else:
-        noesis.doException("Unhandled PSP vertex type {}".format(vertType))
+        noesis.doException("Unhandled GE vertex type {}".format(vtxType))
 
     faceCount = len(faceData)
     faceData = noePack("<{}h".format(faceCount), *faceData)
     rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, faceType)
 
     rapi.rpgSetPosScaleBias(None, None)
+    rapi.rpgSetUVScaleBias(None, None)
 
 def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
     mdl.seek(mdlOffset)
-    subOffset = boReadPtr(mdl, mdlOffset)
+    subOffset = mdl.readPtr(mdlOffset)
     subCount = mdl.readUInt()
     matIdx, matIdxOffset = boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, BoPSP)
 
@@ -936,7 +960,7 @@ def boMdlPSPTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
         if BoDebug:
             print("\nSubmesh data offset: 0x{:X}".format(mdlOffset))
 
-        boMdlPSP(mdl, mdlOffset, 0x40, 0x4C, 0x12000116, clrFix=True if mdlVer > 0x27 else False)
+        boMdlPSP(mdl, mdlOffset, 0x40, 0x4C, BoPSPVtagClr, clrFix=True if mdlVer > 0x27 else False)
 
         if BoDebug:
             print("Submesh {} of {}".format(sub + 1, subCount))
@@ -945,7 +969,7 @@ def boMdlPSPPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
     if mdlBaseName.startswith("prop") and mdlVer >= 0x30:
         # Dominator props
         mdl.seek(mdlOffset + 0x20)  # has up to 4 lod/dmg meshes, but all are empty?
-        subOffset = boReadPtr(mdl, mdlOffset)
+        subOffset = mdl.readPtr(mdlOffset)
         if subOffset > mdl.getSize():
             return
         mdl.seek(mdlOffset + 0x34)
@@ -954,16 +978,16 @@ def boMdlPSPPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
         #rapi.rpgSetName(mdlBaseName + "dmg_{:03}_lod_{:03}".format(idx, lod))
         rapi.rpgSetName(mdlBaseName + "dmg_000")
         rapi.rpgSetMaterial(BoMatName.format(matIdx))
-        boMdlPSP(mdl, subOffset, 0x0, 0x44, 0x12000102)
+        boMdlPSP(mdl, subOffset, 0x0, 0x44, BoPSPVtagDef)
 
     else:
         # All instances and Legends props
         mdl.seek(mdlOffset + 0x110)
         matIdx = [mdl.readUShort() for mat in range(3)]
 
-        callExtra = (0x12000102, True) if mdlVer > 0x27 else (0x12000116, False)
+        callExtra = (BoPSPVtagDef, True) if mdlVer > 0x27 else (BoPSPVtagClr, False)
 
-        for lod in range(3 if BoLOD else 1): # if BoLOD else 1
+        for lod in range(3 if BoLOD else 1):
             subOffset = mdlOffset + 0x50 * lod + 0x20
 
             mdlName = mdlBaseName + "lod_{:03}".format(lod)
@@ -983,9 +1007,9 @@ def boMdlXboxTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
     mdl.seek(mdlOffset)
     if mdl.readUInt() != 0x1:
         noesis.doException("Invalid block header!")
-    vertOffset = boReadPtr(mdl, mdlOffset)
+    vtxOffset = mdl.readPtr(mdlOffset)
     mdl.seek(mdlOffset + 0xC)
-    subOffset = boReadPtr(mdl, mdlOffset)
+    subOffset = mdl.readPtr(mdlOffset)
     subCount = mdl.readUInt()
     matIdx, matIdxOffset = boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, BoXbox)
 
@@ -996,7 +1020,7 @@ def boMdlXboxTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
             + "\nSubmesh info offset: 0x{:X}".format(subOffset)
             + "\nSubmesh amount: {}".format(subCount)
             + "\nMaterial index offset: 0x{:X}".format(matIdxOffset)
-            + "\nVertex data offset: 0x{:X}".format(vertOffset))
+            + "\nVertex data offset: 0x{:X}".format(vtxOffset))
 
     subData = list()
     mdl.seek(subOffset)
@@ -1004,20 +1028,19 @@ def boMdlXboxTrack(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
         subOffset = mdl.getOffset()
         mdl.seek(0x80, 1)
         # triFmt, faceCount, faceOffset
-        subData.append([mdl.readUInt(), mdl.readUInt(), boReadPtr(mdl, subOffset)])
+        subData.append([mdl.readUInt(), mdl.readUInt(), mdl.readPtr(subOffset)])
         mdl.seek(0x4, 1)
 
-    mdl.seek(vertOffset)
-    vertData = bytearray(mdl.readBytes(subData[0][2] - vertOffset))  # I swear it was bytearray by default before...
-    for clr in range(len(vertData) // 0x1C):
+    mdl.seek(vtxOffset)
+    vtxData = bytearray(mdl.readBytes(subData[0][2] - vtxOffset))  # I swear it was bytearray by default before...
+    for clr in range(0x10, len(vtxData), 0x1C):
         # Vertex colors need to be flipped from BGRA to RGBA
-        clrOffset = 0x10 + clr * 0x1C
-        vertData[clrOffset:clrOffset + 3] = vertData[clrOffset:][:3][::-1]
-    boMdlVtxClrPreview(vertData, 0x10, 0x1C)
+        vtxData[clr:clr + 3] = vtxData[clr:clr + 3][::-1]
+    boMdlVtxClrPreview(vtxData, 0x10, 0x1C)
 
-    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x1C)
-    rapi.rpgBindUV1BufferOfs(vertData, noesis.RPGEODATA_FLOAT, 0x1C, 0x14)
-    rapi.rpgBindColorBufferOfs(vertData, noesis.RPGEODATA_UBYTE, 0x1C, 0x10, 4)
+    rapi.rpgBindPositionBuffer(vtxData, noesis.RPGEODATA_FLOAT, 0x1C)
+    rapi.rpgBindUV1BufferOfs(vtxData, noesis.RPGEODATA_FLOAT, 0x1C, 0x14)
+    rapi.rpgBindColorBufferOfs(vtxData, noesis.RPGEODATA_UBYTE, 0x1C, 0x10, 4)
 
     for subIdx, (triFmt, faceCount, faceOffset) in enumerate(subData):
         mdlName = mdlBaseName + "{:03}".format(subIdx)
@@ -1046,28 +1069,28 @@ def boMdlXboxPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
         #if mdl.readUInt() != 0x1:
         #    noesis.doException("Invalid block header!")
         mdl.seek(subOffset + 0x4)
-        vertOffset = boReadPtr(mdl, subOffset)
+        vtxOffset = mdl.readPtr(subOffset)
         mdl.seek(subOffset + 0xC)
         faceCount = mdl.readUInt()
-        faceOffset = boReadPtr(mdl, subOffset)
+        faceOffset = mdl.readPtr(subOffset)
 
         if not faceCount:
             return
 
-        mdl.seek(vertOffset)
-        vertData = mdl.readBytes(faceOffset - vertOffset)
+        mdl.seek(vtxOffset)
+        vtxData = mdl.readBytes(faceOffset - vtxOffset)
 
         mdl.seek(faceOffset)
         faceData = mdl.readBytes(faceCount * 2)
 
-        if len(vertData) % 0x14 == 0:
-            rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x14)
-            rapi.rpgBindUV1BufferOfs(vertData, noesis.RPGEODATA_FLOAT, 0x14, 0xC)
+        if len(vtxData) % 0x14 == 0:
+            rapi.rpgBindPositionBuffer(vtxData, noesis.RPGEODATA_FLOAT, 0x14)
+            rapi.rpgBindUV1BufferOfs(vtxData, noesis.RPGEODATA_FLOAT, 0x14, 0xC)
 
-        elif len(vertData) % 0x18 == 0:
-            rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x18)
-            rapi.rpgBindUV1BufferOfs(vertData, noesis.RPGEODATA_FLOAT, 0x18, 0x10)
-            #rapi.rpgBindColorBufferOfs(vertData, noesis.RPGEODATA_UBYTE, 0x18, 0xC, 4)
+        elif len(vtxData) % 0x18 == 0:
+            rapi.rpgBindPositionBuffer(vtxData, noesis.RPGEODATA_FLOAT, 0x18)
+            rapi.rpgBindUV1BufferOfs(vtxData, noesis.RPGEODATA_FLOAT, 0x18, 0x10)
+            #rapi.rpgBindColorBufferOfs(vtxData, noesis.RPGEODATA_UBYTE, 0x18, 0xC, 4)
 
         rapi.rpgCommitTriangles(faceData, noesis.RPGEODATA_USHORT, faceCount, noesis.RPGEO_TRIANGLE_STRIP)
 
@@ -1081,7 +1104,7 @@ def boMdlXboxPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
             rapi.rpgSetMaterial(BoMatName.format(matIdx[idx]))
 
             mdl.seek(mdlOffset + 0x30 + idx * 0x4)
-            subOffset = boReadPtr(mdl, mdlOffset)
+            subOffset = mdl.readPtr(mdlOffset)
             if subOffset and subOffset < mdl.getSize():
                 boXboxReadMdl()
 
@@ -1091,11 +1114,11 @@ def boMdlXboxPropInst(mdl, mdlVer, mdlOffset, mdlBaseName):
 
 def boMdlXbox360Track(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
     mdl.seek(mdlOffset + 0x10)
-    vertSize = mdl.readUInt() - 0x2  # For some reason it's always off by 2?
-    vertOffset = boReadPtr(mdl, mdlOffset)
-    vertCount = mdl.readUShort()
+    vtxSize = mdl.readUInt() - 0x2  # For some reason it's always off by 2?
+    vtxOffset = mdl.readPtr(mdlOffset)
+    vtxCount = mdl.readUShort()
     mdl.seek(mdlOffset + 0x1C)
-    subOffset = boReadPtr(mdl, mdlOffset)
+    subOffset = mdl.readPtr(mdlOffset)
     subCount = mdl.readUShort()
     mdl.seek(mdlOffset + 0x24)
     matIdx, matIdxOffset = boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, BoXbox360)
@@ -1107,9 +1130,9 @@ def boMdlXbox360Track(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
             + "\nSubmesh info offset: 0x{:X}".format(subOffset)
             + "\nSubmesh amount: {}".format(subCount)
             + "\nMaterial index offset: 0x{:X}".format(matIdxOffset)
-            + "\nVertex data offset: 0x{:X}".format(vertOffset)
-            + "\nVertex data size: 0x{:X}".format(vertSize)
-            + "\nVertex amount: {}".format(vertCount))
+            + "\nVertex data offset: 0x{:X}".format(vtxOffset)
+            + "\nVertex data size: 0x{:X}".format(vtxSize)
+            + "\nVertex amount: {}".format(vtxCount))
 
     subData = list()
     mdl.seek(subOffset)
@@ -1117,23 +1140,22 @@ def boMdlXbox360Track(mdl, mdlVer, mdlOffset, mdlBaseName, grpOffset):
         subOffset = mdl.getOffset()
         mdl.seek(0x90, 1)
         # faceSize, faceOffset, faceCount (broken?), triFmt
-        subData.append([mdl.readUInt(), boReadPtr(mdl, subOffset), mdl.readUInt() >> 16, mdl.readUInt()])
+        subData.append([mdl.readUInt(), mdl.readPtr(subOffset), mdl.readUInt() >> 16, mdl.readUInt()])
         mdl.seek(0x10, 1)
-    #faceOffset = vertOffset + vertSize
+    #faceOffset = vtxOffset + vtxSize
 
-    mdl.seek(vertOffset)
-    vertData = bytearray(mdl.readBytes(vertSize))
-    for clr in range(len(vertData) // 0x1C):
+    mdl.seek(vtxOffset)
+    vtxData = bytearray(mdl.readBytes(vtxSize))
+    for clr in range(0x18, len(vtxData), 0x1C):
         # Vertex colors need to be changed from ARGB to RGBA
-        clrOffset = 0x18 + clr * 0x1C
-        clrData = list(vertData[clrOffset:][:4])
+        clrData = list(vtxData[clr:clr + 4])
         clrData.append(clrData.pop(0))
-        vertData[clrOffset:clrOffset + 4] = clrData
-    boMdlVtxClrPreview(vertData, 0x18, 0x1C)
+        vtxData[clr:clr + 4] = clrData
+    boMdlVtxClrPreview(vtxData, 0x18, 0x1C)
 
-    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0x1C)
-    rapi.rpgBindUV1BufferOfs(vertData, noesis.RPGEODATA_FLOAT, 0x1C, 0x10)
-    rapi.rpgBindColorBufferOfs(vertData, noesis.RPGEODATA_UBYTE, 0x1C, 0x18, 4)
+    rapi.rpgBindPositionBuffer(vtxData, noesis.RPGEODATA_FLOAT, 0x1C)
+    rapi.rpgBindUV1BufferOfs(vtxData, noesis.RPGEODATA_FLOAT, 0x1C, 0x10)
+    rapi.rpgBindColorBufferOfs(vtxData, noesis.RPGEODATA_UBYTE, 0x1C, 0x18, 4)
 
     for subIdx, (faceSize, faceOffset, _faceCount, triFmt) in enumerate(subData):
         mdlName = mdlBaseName + "{:03}".format(subIdx)
@@ -1273,7 +1295,7 @@ def boTexPalRead(tex, bitDepth):
 def boTexFixWidth(tex, texWidth, padWidth, texHeight):
     # Can fix by reading from a bit stream or from an existing bytearray
     if type(tex) is bytearray:
-        tex = NoeBitStream(tex)
+        tex = BoBitStream(tex)
     texData = list()
     for byte in range(texHeight):
         texData.extend(tex.readBytes(texWidth))
@@ -1310,8 +1332,8 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
         texList.append(NoeTexture("{} (Palette {})".format(texName, palNum), texWidth, texHeight, texPalData, texFmt))
 
     tex.seek(texOffset + 0x4)
-    bmpOffset = boReadPtr(tex, texOffset)
-    palOffset = boReadPtr(tex, texOffset)
+    bmpOffset = tex.readPtr(texOffset)
+    palOffset = tex.readPtr(texOffset)
     texWidth = tex.readUInt()
     texHeight = tex.readUInt()
     bitDepth = tex.readUInt()
@@ -1414,12 +1436,12 @@ def boTexPS2(tex, texList, texOffset, texName, fontName):
 
 def boTexPSP(tex, texList, texOffset):
     tex.seek(texOffset + 0x8)
-    palOffset = boReadPtr(tex, texOffset)
+    palOffset = tex.readPtr(texOffset)
     texWidth = tex.readUInt()
     texHeight = tex.readUInt()
     bitDepth = tex.readUInt()
     tex.seek(texOffset + 0x38)
-    bmpOffset = boReadPtr(tex, texOffset)
+    bmpOffset = tex.readPtr(texOffset)
     tex.seek(texOffset + 0xB0)
     palCount = tex.readUShort()
     if 1 <= palCount <= 8:
@@ -1486,9 +1508,9 @@ def boTexPSPArena(tex, texList, texOffset, texName=None, fontName=None):
         noesis.doException(BoExcFmt + hex(texFmt))
 
     tex.seek(texOffset + 0x80)
-    bmpOffset = boReadPtr(tex, texOffset)
+    bmpOffset = tex.readPtr(texOffset)
     tex.seek(texOffset + 0xA0)
-    palOffset = boReadPtr(tex, texOffset)
+    palOffset = tex.readPtr(texOffset)
 
     if BoDebug:
         print("\nPlayStation Portable arena texture detected!"
@@ -1514,7 +1536,7 @@ def boTexPSPArena(tex, texList, texOffset, texName=None, fontName=None):
 
 def boTexXbox(tex, texList, texOffset, texName):
     tex.seek(texOffset + 0x4)
-    bmpOffset = boReadPtr(tex, texOffset)
+    bmpOffset = tex.readPtr(texOffset)
     tex.seek(texOffset + 0x34)
     texFmt = tex.readUInt()
     texWidth = tex.readUInt()
@@ -1554,12 +1576,12 @@ def boTexXbox(tex, texList, texOffset, texName):
         texData = rapi.imageFromMortonOrder(tex.readBytes(texWidth * texHeight), texWidth, texHeight, 1)
         tex.seek(texOffset + 0x14)
         for pal in range(palCount):
-            palOffset = boReadPtr(tex, texOffset)
+            palOffset = tex.readPtr(texOffset)
             curPalOffset = tex.getOffset()
             tex.seek(palOffset)
             if not tex.readBytes(0x4) in {b"\x01\x00\x03\x00", b"\x01\x00\x03\xC0"}:
                 noesis.doException(BoExcFmt + "Invalid palette header!")
-            palDataOffset = boReadPtr(tex, texOffset)
+            palDataOffset = tex.readPtr(texOffset)
 
             if BoDebug:
                 print("Palette {} offset: 0x{:X}".format(pal + 1, palOffset)
@@ -1676,11 +1698,11 @@ def boArcTxdParse(arc, texList, startOffset=0x0):
     arc.setEndian(arcEndian)
 
     texCount = arc.readUInt()
-    offStart = boReadPtr(arc, startOffset)
+    offStart = arc.readPtr(startOffset)
     arc.seek(offStart)
     for tex in range(texCount):
         texNum = arc.readUInt64()
-        texOffset = boReadPtr(arc, startOffset)
+        texOffset = arc.readPtr(startOffset)
         curOffset = arc.getOffset() + 0x4
         boTexParse(arc, arcEndian, texList, texOffset)
         if BoDebug:
@@ -1689,20 +1711,21 @@ def boArcTxdParse(arc, texList, startOffset=0x0):
 
 def boArcMdlBxv(data, mdlList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(boDecZlib(data) if data.startswith(b"\x78\xDA") else data)
-    matList = list()
+    arc = BoBitStream(boDecZlib(data) if data.startswith(b"\x78\xDA") else data)
     texList = list()
 
     arcVer, arcEndian = boGetVerEndian(arc)
 
     arc.seek(0x60)
     if arcVer < 0x20:
-        texOffset = boReadPtr(arc)
+        texOffset = arc.readPtr()
         boTexParse(arc, arcEndian, texList, texOffset)
+        arcSystem = boTexGetSystem(arc, arcEndian, texOffset)
 
     else:  # Xbox 360 only
+        arcSystem = BoXbox360
         for tex in range(19):
-            texOffset = boReadPtr(arc)
+            texOffset = arc.readPtr()
             if texOffset:
                 curTexOffset = arc.getOffset()
                 arc.seek(texOffset + 0x48)
@@ -1714,7 +1737,7 @@ def boArcMdlBxv(data, mdlList):
                     texName = boTexGetName(arc, arcEndian, texOffset)
                     arc.seek(curTexOffset)
                     for pal in range(19 - tex):
-                        palOffset = boReadPtr(arc)
+                        palOffset = arc.readPtr()
                         if palOffset:
                             curPalOffset = arc.getOffset()
                             palName = boTexGetName(arc, arcEndian, palOffset)
@@ -1732,19 +1755,65 @@ def boArcMdlBxv(data, mdlList):
 
     #if not BoModels:
     boSetDummyMdl(mdlList, texList)
-    #rapi.rpgCreateContext()
-    #matList.append(NoeMaterial("mat0", texList[0].name))
-    #rapi.rpgSetMaterial("mat0")
-    #boMdlPS2(arc, 0x15100)
-    #mdl = rapi.rpgConstructModel()
-    #mdl.setModelMaterials(NoeModelMaterials(texList, matList))
-    #mdlList.append(mdl)
+    return True
+
+    # this is debug/test stuff, do not use
+    rapi.rpgCreateContext()
+    matList = list()
+
+    if arcEndian == NOE_BIGENDIAN:
+        rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, True)
+
+    matName = BoMatName.format(0)
+    mat = NoeMaterial(matName, texList[0].name)
+    mat.setFlags(noesis.NMATFLAG_TWOSIDED)
+    mat.setDefaultBlend(False)
+    rapi.rpgSetMaterial(matName)
+    matList.append(mat)
+
+    # TODO: split in its own boMdlParseVehicle(), this is just a temporary test thing
+    if arcSystem == BoPS2:
+        arc.seek(0xC if arcVer <= 0x17 else 0x8)
+        mdlParts = arc.readUByte()
+        mdlWheels = arc.readUByte()
+        if arcVer <= 0x17:
+            mdlLodMin = arc.readUShort()
+            mdlLodMax = arc.readUShort()
+        else:
+            mdlLodMin = arc.readUByte()
+            mdlLodMax = arc.readUByte()
+
+        # 0x50 for Xbox
+        arc.seek(0x4C + mdlLodMax * 0x4)
+        lodOffset = arc.readPtr()
+
+        # TEMP: 1x body, 6x/8x parts, 3x wheels
+        for idx in range(4 + (6 if arcVer <= 0x17 else 8)):
+            arc.seek(lodOffset + idx * 0x4)
+            hdrOffset = arc.readPtr(lodOffset)
+            if hdrOffset:
+                arc.seek(hdrOffset + 0xC)
+                vifStart = arc.readPtr(hdrOffset + 0xC)
+                vifFull = arc.readPtr(hdrOffset + 0xC)
+                rapi.rpgSetName(str(idx))
+                boMdlPS2(arc, vifStart, vifFull)
+
+        #rapi.rpgSetName("lod")
+        #boMdlPS2(arc, 0x67B80, 0x0)
+        #boMdlPS2(arc, 0x67600, 0x67980)
+
+    try:
+        mdl = rapi.rpgConstructModel()
+    except:
+        mdl = NoeModel()
+    mdl.setModelMaterials(NoeModelMaterials(texList, matList))
+    mdlList.append(mdl)
     return True
 
 def boArcMdlDatStatic(data, mdlList):
     #rapi.setPreviewOption("setAngOfs", "0 -60 120")  # 0 -60 120 # 0 -240 60
     rapi.processCommands("-texnorepfn")  # -rotate 0 15 0 # 0 -15 0
-    arc = NoeBitStream(boDecZlib(data) if data.startswith(b"\x78\xDA") else data)
+    arc = BoBitStream(boDecZlib(data) if data.startswith(b"\x78\xDA") else data)
     texList = list()
 
     arcVer, arcEndian = boGetVerEndian(arc)
@@ -1755,12 +1824,12 @@ def boArcMdlDatStatic(data, mdlList):
     else:
         arc.seek(0x16)
         texCount = arc.readUShort()
-    texArrayOffset = boReadPtr(arc)
+    texArrayOffset = arc.readPtr()
 
     texName = dict()
     for tex in range(texCount):
         arc.seek(texArrayOffset + 0x4 * tex)
-        texOffset = boReadPtr(arc)
+        texOffset = arc.readPtr()
         boTexParse(arc, arcEndian, texList, texOffset)
         texName[texOffset] = boTexGetName(arc, arcEndian, texOffset)
 
@@ -1780,10 +1849,10 @@ def boArcMdlDatStatic(data, mdlList):
         rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, True)
 
     arc.seek(0x8)
-    matOffset = boReadPtr(arc)
+    matOffset = arc.readPtr()
     matCount = arc.readUShort()
     matAnimCount = arc.readUShort()
-    matAnimOffset = boReadPtr(arc)
+    matAnimOffset = arc.readPtr()
 
     # Materials (may be moved into its own function loop, idk)
     arc.seek(matAnimOffset)
@@ -1796,10 +1865,10 @@ def boArcMdlDatStatic(data, mdlList):
 
         matType = arc.readUInt()  # Render type (normal, wireframe, use alpha specular etc.)
         arc.seek(matOffset + 0xC)  # Two floats, don't seem to have any effect in-game, unused?
-        texPtrOffset = boReadPtr(arc, matOffset)
+        texPtrOffset = arc.readPtr(matOffset)
         if texPtrOffset:
             arc.seek(texPtrOffset)
-            texOffset = boReadPtr(arc, matOffset)
+            texOffset = arc.readPtr(matOffset)
             mat.setTexture(texName.get(texOffset))
 
         if idx in matAnimIdx:
@@ -1877,13 +1946,13 @@ def boArcMdlDatStatic(data, mdlList):
 
     for mdl, mdlType in enumerate(("backdrop", "chevron", "water", "reflection")):
         arc.seek(0x24 + mdl * 4)
-        grpOffset = boReadPtr(arc)
+        grpOffset = arc.readPtr()
         arc.seek(grpOffset)
         for grp in range(mdlCount[mdl]):
             grpOffset = arc.getOffset()
             subCount = arc.readUShort()
             arc.seek(0x2, 1)
-            mdlOffset = boReadPtr(arc, grpOffset)
+            mdlOffset = arc.readPtr(grpOffset)
             boMdlParseTrack(arc, arcVer, arcSystem, mdlOffset, subCount, grp, mdlType, grpOffset, matList)
             arc.seek(grpOffset + 0x8)
 
@@ -1899,8 +1968,8 @@ def boArcMdlDatStatic(data, mdlList):
         arc.seek(0x70, 1)
     instCount = arc.readUShort()
     propCount = arc.readUShort()
-    instOffset = boReadPtr(arc)
-    propOffset = boReadPtr(arc)
+    instOffset = arc.readPtr()
+    propOffset = arc.readPtr()
     if arcVer >= 0x30:
         if propCount != 0:
             noesis.doException("Invalid State! Expected 0 for old props in Static version {:02X}, got {}".format(arcVer, propCount))
@@ -1911,10 +1980,10 @@ def boArcMdlDatStatic(data, mdlList):
     propSpawns = arc.readUInt()
     if arcVer < 0x30:
         # B3/Legends props only
-        propUnkOffset = boReadPtr(arc)  # bytearray, same length as propCount
-        propMatOffset = boReadPtr(arc)
-        propPtrOffset = boReadPtr(arc)
-        propUnkOffset = boReadPtr(arc)  # animated blinking lights?
+        propUnkOffset = arc.readPtr()  # bytearray, same length as propCount
+        propMatOffset = arc.readPtr()
+        propPtrOffset = arc.readPtr()
+        propUnkOffset = arc.readPtr()  # animated blinking lights?
         propNum = 0
 
     instLodPtr = {
@@ -1932,12 +2001,12 @@ def boArcMdlDatStatic(data, mdlList):
     if arcVer >= 0x30 and os.path.exists(propFile) and os.path.getsize(propFile):
         data = rapi.loadIntoByteArray(propFile)
         if boChkDatPropInst(data):
-            prop = NoeBitStream(data)
+            prop = BoBitStream(data)
             boGetVerEndian(prop)  # just to override endianness
 
             prop.seek(0x8)
-            propIdxOffset = boReadPtr(prop)
-            propMatOffset = boReadPtr(prop)
+            propIdxOffset = prop.readPtr()
+            propMatOffset = prop.readPtr()
 
             #if prop.readUInt() != prop.readUInt():  # == prop.getSize()
             prop.seek(0x18)
@@ -1962,7 +2031,7 @@ def boArcMdlDatStatic(data, mdlList):
     # Streamed Units
     streamFile = os.path.join(os.path.split(rapi.getInputName())[0], "streamed.dat")
     if os.path.exists(streamFile) and os.path.getsize(streamFile):
-        mdl = NoeBitStream(rapi.loadIntoByteArray(streamFile))
+        mdl = BoBitStream(rapi.loadIntoByteArray(streamFile))
         boGetVerEndian(mdl)  # just to override endianness
 
         # PSP Dominator uses ver 0x30 for whatever reason, but has changes
@@ -1978,12 +2047,12 @@ def boArcMdlDatStatic(data, mdlList):
 
         unitCount = arc.readUShort()
         arc.seek(0x2, 1)
-        unitOffset = boReadPtr(arc)
+        unitOffset = arc.readPtr()
 
         for unit in range(unitCount):
             arc.seek(unitOffset + 0x10 * unit)
-            subOffset = boReadPtr(arc) + 0x10
-            lodOffset = boReadPtr(arc) + 0x10
+            subOffset = arc.readPtr() + 0x10
+            lodOffset = arc.readPtr() + 0x10
             subSize = arc.readUInt()
             lodSize = arc.readUInt()
 
@@ -1998,18 +2067,18 @@ def boArcMdlDatStatic(data, mdlList):
                 instDataOffset = lodOffset + instLodPtr
 
                 mdl.seek(instDataOffset)
-                instIdxOffset = boReadPtr(mdl, instDataOffset)
-                instPtrOffset = boReadPtr(mdl, instDataOffset)
+                instIdxOffset = mdl.readPtr(instDataOffset)
+                instPtrOffset = mdl.readPtr(instDataOffset)
                 # only in PS2 Dominator?
-                #animIdxOffset = boReadPtr(mdl, instDataOffset)
-                #animPtrOffset = boReadPtr(mdl, instDataOffset)
+                #animIdxOffset = mdl.readPtr(instDataOffset)
+                #animPtrOffset = mdl.readPtr(instDataOffset)
 
                 instNum = 0
                 for idx in range(instCount):
                     mdl.seek(instIdxOffset + idx)
                     instIdxCount = mdl.readUByte()
                     mdl.seek(instPtrOffset + 0x4 * idx)
-                    instMatOffset = boReadPtr(mdl, instDataOffset)
+                    instMatOffset = mdl.readPtr(instDataOffset)
 
                     for inst in range(instIdxCount):
                         instName = "unit_{:03}_inst_{:03}_mdl".format(unit, instNum)
@@ -2022,7 +2091,7 @@ def boArcMdlDatStatic(data, mdlList):
             if arcVer < 0x30:
                 propIdx = 0
                 arc.seek(propPtrOffset + 0x4 * unit)
-                propIdxOffset = boReadPtr(arc)
+                propIdxOffset = arc.readPtr()
                 for idx in range(propCount):
                     arc.seek(propIdxOffset + idx)
                     propIdxCount = arc.readUByte()
@@ -2050,7 +2119,7 @@ def boArcMdlDatStatic(data, mdlList):
 
 def boArcTexDatEnviro(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arc.seek(0xB8)
     arcEndian = NOE_BIGENDIAN if arc.readBytes(0x4) == b"\x45\x44\x00\x03" else NOE_LITTLEENDIAN
@@ -2059,7 +2128,7 @@ def boArcTexDatEnviro(data, texList):
     arcSize = arc.getSize()
     arc.seek(0x98)
     while True:
-        texOffset = boReadPtr(arc)
+        texOffset = arc.readPtr()
         if not 0xB0 <= texOffset <= arcSize:
             break
         curTexOffset = arc.getOffset()
@@ -2069,22 +2138,22 @@ def boArcTexDatEnviro(data, texList):
 
 def boArcTexBinFE(data, texList):
     rapi.processCommands("-texnorepfn -fulltexpath")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arcEndian = NOE_LITTLEENDIAN if arc.readBytes(0x8) == G_MOVIEARRAY else NOE_BIGENDIAN
     arc.setEndian(arcEndian)
 
     dirCount = arc.readUInt()
-    dirOffset = boReadPtr(arc)
+    dirOffset = arc.readPtr()
 
     arc.seek(dirOffset)
     for dir in range(dirCount):
-        dirInfoOffset = boReadPtr(arc)
+        dirInfoOffset = arc.readPtr()
         curHdrOffset = arc.getOffset()
 
         arc.seek(dirInfoOffset)
-        dirNameOffset = boReadPtr(arc)
-        dirDataOffset = boReadPtr(arc)
+        dirNameOffset = arc.readPtr()
+        dirDataOffset = arc.readPtr()
         arc.seek(dirNameOffset)
         dirName = arc.readString()
 
@@ -2096,18 +2165,18 @@ def boArcTexBinFE(data, texList):
         if texCount:
             boPrepExportPath(dirName)
 
-            texArrayOffset = boReadPtr(arc, dirDataOffset)
-            aptDataOffset = boReadPtr(arc, dirDataOffset)
-            aptConstOffset = boReadPtr(arc, dirDataOffset)
+            texArrayOffset = arc.readPtr(dirDataOffset)
+            aptDataOffset = arc.readPtr(dirDataOffset)
+            aptConstOffset = arc.readPtr(dirDataOffset)
 
             arc.seek(texArrayOffset)
-            texOffset = [boReadPtr(arc, dirDataOffset) for tex in range(texCount)]
+            texOffset = [arc.readPtr(dirDataOffset) for tex in range(texCount)]
             texName = [boTexGetName(arc, arcEndian, tex) for tex in texOffset]
             texArray = dict(zip(texName, texOffset))
 
             boGetTexAptIndex(arc, aptDataOffset, int(texName[0][11:]) + 1 if texName[0].startswith("TexturePage") else int(texName[0]))
             for name in range(texCount):
-                texNameOffset = boReadPtr(arc, aptDataOffset)
+                texNameOffset = arc.readPtr(aptDataOffset)
                 texNameIndex = arc.readUInt()
                 curAptOffset = arc.getOffset()
                 arc.seek(texNameOffset)
@@ -2147,14 +2216,14 @@ def boArcTexBinFE(data, texList):
 
 def boArcTexBinLoad(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     txdCount = arc.readUInt64()
     arcAlign = boCalcAlign(txdCount * 0x10 + 0x8, 0x800)
     for txd in range(txdCount):
         txdName = boDecGtID(arc.readUInt64())
         txdSize = arc.readUInt()
-        txdOffset = boReadPtr(arc) + arcAlign
+        txdOffset = arc.readPtr() + arcAlign
         curOffset = arc.getOffset()
         boArcTxdParse(arc, texList, txdOffset)
         if BoDebug:
@@ -2165,7 +2234,7 @@ def boArcTexBinLoad(data, texList):
 
 def boArcTexBinFont(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arcEndian = NOE_LITTLEENDIAN
     fontMagic = arc.readBytes(0x4)
@@ -2173,29 +2242,29 @@ def boArcTexBinFont(data, texList):
         if fontMagic == b"v1.4":
             arcEndian = NOE_BIGENDIAN
             arc.setEndian(arcEndian)
-        texOffset = boReadPtr(arc)
+        texOffset = arc.readPtr()
         boTexParse(arc, arcEndian, texList, texOffset)
     else:
         arc.seek(0x0)
         fontName = arc.readString()
         arc.seek(0x70)
-        texOffset = boReadPtr(arc)
+        texOffset = arc.readPtr()
         boTexParse(arc, arcEndian, texList, texOffset, texExtra=fontName)
     return True
 
 def boArcTexTxd(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
     boArcTxdParse(arc, texList)
     return True
 
 def boArcTexArena(data, texList):
     rapi.processCommands("-texnorepfn -fulltexpath")
-    arc = NoeBitStream(data[16:])
+    arc = BoBitStream(data[16:])
 
     arenaName = arc.readString()
     arc.seek(0x40)
-    texOffset = boReadPtr(arc)
+    texOffset = arc.readPtr()
 
     if arenaName.lower().endswith(".msh"):  # Texture
         boTexPSPArena(arc, texList, 0x0)
@@ -2205,25 +2274,25 @@ def boArcTexArena(data, texList):
 
     else:  # Frontend
         arc.seek(0x80)
-        aptDataOffset = boReadPtr(arc)
-        aptConstOffset = boReadPtr(arc)
-        unkPtrOffset = boReadPtr(arc)
-        texPtrOffset = boReadPtr(arc)
+        aptDataOffset = arc.readPtr()
+        aptConstOffset = arc.readPtr()
+        unkPtrOffset = arc.readPtr()
+        texPtrOffset = arc.readPtr()
 
         arc.seek(texPtrOffset)
         texCount = arc.readUInt()
         if texCount != 0:
-            texArrayOffset = boReadPtr(arc)
+            texArrayOffset = arc.readPtr()
 
             # If the first texture index isn't 1, there are no texture names stored in Apt Data.
             if arc.readUInt() == 1:
                 boGetTexAptIndex(arc, aptDataOffset, 1)
-                texNameOffset = boReadPtr(arc)
+                texNameOffset = arc.readPtr()
                 if texNameOffset < texArrayOffset:
                     arc.seek(-0x4, 1)
 
                     for tex in range(texCount):
-                        texNameOffset = boReadPtr(arc, aptDataOffset)
+                        texNameOffset = arc.readPtr(aptDataOffset)
                         texNameIndex = arc.readUInt()
                         curAptOffset = arc.getOffset()
 
@@ -2231,7 +2300,7 @@ def boArcTexArena(data, texList):
                         texName = arc.readString()
                         arc.seek(texArrayOffset)
                         texOffsetIndex = arc.readUInt()
-                        texOffset = boReadPtr(arc)
+                        texOffset = arc.readPtr()
                         texArrayOffset = arc.getOffset()
 
                         boPrepExportPath(os.path.split(texName)[0])  # A few textures are named with a directory
@@ -2246,7 +2315,7 @@ def boArcTexArena(data, texList):
             arc.seek(texArrayOffset)
             for tex in range(texCount):
                 texOffsetIndex = arc.readUInt()
-                texOffset = boReadPtr(arc)
+                texOffset = arc.readPtr()
                 texArrayOffset = arc.getOffset()
                 boTexPSPArena(arc, texList, texOffset)
 
@@ -2268,7 +2337,7 @@ def boArcFxp(fileName, fileLen, isChk):
             return True
 
     print("Loading archive parts...")
-    arc = [NoeBitStream(rapi.loadIntoByteArray(fileName))]
+    arc = [BoBitStream(rapi.loadIntoByteArray(fileName))]
 
     arc[0].seek(0xC)
     fileCount = arc[0].readUInt()
@@ -2286,12 +2355,12 @@ def boArcFxp(fileName, fileLen, isChk):
     arcRoot, arcExt = os.path.splitext(fileName)
     for fxp in range(1, arcCount):
         fileName = arcRoot + str(fxp) + arcExt
-        arc.append(NoeBitStream(rapi.loadIntoByteArray(fileName)))
+        arc.append(BoBitStream(rapi.loadIntoByteArray(fileName)))
 
     for sub in range(fileCount):
-        nameOffset = boReadPtr(arc[0], nameData)
+        nameOffset = arc[0].readPtr(nameData)
         fileSize = arc[0].readUInt()
-        fileOffset = boReadPtr(arc[0]) * 0x800
+        fileOffset = arc[0].readPtr() * 0x800
         if arcSize != fileLen:
             arcIdx = arc[0].readUByte()
             arc[0].seek(0x3, 1)
@@ -2319,14 +2388,14 @@ def boArcFxp(fileName, fileLen, isChk):
 
 def nfsArcMdlTmm(data, mdlList):
     rapi.rpgCreateContext()
-    arc = NoeBitStream(data[0x50:])
+    arc = BoBitStream(data[0x50:])
     matList = list()
 
-    mdlOffset = boReadPtr(arc)
+    mdlOffset = arc.readPtr()
     arc.seek(0x8)
     mdlSize = arc.readUInt()  # this is actually a pointer to the end but lmao
     arc.seek(0x18)
-    vertCount = arc.readUInt()
+    vtxCount = arc.readUInt()
 
     mat = NoeMaterial("mat0", "")
     mat.setFlags(noesis.NMATFLAG_TWOSIDED, 1)
@@ -2335,9 +2404,9 @@ def nfsArcMdlTmm(data, mdlList):
     rapi.rpgSetMaterial("mat0")
 
     arc.seek(mdlOffset)
-    vertData = arc.readBytes(mdlSize)
-    rapi.rpgBindPositionBuffer(vertData, noesis.RPGEODATA_FLOAT, 0xC)
-    rapi.rpgCommitTriangles(None, noesis.RPGEODATA_USHORT, vertCount, noesis.RPGEO_TRIANGLE_STRIP)
+    vtxData = arc.readBytes(mdlSize)
+    rapi.rpgBindPositionBuffer(vtxData, noesis.RPGEODATA_FLOAT, 0xC)
+    rapi.rpgCommitTriangles(None, noesis.RPGEODATA_USHORT, vtxCount, noesis.RPGEO_TRIANGLE_STRIP)
 
     mdl = rapi.rpgConstructModel()
     mdl.setModelMaterials(NoeModelMaterials(list(), matList))
@@ -2346,76 +2415,76 @@ def nfsArcMdlTmm(data, mdlList):
 
 def blkArcTexDb(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arcVer = arc.readUInt()
     if arcVer != 4:
         arc.seek(0x1C)
-    txdOffset = boReadPtr(arc)
+    txdOffset = arc.readPtr()
     boArcTxdParse(arc, texList, txdOffset)
     return True
 
 def blkArcTexBinGlob(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arc.seek(0x4)
-    txdOffset = boReadPtr(arc)
+    txdOffset = arc.readPtr()
     boArcTxdParse(arc, texList, txdOffset)
     return True
 
 def blkArcTexBinGuns(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
-    txdOffset = boReadPtr(arc)
+    txdOffset = arc.readPtr()
     boArcTxdParse(arc, texList, txdOffset)
     return True
 
 def blkArcTexBinLevel(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     chkVer = arc.readUInt()
     arc.seek({
         0xA: 0x2BC,
         0x11: 0x390
     }.get(chkVer))
-    txdOffset = boReadPtr(arc)
+    txdOffset = arc.readPtr()
     boArcTxdParse(arc, texList, txdOffset)
     return True
 
 def blkArcTexBinStLevel(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arc.seek(0xC)
-    hdrOffset = boReadPtr(arc)
+    hdrOffset = arc.readPtr()
     arc.seek(0x4)
-    txdOffset = boReadPtr(arc, hdrOffset)
+    txdOffset = arc.readPtr(hdrOffset)
     boArcTxdParse(arc, texList, txdOffset)
     return True
 
 def blkArcTexBinStUnit(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arc.seek(0x8)
-    hdrOffset = boReadPtr(arc)
+    hdrOffset = arc.readPtr()
     arc.seek(hdrOffset + 0x1C)
-    txdOffset = boReadPtr(arc, hdrOffset)
+    txdOffset = arc.readPtr(hdrOffset)
     boArcTxdParse(arc, texList, txdOffset)
     return True
 
 def blkArcTexBinUnit(data, texList):
     rapi.processCommands("-texnorepfn")
-    arc = NoeBitStream(data)
+    arc = BoBitStream(data)
 
     arcVer = arc.readUInt()
     if arcVer == 0xC:
         arc.seek(0x18)
     elif 0x16 <= arcVer <= 0x18:
         arc.seek(0x24)
-    txdOffset = boReadPtr(arc)
+    txdOffset = arc.readPtr()
     boArcTxdParse(arc, texList, txdOffset)
     return True
