@@ -31,7 +31,7 @@
 #   Convert line geometry to fake quads
 #   Redo loop returns consistently
 
-# Written by Edness   v0.8c   2021-06-23 - 2023-12-25
+# Written by Edness   v0.8d   2021-06-23 - 2023-12-25
 
 BoDebug = False
 BoModels = False
@@ -232,6 +232,10 @@ BoMatName = "material_{:03}"
 BoPSPVtagDef = 0x12000102  # pos uv
 BoPSPVtagClr = 0x12000116  # pos uv clr
 BoPSPVtagNrm = 0x12000122  # pos uv nrm
+
+# Global max streamed units to render at once:
+# Current unit + 8 before + 8 ahead = 17 units
+BoMaxUnits = 17
 
 # Xbox and Xbox 360 mesh format IDs
 BoXboxTris = {
@@ -558,7 +562,7 @@ def boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, mdlSystem):
                 # bumped up but never adjusted along with the fully reworked 0x34+
 
             #  pvsOffset + 0xBC  and  0xAB * chnk  for PSP Dom which uses some weird hybrid of old/new?
-            for chnk in range(17):
+            for chnk in range(BoMaxUnits):
                 mdl.seek(unitRenders + 0xA9 * chnk)
                 unitIdx = mdl.readByte()
                 if unitIdx == 0:  # current
@@ -579,8 +583,8 @@ def boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, mdlSystem):
                 unitRenderStart = pvsOffset + 0xF0
 
             mdl.seek(unitRenders)
-            unitRender = mdl.readBytes(17)
-            unitIdx = list(mdl.readBytes(17)).index(0)  # current
+            unitRender = mdl.readBytes(BoMaxUnits)
+            unitIdx = list(mdl.readBytes(BoMaxUnits)).index(0)  # current
 
             mdl.seek(unitRenderStart)
             mdlIdx = list(mdl.readBytes(matCount * 0x30)[unitIdx::0x30])
@@ -619,10 +623,7 @@ def boMdlPS2(mdl, vifStart, vifFull, primLine=False):
 
     def boPS2Unpack(vifOffset):
         mdl.seek(vifOffset)
-        vifSize = mdl.readUShort()
-        if vifSize <= 0x2:
-            noesis.doException("Empty VIF packet")
-        vifSize = 0xC + vifSize * 0x10
+        vifSize = 0xC + mdl.readUShort() * 0x10
         if mdl.readUShort() != 0x6000:
             noesis.doException("Unexpected VIF identifier!")
         vifUnpack.extend(rapi.unpackPS2VIF(mdl.readBytes(vifSize)))
