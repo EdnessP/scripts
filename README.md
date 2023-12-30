@@ -103,6 +103,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 
 - 4bpp8bpp.bms &mdash; Convert 4-bit PS2 textures in a TM2 container to 8-bit.
 - DVO3parser.bms &mdash; Prints **Driver: San Francisco** Wii .VO3 values.
+- epic_mickey_hash &mdash; **Epic Mickey** Wii string hashing function reimplementation. [Live version](https://ednessp.github.io/live/strings#Epic_Mickey).
 - LingoTildeStr.py &mdash; SIA Tilde's Latvian **Lingo** string compression. [Live version](https://ednessp.github.io/live/strings#Lingo_(Tildes_Birojs)).
 - LingoTildeWordList.txt &mdash; SIA Tilde's Latvian **Lingo** word list.
 - multigim-split.bms &mdash; Split multiple GIM textures glued together, used in **Exit** PSP and possibly others.
