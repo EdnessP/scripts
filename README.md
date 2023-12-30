@@ -111,6 +111,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 - PICparse.py &mdash; Python parser for Blu-ray **Permanent Information & Control** (PIC) binaries. [Live version](https://ednessp.github.io/live/redump#Permanent_Information_&_Control).
 - sch-imus-strip.bms &mdash; Removes all but **BANK** and **PFSM** sections from PS2 .SCH files for vgmstream compatibility.
 - tm2scanner.bms &mdash; Searches for and extracts .TM2 files in a container.
+- TRLegendHash.py &mdash; **Tomb Raider** Wii string hashing function reimplementation. [Live version](https://ednessp.github.io/live/strings#Tomb_Raider).
 - twitchPopoutChroma &mdash; **twitch.tv** popout chat window effects for chroma keying.
 - xbexexmzpe.bms &mdash; Windows, Xbox, Xbox 360 executable timestamps.
 
