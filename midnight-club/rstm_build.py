@@ -16,9 +16,9 @@ PS2STR_PATH = r"X:\path\to\ps2str.exe"
 #     -le | --loopend   <int> Set manual loop end position in frames (28 samples each)
 #       rstm_build.py  "/path/to/sound.wav"  -o "/path/to/sound.rsm"  -lf
 
-# Written by Edness   2022-02-26 - 2023-11-07   v1.4
+# Written by Edness   2022-02-26 - 2024-01-29   v1.4.1
 
-import os, random, string
+import os, random, string, subprocess
 
 def read_int(file, bytes):
     return int.from_bytes(file.read(bytes), "little")
@@ -104,9 +104,9 @@ def build_rstm(path, output=str(), loopfull=False, loop_start=int(), loop_end=in
 
             if ps2str:
                 # -sr:{sample_rate} doesn't resample it on PS2STR, just pitches it up/down
-                os.system(f"{PS2STR_PATH} e -o -v -a -is:16 \"{wav_path}\" \"{ads_path}\"")
+                subprocess.check_call((PS2STR_PATH, "e", "-o", "-v", "-a", "-is:16", wav_path, ads_path))
             elif mfaudio:
-                os.system(f"{MFAUDIO_PATH} /OTSS2C /OF{sample_rate} /OC{channels} /OI10 \"{wav_path}\" \"{ads_path}\"")
+                subprocess.check_call((MFAUDIO_PATH, "/OTSS2C", f"/OF{sample_rate}", f"/OC{channels}", "/OI10", wav_path, ads_path))
 
             if wav_delete:
                 os.remove(wav_path)
@@ -135,7 +135,7 @@ def build_rstm(path, output=str(), loopfull=False, loop_start=int(), loop_end=in
         ssbd_size = read_int(file, 0x4)
         assert not ssbd_size & 0xF, ERR_SIZE
         rsm_data = bytearray(file.read(ssbd_size))
-        frame_size = interleave * channels
+        frame_size = interleave * channels  # actually just 0x10*ch but yknow
         # wipe SPU flags written by MFAudio, Bully is very unhappy with these
         rsm_data[0x1::0x10] = bytes(len(rsm_data) // 0x10)
         # wipe SPU initialization frame written by PS2STR, RSMs don't have these
