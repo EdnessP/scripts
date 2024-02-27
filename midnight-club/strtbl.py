@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Exports and imports Angel Studios / Rockstar: San Diego .STRTBL files
 
-# Usage:
+# Usage: (requires Python 3.9 or newer)
 #   strtbl.py  dec  "X:\path\to\file.strtbl"
 #   strtbl.py  enc  "X:\path\to\edited.json"
 
@@ -21,7 +21,7 @@
 #   - Red Dead Revolver
 #   - Rockstar Games Presents Table Tennis
 #   - Smuggler's Run 2: Hostile Territory (Warzones)
-#   - Test Drive Off-Road: Wide Open
+#   - Test Drive: Off-Road: Wide Open
 #   - TransWorld Surf (Next Wave)
 #
 #  Version 4 (Hash v1, Table v2)
@@ -32,6 +32,7 @@
 #  Version 5 (Hash v2, Table v2)
 #   - Midnight Club: Los Angeles
 #   - Red Dead Redemption
+#   - Red Dead Redemption: Undead Nightmare
 #   - Red Dead Redemption (Remaster)
 
 # Written by Edness   v1.3   2022-10-09 - 2024-02-27
@@ -405,8 +406,8 @@ def parse_json(path, outpath=str()):
             for hash in hash_map:
                 label = hash_map[hash]
                 if lang_idx in input[KEY_DATA][label]:
-                    entry = input[KEY_DATA][label][lang_idx]
                     lang_counter += 1
+                    entry = input[KEY_DATA][label][lang_idx]
                     write_int(hash, 0x4)
                     if ver_strtbl == 2:
                         write_int(entry[KEY_FONT][KEY_FNT_SIZE], 0x2)
