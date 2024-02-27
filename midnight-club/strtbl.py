@@ -226,7 +226,7 @@ def parse_strtbl(path, outpath=str()):
             entries = read_int(0x4)
             for i in range(entries):
                 hashes.append(read_int(0x4))
-                file.seek(read_int(0x4), 1)  # font (has nullptr)
+                file.seek(read_int(0x4), 1)  # font (has null terminator)
                 #labels.append(read_str(0x2, "UTF-16LE", null_len=True))
                 file.seek(read_int(0x4) * 2, 1)
                 file.seek(0x8, 1)  # 2 x floats
@@ -247,7 +247,7 @@ def parse_strtbl(path, outpath=str()):
                 hashes.append(read_int(0x4))
                 if ver_strtbl == 2:
                     file.seek(0x2, 1)
-                file.seek(read_int(0x4), 1)  # font (no nullptr)
+                file.seek(read_int(0x4), 1)  # font (no null terminator)
                 file.seek(read_int(0x4) * 2, 1)  # string data
                 file.seek(0x8, 1)  # 2 x floats
                 if ver_strtbl == 2:
