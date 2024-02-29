@@ -35,7 +35,7 @@
 #   - Red Dead Redemption: Undead Nightmare
 #   - Red Dead Redemption (Remaster)
 
-# Written by Edness   v1.3   2022-10-09 - 2024-02-27
+# Written by Edness   v1.3.1   2022-10-09 - 2024-02-29
 
 import json, os, struct
 
@@ -70,11 +70,11 @@ def hash_v1(str):
 def hash_v2(str):
     # v1 but case insensitive and unsigned chars
     #return hash_v1(str.lower())
-    # According to the function at  821CA9A8  in
-    # MC:LA X360, backslashes are also converted
-    hash = int()
     # I wanted to have this function just call hash_v1 but the last
     # minute discovery of v1 also using signed chars threw that off
+    hash = int()
+    # According to the function at  821CA9A8  in MC:LA X360,
+    # backslashes are also converted like Bully's audio hash
     for chr in str.lower().replace("\\", "/").encode(ENC_LABEL):
         hash += chr  # the only change lol
         hash = UINT32((hash << 10) + hash)
@@ -106,7 +106,7 @@ HASH_FUNCS = (hash_v0, hash_v1, hash_v2)
 #    return -1
 
 def determine_hash(hashes, labels):
-    def _hash(hash_func, ver):
+    def get_hash_map(hash_func):
         hash_map = dict()
         for label in labels:
             #if ver_strtbl == 0:
@@ -120,12 +120,12 @@ def determine_hash(hashes, labels):
             #assert hash not in hash_map, ERR_COLL.format(hash, hash_map[hash], label)
             hash_map[hash] = label
         else:
-            return hash_map, ver
+            return hash_map
 
     for ver, func in enumerate(HASH_FUNCS):
-        result = _hash(func, ver)
-        if result is not None:
-            return result
+        hash_map = get_hash_map(func)
+        if hash_map is not None:
+            return hash_map, ver
     raise RuntimeError(ERR_ALGO)
 
 #def json_unindent(json_data, start, end):
@@ -147,11 +147,11 @@ def determine_hash(hashes, labels):
 #    print("\nPreparing output 1 of 2...", end="\r")
 #    json_data = json_unindent(json_data, "[", "]")
 #    print("\nPreparing output 2 of 2...")
-#    return json_unindent(json_data, f"\"{KEY_FONT}\": {{", "}")
+#    return json_unindent(json_data, f"\"{KEY_DAT_FONT}\": {{", "}")
 
 def json_fixup_fonts(json_data):
     # and this is 1000x faster than the "safer" method above
-    font = f"\"{KEY_FONT}\": "
+    font = f"\"{KEY_DAT_FONT}\": "
     json_data = json_data.splitlines()
     for i, ln in enumerate(json_data):
         if ln.strip().startswith(font):
@@ -162,7 +162,7 @@ def json_fixup_fonts(json_data):
 
 def exists_prompt(output, prompt):
     if os.path.exists(output):
-        response = input(f"Warning! {prompt} (Y/N): ")[:1].upper()
+        response = input(f"Warning! {prompt.format(os.path.split(output)[1])} (Y/N): ")[:1].upper()
         if response != "Y":
             if response != "N":
                 print("Error! Invalid response.", end=" ")
@@ -221,7 +221,6 @@ def parse_strtbl(path, outpath=str()):
         hashes = list()
         #labels = list()
         if lang_ptrs[0] == label_offs:  # table v0
-            ver_strtbl = 0
             file.seek(lang_ptrs[0])
             entries = read_int(0x4)
             for i in range(entries):
@@ -231,6 +230,7 @@ def parse_strtbl(path, outpath=str()):
                 file.seek(read_int(0x4) * 2, 1)
                 file.seek(0x8, 1)  # 2 x floats
             hash_map = dict([(x, KEY_HASHED.format(x)) for x in sorted(hashes)])
+            ver_strtbl = 0
             ver_hash = 0
 
         else: # table v1, v2
@@ -264,9 +264,9 @@ def parse_strtbl(path, outpath=str()):
         #print(f"Hash v{ver_hash}, Table v{ver_strtbl}")
 
         output[KEY_CONFIG] = dict()
-        output[KEY_CONFIG][KEY_VERSION] = dict()
-        output[KEY_CONFIG][KEY_VERSION][KEY_VER_HASH] = ver_hash
-        output[KEY_CONFIG][KEY_VERSION][KEY_VER_STRTBL] = ver_strtbl
+        output[KEY_CONFIG][KEY_CNF_VERSION] = dict()
+        output[KEY_CONFIG][KEY_CNF_VERSION][KEY_VER_HASH] = ver_hash
+        output[KEY_CONFIG][KEY_CNF_VERSION][KEY_VER_STRTBL] = ver_strtbl
 
         output[KEY_CONFIG][KEY_CNF_DUPES] = dict()
         for lang in unique_langs:
@@ -276,10 +276,7 @@ def parse_strtbl(path, outpath=str()):
                 output[KEY_CONFIG][KEY_CNF_DUPES][lang_idx] = dupes
 
         output[KEY_CONFIG][KEY_CNF_LANGS] = languages
-
-        output[KEY_DATA] = dict()
-        for label in hash_map.values():
-            output[KEY_DATA][label] = dict()
+        output[KEY_DATA] = dict([(label, dict()) for label in hash_map.values()])
 
         #for i, lang in enumerate(lang_ptrs):
         for idx, lang in enumerate(unique_langs):  #, 1):
@@ -304,13 +301,13 @@ def parse_strtbl(path, outpath=str()):
                 # I spent sooo much time trying to work out the cleanest way to
                 # store these, and still not sure if this is the right decision
                 output[KEY_DATA][label][lang_idx] = dict()
-                output[KEY_DATA][label][lang_idx][KEY_TEXT] = string
+                output[KEY_DATA][label][lang_idx][KEY_DAT_TEXT] = string
 
-                #output[KEY_DATA][label][lang_idx][KEY_FONT] = dict()
-                #output[KEY_DATA][label][lang_idx][KEY_FONT]["name"] = font
-                #output[KEY_DATA][label][lang_idx][KEY_FONT]["scale"] = scale
+                #output[KEY_DATA][label][lang_idx][KEY_DAT_FONT] = dict()
+                #output[KEY_DATA][label][lang_idx][KEY_DAT_FONT]["name"] = font
+                #output[KEY_DATA][label][lang_idx][KEY_DAT_FONT]["scale"] = scale
                 #if ver_strtbl == 2:
-                #    output[KEY_DATA][label][lang_idx][KEY_FONT]["size"] = size
+                #    output[KEY_DATA][label][lang_idx][KEY_DAT_FONT]["size"] = size
 
                 # This is by miles the fastest method to inline output font keys
                 font_data = dict()
@@ -319,7 +316,7 @@ def parse_strtbl(path, outpath=str()):
                 if ver_strtbl == 2:
                     font_data[KEY_FNT_SCALE_BYTE] = scale_b
                     font_data[KEY_FNT_SIZE] = size
-                output[KEY_DATA][label][lang_idx][KEY_FONT] = json.dumps(font_data)
+                output[KEY_DATA][label][lang_idx][KEY_DAT_FONT] = json.dumps(font_data)
 
     # I tried custom NoIndent json encoders, but that was insanely slow.
     print("\nPreparing output...")
@@ -365,8 +362,8 @@ def parse_json(path, outpath=str()):
 
     dupes = input[KEY_CONFIG][KEY_CNF_DUPES]
     languages = input[KEY_CONFIG][KEY_CNF_LANGS]
-    ver_strtbl = input[KEY_CONFIG][KEY_VERSION][KEY_VER_STRTBL]
-    hash_func = HASH_FUNCS[input[KEY_CONFIG][KEY_VERSION][KEY_VER_HASH]]
+    ver_strtbl = input[KEY_CONFIG][KEY_CNF_VERSION][KEY_VER_STRTBL]
+    hash_func = HASH_FUNCS[input[KEY_CONFIG][KEY_CNF_VERSION][KEY_VER_HASH]]
 
     # always stored sorted case insensitive by lower-case
     labels = sorted(input[KEY_DATA].keys(), key=str.lower)
@@ -410,28 +407,27 @@ def parse_json(path, outpath=str()):
                     entry = input[KEY_DATA][label][lang_idx]
                     write_int(hash, 0x4)
                     if ver_strtbl == 2:
-                        write_int(entry[KEY_FONT][KEY_FNT_SIZE], 0x2)
-                    write_str(entry[KEY_FONT][KEY_FNT_NAME], ENC_FONT, null_end=False, null_len=(ver_strtbl == 0))
-                    write_str(entry[KEY_TEXT], ENC_TEXT, null_len=True)
-                    write_float(entry[KEY_FONT][KEY_FNT_SCALE_FLOAT][0])
-                    write_float(entry[KEY_FONT][KEY_FNT_SCALE_FLOAT][1])
+                        write_int(entry[KEY_DAT_FONT][KEY_FNT_SIZE], 0x2)
+                    write_str(entry[KEY_DAT_FONT][KEY_FNT_NAME], ENC_FONT, null_end=False, null_len=(ver_strtbl == 0))
+                    write_str(entry[KEY_DAT_TEXT], ENC_TEXT, null_len=True)
+                    write_float(entry[KEY_DAT_FONT][KEY_FNT_SCALE_FLOAT][0])
+                    write_float(entry[KEY_DAT_FONT][KEY_FNT_SCALE_FLOAT][1])
                     if ver_strtbl == 2:
-                        write_int(entry[KEY_FONT][KEY_FNT_SCALE_BYTE][0], 0x1)
-                        write_int(entry[KEY_FONT][KEY_FNT_SCALE_BYTE][1], 0x1)
+                        write_int(entry[KEY_DAT_FONT][KEY_FNT_SCALE_BYTE][0], 0x1)
+                        write_int(entry[KEY_DAT_FONT][KEY_FNT_SCALE_BYTE][1], 0x1)
             if not lang_counter:
                 file.seek(-0x4, 1)
             else: # or just if lang_counter: write num_langs
-                assert lang_counter == len(hash_map), ERR_COUNT
-                end = file.tell()
+                assert lang_counter == len(labels), ERR_COUNT
                 file.seek(lang_ptrs[-1])
                 write_int(lang_counter, 0x4)
-                file.seek(end)
+                file.seek(0, 2)  # eof
             if lang_idx in dupes:
                 for i in range(dupes[lang_idx]):
                     lang_ptrs.append(lang_ptrs[-1])
         #while len(lang_ptrs) < languages:
-        for i in range(languages - len(lang_ptrs)):
-            lang_ptrs.append(file.tell())
+        #for i in range(languages - len(lang_ptrs)):
+        #    lang_ptrs.append(file.tell())
 
         print("Writing container header...")
         file.seek(0x0)
@@ -441,27 +437,29 @@ def parse_json(path, outpath=str()):
 
     print("Done! Output written to", outpath)
 
-KEY_DATA = "data"
-KEY_TEXT = "text"
-KEY_FONT = "font"
-KEY_FNT_NAME = "name"
-KEY_FNT_SCALE_FLOAT = "scale32"
-KEY_FNT_SCALE_BYTE = "scale8"
-KEY_FNT_SIZE = "size"
-KEY_CONFIG = "config"
-KEY_CNF_LANGS = "languages"
-KEY_CNF_DUPES = "dupes"
-KEY_LANG = "Language {:02}"
-KEY_HASHED_PRE = "__hashed_0x"
-KEY_HASHED = KEY_HASHED_PRE + "{:07X}"
-KEY_VERSION = "version"
-KEY_VER_HASH = "hash"
-KEY_VER_STRTBL = "table"
-
 ENC_LABEL = "1252"
 ENC_TEXT = "UTF-16LE"
 ENC_FONT = "ASCII"  # ?
 ENC_JSON = "UTF-8"
+
+KEY_LANG = "Language {:02}"
+KEY_HASHED_PRE = "__hashed_0x"
+KEY_HASHED = KEY_HASHED_PRE + "{:07X}"
+
+KEY_CONFIG = "config"
+KEY_CNF_LANGS = "languages"
+KEY_CNF_DUPES = "dupes"
+KEY_CNF_VERSION = "version"
+KEY_VER_HASH = "hash"
+KEY_VER_STRTBL = "table"
+
+KEY_DATA = "data"
+KEY_DAT_TEXT = "text"
+KEY_DAT_FONT = "font"
+KEY_FNT_NAME = "name"
+KEY_FNT_SCALE_FLOAT = "scale32"
+KEY_FNT_SCALE_BYTE = "scale8"
+KEY_FNT_SIZE = "size"
 
 MSG_COLL = "A hash collision has occurred. The hash 0x{:08X} resolves to:\n- {}\n- {}"
 
@@ -474,7 +472,7 @@ ERR_STRLEN = "Error! String does not match its expected size."
 ERR_VER = "Error! Unsupported .STRTBL version."
 
 WARN_COLL = "Warning! " + MSG_COLL
-WARN_OUTPUT = "Output file already exists. Overwrite?"
+WARN_OUTPUT = "Output file {} already exists. Overwrite?"
 
 if __name__ == "__main__":
     import argparse
