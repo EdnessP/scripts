@@ -21,6 +21,7 @@
 #   - Red Dead Revolver
 #   - Rockstar Games Presents Table Tennis
 #   - Smuggler's Run 2: Hostile Territory (Warzones)
+#   - SpyHunter 2
 #   - Test Drive: Off-Road: Wide Open
 #   - TransWorld Surf (Next Wave)
 #
