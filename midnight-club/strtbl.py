@@ -36,7 +36,7 @@
 #   - Red Dead Redemption: Undead Nightmare
 #   - Red Dead Redemption (Remaster)
 
-# Written by Edness   v1.3.2   2022-10-09 - 2024-03-01
+# Written by Edness   v1.3.3   2022-10-09 - 2024-03-05
 
 import json, os, struct
 
@@ -178,10 +178,12 @@ def parse_strtbl(path, outpath=str()):
     def read_int(bytes):
         return int.from_bytes(file.read(bytes), "little")
 
-    def read_str(char_size, encoding, *, null_end=True, null_len=False):
+    def read_str(encoding, *, null_end=True, null_len=False):
+        null_term = "\x00".encode(encoding)
+        char_size = len(null_term)
         str_len = read_int(0x4)
         if null_end:  # fonts in table v1 and v2 don't include the NULL terminator
-            string = b"".join(iter(lambda: file.read(char_size), b"\x00" * char_size)).decode(encoding)
+            string = b"".join(iter(lambda: file.read(char_size), null_term)).decode(encoding)
             if null_len:  # str_len includes the NULL terminator for the text data length
                 str_len -= 1
         else:
@@ -239,7 +241,7 @@ def parse_strtbl(path, outpath=str()):
             assert ver_strtbl in {256, 512}, ERR_VER
             ver_strtbl >>= 8
             entries = read_int(0x4)
-            labels = [read_str(0x1, ENC_LABEL) for x in range(entries)]
+            labels = [read_str(ENC_LABEL) for x in range(entries)]
 
             file.seek(lang_ptrs[0])
             entries = read_int(0x4)
@@ -289,8 +291,8 @@ def parse_strtbl(path, outpath=str()):
                 label = hash_map[read_int(0x4)]
                 if ver_strtbl == 2:
                     size = read_int(0x2)
-                font = read_str(0x1, ENC_FONT, null_end=False, null_len=(ver_strtbl == 0))
-                string = read_str(0x2, ENC_TEXT, null_len=True)
+                font = read_str(ENC_FONT, null_end=False, null_len=(ver_strtbl == 0))
+                string = read_str(ENC_TEXT, null_len=True)
                 scale_f = [round(read_float(), 5), round(read_float(), 5)]
                 if ver_strtbl == 2:
                     # int(scale_f) if it's over 1.0f?  extremely rarely used
