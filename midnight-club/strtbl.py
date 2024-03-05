@@ -47,10 +47,10 @@ def hash_v0(str):
     # Reimplemented from function at  003587E8  in
     #          Midnight Club 2 (PS2 PAL)          
     hash = int()
-    # Japanese Red Dead Revolver has a key with tabs at the end that are stripped
-    # but Test Drive: Off Road has keys with a space at the end, not stripped out
+    # Japanese Red Dead Revolver has keys with tabs at the end that are stripped
+    # but Test Drive: Off Road has keys with a space at the end not stripped out
     for chr in str.strip("\t\n\r").encode(ENC_LABEL):
-    # Test Drive also has keys with ANSI range chars, which are treated as signed
+    # Test Drive also has keys with ANSI range chars which are treated as signed
         hash = UINT32((hash << 4) + SINT8(chr))
         if mask := hash & 0xF0000000:
             hash ^= mask >> 24 ^ mask
