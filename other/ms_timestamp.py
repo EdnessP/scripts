@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # Python reimplementation of  xbexexmzpe.bms  with extra features
-# Written by jason098 & Edness    2021-10-23 - 2023-07-07    v1.6
+# Written by jason098 & Edness    2021-10-23 - 2024-03-08    v1.7
 # Original base script written on 2021-03-17
 
-import argparse, os
-from datetime import datetime
+import argparse, datetime, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str, help="path to a file to read")
@@ -27,7 +26,7 @@ def read_str(bytes):
 
 def print_time(type):
     time = (read_int(0x4), 0) if (time_t) else divmod(read_int(0x8) - 0x19DB1DED53E8000, 10000000)
-    time = datetime.utcfromtimestamp(time[0]).replace(microsecond=time[1] // 10)
+    time = datetime.datetime.fromtimestamp(time[0], datetime.UTC).replace(microsecond=time[1] // 10)
     if (not args.noprefix): print(f"{type} date:".ljust(10), end=" ")
     print(time.strftime(f"%Y-%m-%d %H:%M:%S{'' if (time_t) else '.%f'}"))
 
