@@ -536,7 +536,7 @@ def boMdlTrackGetMatIdx(mdl, mdlVer, mdlOffset, grpOffset, subCount, mdlSystem):
 
         pvsOffset = mdlOffset + {
             BoPS2: 0x10,
-            #BoPSP: (0x10, 0x60),
+            #BoPSP: (0x10, 0xF0),
             BoXbox: 0x20,
             BoXbox360: 0x30
         }.get(mdlSystem)
@@ -1695,7 +1695,7 @@ def boTexParse(tex, texEndian, texList, texOffset, texName=None, texExtra=None):
 
 def boArcTxdParse(arc, texList, startOffset=0x0):
     arc.seek(startOffset)
-    arcEndian = NOE_LITTLEENDIAN if arc.readBytes(0x8) == G_TEXDIC else NOE_BIGENDIAN
+    arcEndian = NOE_LITTLEENDIAN if arc.readBytes(0x8) in {G_TEXDIC, G_TEXTURE, G_TEXTUREDICTI} else NOE_BIGENDIAN
     arc.setEndian(arcEndian)
 
     texCount = arc.readUInt()
