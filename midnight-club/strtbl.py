@@ -36,7 +36,7 @@
 #   - Red Dead Redemption: Undead Nightmare
 #   - Red Dead Redemption (Remaster)
 
-# Written by Edness   v1.3.3   2022-10-09 - 2024-03-05
+# Written by Edness   v1.3.4   2022-10-09 - 2024-04-01
 
 import json, os, struct
 
@@ -69,13 +69,17 @@ def hash_v1(str):
     return UINT32((hash << 15) + hash)
 
 def hash_v2(str):
-    # v1 but case insensitive and unsigned chars
+    # Reimplemented from function at  0040CDF0  in
+    #      Bully / Canis Canem Edit (PS2 PAL)     
+    # While Bully doesn't use .STRTBL, it is where
+    # I originally reimplemented this hash variant
+    # Cross-checked with the function at  821CA9A8
+    # in Midnight Club: Los Angeles (Xbox 360 EUR)
+    hash = int()
     #return hash_v1(str.lower())
+    # v1 but unsigned chars and case and path separator insensitive
     # I wanted to have this function just call hash_v1 but the last
     # minute discovery of v1 also using signed chars threw that off
-    hash = int()
-    # According to the function at  821CA9A8  in MC:LA X360,
-    # backslashes are also converted like Bully's audio hash
     for chr in str.lower().replace("\\", "/").encode(ENC_LABEL):
         hash += chr  # the only change lol
         hash = UINT32((hash << 10) + hash)
@@ -206,6 +210,7 @@ def parse_strtbl(path, outpath=str()):
     file_size = os.path.getsize(path)
     with open(path, "rb") as file:
         # there's no clear header identifier, so stricter checking is done here
+        # it's also always little endian regardless of platform - PS3, 360, Wii
         languages = read_int(0x4)
         assert not languages >> 16, ERR_LANGS
         lang_ptrs = [read_int(0x4) for x in range(languages)]
@@ -322,9 +327,9 @@ def parse_strtbl(path, outpath=str()):
 
     # I tried custom NoIndent json encoders, but that was insanely slow.
     print("\nPreparing output...")
-    # Red Dead Redemption remaster has a 13MiB .STRTBL, which decoded to
-    # 26MiB if using 4 spaces for indentation. With TABs it became 20MiB
-    output = json.dumps(output, indent="\t", ensure_ascii=False)  # sort_keys=True
+    # Red Dead Redemption remaster has a 13MiB .STRTBL, which decodes to
+    # 26MiB if using 4 space indentation. And with TABs it becomes 20MiB
+    output = json.dumps(output, indent=4, ensure_ascii=False)  # sort_keys=True
     with open(outpath, "w", encoding=ENC_JSON, newline="\n") as file:
         #json.dump(output, file, indent=4, ensure_ascii=False, cls=MyEncoder)
         file.write(json_fixup_fonts(output))  # easiest hack workaround lol
