@@ -80,7 +80,7 @@ def hash_v2(str):
     # v1 but unsigned chars and case and path separator insensitive
     # I wanted to have this function just call hash_v1 but the last
     # minute discovery of v1 also using signed chars threw that off
-    for chr in str.lower().replace("\\", "/").encode(ENC_LABEL):
+    for chr in str.replace("\\", "/").encode(ENC_LABEL).lower():
         hash += chr  # the only change lol
         hash = UINT32((hash << 10) + hash)
         hash ^= hash >> 6
@@ -210,7 +210,7 @@ def parse_strtbl(path, outpath=str()):
     file_size = os.path.getsize(path)
     with open(path, "rb") as file:
         # there's no clear header identifier, so stricter checking is done here
-        # it's also always little endian regardless of platform - PS3, 360, Wii
+        # it's always little endian regardless of platform (GCN, PS3, 360, Wii)
         languages = read_int(0x4)
         assert not languages >> 16, ERR_LANGS
         lang_ptrs = [read_int(0x4) for x in range(languages)]
@@ -240,7 +240,7 @@ def parse_strtbl(path, outpath=str()):
             ver_strtbl = 0
             ver_hash = 0
 
-        else: # table v1, v2
+        else:  # table v1, v2
             file.seek(label_offs)
             ver_strtbl = read_int(0x4)
             assert ver_strtbl in {256, 512}, ERR_VER
@@ -291,6 +291,7 @@ def parse_strtbl(path, outpath=str()):
             #if lang == file_size: continue
             file.seek(lang)
             entries = read_int(0x4)
+            assert entries == len(hash_map), ERR_COUNT
             lang_idx = KEY_LANG.format(idx)
             for i in range(entries):
                 label = hash_map[read_int(0x4)]
@@ -328,10 +329,10 @@ def parse_strtbl(path, outpath=str()):
     # I tried custom NoIndent json encoders, but that was insanely slow.
     print("\nPreparing output...")
     # Red Dead Redemption remaster has a 13MiB .STRTBL, which decodes to
-    # 26MiB if using 4 space indentation. And with TABs it becomes 20MiB
+    # 28MiB if using 4 space indentation. And with TABs it becomes 22MiB
     output = json.dumps(output, indent=4, ensure_ascii=False)  # sort_keys=True
     with open(outpath, "w", encoding=ENC_JSON, newline="\n") as file:
-        #json.dump(output, file, indent=4, ensure_ascii=False, cls=MyEncoder)
+        #json.dump(output, file, indent="\t", ensure_ascii=False, cls=MyEncoder)
         file.write(json_fixup_fonts(output))  # easiest hack workaround lol
 
     print("Done! Output written to", outpath)
