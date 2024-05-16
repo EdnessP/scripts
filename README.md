@@ -121,6 +121,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 <summary>ps2\</summary>
 
 - fmt_PS2memcard.py &mdash; **PlayStation 2** Memory Card save icon Noesis importer/exporter plugin. This script has been published incomplete as-is currently, see the comments in the header for more information.
+- mic_build.py &mdash; Builds **PlayStation 2** MultiStreamer .MIC and .MIH+.MIB audio files.
 
 </details>
 
