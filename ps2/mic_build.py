@@ -11,10 +11,10 @@ MFAUDIO_PATH = r"X:\path\to\MFAudio.exe"
 #   Optional:
 #     -i  | --interleave <int> How many frames per channel before switching
 #     -sr | --samplerate <int> Resample to a different sample rate
-#     -s  | --split            Build a split .MIH/.MIB instead of a .MIC file
-#       mic_build.py  "X:\path\to\sound.wav"  -i 0x5D00  -sr 44100
+#     -s  | --split            Build a split .MIH+.MIB instead of a .MIC file
+#       mic_build.py  "X:\path\to\sound.wav"  -i 0x5B80  -sr 44100
 
-# Written by Edness   2024-05-16   v1.0
+# Written by Edness   2024-05-16 - 2024-05-17   v1.0.1
 
 import os, random, string  #, subprocess
 
@@ -57,7 +57,7 @@ def build_mic(path, interleave=int(), resample_rate=int(), split=False):
         assert format == 0x0001, ERR_WAVE  # in {0x0001, 0xFFFE}
         channels = read_int(file, 0x2)
         assert 1 <= channels <= 2, ERR_WAVE
-        if channels == 2:
+        if channels != 1:
             assert interleave and not interleave & 0xF, ERR_INTR
         sample_rate = read_int(file, 0x4)
         assert sample_rate <= 48000, ERR_WAVE
@@ -130,7 +130,9 @@ def build_mic(path, interleave=int(), resample_rate=int(), split=False):
 
     with open(output + (".mih" if split else ".mic"), "wb") as file:
         write_int(file, 0x40, 0x4)  # header size, always 64 bytes
-        write_int(file, block_size_last << 8 | 0x20, 0x4)
+        #write_int(file, block_size_last << 8 | 0x20, 0x4)
+        write_int(file, 0x20, 0x1)
+        write_int(file, block_size_last, 0x3)
         write_int(file, channels, 0x4)
         write_int(file, sample_rate, 0x4)
         write_int(file, interleave, 0x4)
@@ -153,7 +155,7 @@ ERR_ENDF = "Error! Invalid end frame."
 ERR_DATA = "Error! Couldn't locate the WAV data section."
 ERR_FILE = "Error! Please specify the location of MFAudio in MFAUDIO_PATH in the script."
 ERR_FREQ = "Error! Invalid sample rate."
-ERR_INTR = "Error! Invalid interleave size."
+ERR_INTR = "Error! Invalid interleave size - must be a multiple of 16."
 ERR_SIZE = "Error! Invalid file size."
 ERR_TYPE = "Error! Not a valid WAV input file."
 ERR_WAVE = "Error! Unsupported WAV format.\nInput needs to be a signed 16-bit PCM uncompressed WAV up to 2 channels."
@@ -168,7 +170,7 @@ if __name__ == "__main__":
     #parser.add_argument("-o", "--output", type=str, default=str(), help="path to the output file")
     parser.add_argument("-i", "--interleave", type=hex, default=int(), help="how many frames per channel before switching")
     parser.add_argument("-sr", "--samplerate", type=hex, default=int(), help="resample to a different sample rate")
-    parser.add_argument("-s", "--split", action="store_true", help="build a split .MIH/.MIB instead of a .MIC file")
+    parser.add_argument("-s", "--split", action="store_true", help="build a split .MIH+.MIB instead of a .MIC file")
 
     args = parser.parse_args()
     build_mic(args.path, args.interleave, args.samplerate, args.split)
