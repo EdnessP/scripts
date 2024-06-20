@@ -143,6 +143,7 @@ if __name__ == "__main__":
         func_args = [args.path, args.output]
         if not args.read:
             func_args.append(args.bigendian)
+        args_func = args.func
     except AttributeError:
         print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
-    args.func(*func_args)
+    args_func(*func_args)
