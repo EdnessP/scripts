@@ -15,7 +15,7 @@
 #       -be | --bigendian       Build in big endian (Wii, Xbox 360)
 #         string_bin.py  B  "/path/to/strings.json"  -o "/path/to/new.bin"  -be
 
-# Written by Edness   2024-06-20   v1.0
+# Written by Edness   2024-06-20   v1.0.1
 
 import json, os
 
@@ -67,7 +67,7 @@ def parse_bin(path, outpath=str()):
             # TODO: unhashed map from AE's XMLs?
 
     with open(outpath, "w", encoding="UTF-8") as file:
-        json.dump(output, file, indent=4, sort_keys=True, ensure_ascii=False)
+        json.dump(output, file, indent=0, sort_keys=True, ensure_ascii=False)
 
     print("Done! Output written to", outpath)
 
