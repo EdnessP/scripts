@@ -22,6 +22,7 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 - fmt_BullyAE.py &mdash; **Bully: Anniversary Edition** Noesis plugin for textures and models.
 - fmt_BullySE_Wii.py &mdash; **Bully: Scholarship Edition** Wii Noesis plugin for textures and models.
 - lipfile_update.py &mdash; **Bully** .LIP file updater to allow for Speech.bin edits.
+- string_bin.py &mdash; **Bully** .BIN file exporter and importer.
 
 </details>
 
