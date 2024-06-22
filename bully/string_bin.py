@@ -15,7 +15,7 @@
 #       -be | --bigendian       Build in big endian (Wii, Xbox 360)
 #         string_bin.py  B  "/path/to/strings.json"  -o "/path/to/new.bin"  -be
 
-# Written by Edness   2024-06-20 - 2024-06-21   v1.1.1
+# Written by Edness   2024-06-20 - 2024-06-22   v1.1.2
 
 import json, os
 
@@ -51,7 +51,7 @@ def parse_bin(path, outpath=str()):
     output = dict()
     with open(path, "rb") as file:
         header = file.read(0x4)
-        check = b"\xAB\xCD\x12\x34"
+        check = b"\xAB\xCD\x12\x34"  # 0xABCD1234
         assert header in {check, check[::-1]}, ERR_HEADER
         endian = "big" if header == check else "little"
         assert read_int() == 0x1, ERR_HEADER  # version?
@@ -136,8 +136,8 @@ def build_bin(path, outpath=str(), big_endian=False):
         write_int(0x1)
         write_int(0x0)
         write_int(str_offs[-1] - 1)
-        write_int(len(input) * 0x8)
-        write_int(len(input))
+        write_int(len(hashes) * 0x8)
+        write_int(len(hashes))
         write_int(0x2)
         write_int(0x0)
         file.write(b"BD")
