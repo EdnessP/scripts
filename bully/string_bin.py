@@ -53,7 +53,7 @@ def parse_bin(path, outpath=str()):
     for i in range(0x10000):
         label = f"S{i}"
         hash = label_hash(label)
-        assert hash not in BULLY_STRING_MAP, WARN_COLL.format(hash, BULLY_STRING_MAP[hash], label)
+        assert hash not in BULLY_STRING_MAP, ERR_COLL.format(hash, BULLY_STRING_MAP[hash], label)
         BULLY_STRING_MAP[hash] = label
 
     output = dict()
@@ -153,7 +153,9 @@ def build_bin(path, outpath=str(), big_endian=False):
     print("Done! Output written to", outpath)
 
 ERR_HEADER = "Error! Invalid string container!"
-WARN_COLL = "Warning! A hash collision has occurred! The hash 0x{:08X} corresponds to the following labels\n- {}\n- {}\nThe latter will be discarded!"
+MSG_COLL = "A hash collision has occurred! The hash 0x{:08X} corresponds to the following labels\n- {}\n- {}"
+ERR_COLL = f"Error! {MSG_COLL}"
+WARN_COLL = f"Warning! {MSG_COLL}\nThe latter will be discarded!"
 
 BULLY_STRING_MAP = {
     0x00002190: "AM",
