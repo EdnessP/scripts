@@ -4,7 +4,7 @@
 # Usage:
 #   lipfile_update.py  "X:\Stream\World.dir"  "X:\Audio\PlayList\Speech.bin"
 
-# Written by Edness   2023-11-08   v1.1
+# Written by Edness   2023-11-08 - 2024-11-16   v1.2
 
 import glob, os
 
@@ -16,8 +16,8 @@ def read_int(file, bytes=0x4):
 def read_str(file):
     return "".join(iter(lambda: file.read(0x1).decode("ASCII"), "\x00"))
 
-def write_int(file, int):
-    return file.write(int.to_bytes(0x4, endian))
+def write_int(file, int, bytes=0x4):
+    return file.write(int.to_bytes(bytes, endian))
 
 def update_lip(world_dir, speech_path):
     world_dir = os.path.abspath(world_dir)
@@ -59,6 +59,7 @@ def update_lip(world_dir, speech_path):
     print("Loading World.img...")
     dir_entries = os.path.getsize(world_dir) // 0x20
     with open(world_dir, "rb") as dir, open(world_img, "r+b") as img:
+        assert read_int(img) != 0x0FF512ED, ERR_XMEM
         for idx in range(dir_entries):
             dir.seek(idx * 0x20)
             offs = read_int(dir) * 0x800
@@ -70,14 +71,20 @@ def update_lip(world_dir, speech_path):
                 lip_entries = read_int(img, 0x2)
                 #lipsync_size = read_int(img, 0x2)
                 for idx in range(lip_entries):
-                    img.seek(offs + 0x10 + idx * 0x18)
+                    lip_offs = offs + 0x4 + idx * 0x18
+                    img.seek(lip_offs + 0x0)
+                    bin_idx = read_int(img, 0x2)
+                    img.seek(lip_offs + 0xC)
                     bin_offs = read_int(img)
                     bin_size = read_int(img)
                     bin_hash = read_int(img)
                     assert bin_hash in hash_list, ERR_ENTR.format(bin_hash)
                     idx = hash_list.index(bin_hash)
+                    if idx != bin_idx:
+                        img.seek(lip_offs + 0x0)
+                        write_int(img, idx, 0x2)
                     if (bin_offs, bin_size) != (offs_list[idx], size_list[idx]):
-                        img.seek(-0xC, 1)
+                        img.seek(lip_offs + 0xC)
                         write_int(img, offs_list[idx])
                         write_int(img, size_list[idx])
 
@@ -86,6 +93,7 @@ def update_lip(world_dir, speech_path):
 ERR_ENTR = "Error! Couldn't find the hash 0x{:08X}"
 ERR_HASH = "Error! Invalid Speech.bin Hash archive."
 ERR_WRLD = "Error! Couldn't find {} in the given folder."
+ERR_XMEM = "Error! World.img has to be decompressed first."
 
 if __name__ == "__main__":
     import argparse
