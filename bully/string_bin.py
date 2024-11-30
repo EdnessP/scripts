@@ -15,7 +15,7 @@
 #       -be | --bigendian       Build in big endian (Wii, Xbox 360)
 #         string_bin.py  B  "/path/to/strings.json"  -o "/path/to/new.bin"  -be
 
-# Written by Edness   2024-06-20 - 2024-11-16   v1.2
+# Written by Edness   2024-06-20 - 2024-11-30   v1.2.1
 
 import json, os
 
@@ -7450,7 +7450,7 @@ BULLY_STRING_MAP = {
     0x4CCE2146: "TITLE81_NAME7",
     0x4CCE2147: "TITLE81_NAME8",
     0x4CE33A91: "L3_BIKE",
-    0x4CE45D81: "",
+    0x4CE45D81: "PHO_FB&W",
     0x4CE529A0: "TML01",
     0x4CE7D855: "PHO_FOLD",
     0x4CE89DDB: "PHO_FRED",
