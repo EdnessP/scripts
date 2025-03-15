@@ -127,6 +127,13 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 </details>
 
 <details>
+<summary>saints-row\</summary>
+
+- sr2_xml_charlist.py &mdash; Converts **Saints Row 2** internal character mapping on an exported string file.
+
+</details>
+
+<details>
 <summary>sims-console\</summary>
 
 - Sims2PetsKeyGen.py &mdash; **The Sims 2: Pets** Unlock Code gift key generator and decoder. [Live version](https://ednessp.github.io/live/strings#The_Sims_(Console))
