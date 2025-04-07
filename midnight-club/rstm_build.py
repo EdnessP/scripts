@@ -16,7 +16,7 @@ PS2STR_PATH = r"X:\path\to\ps2str.exe"
 #     -le | --loopend   <int> Set manual loop end position in frames (28 samples each)
 #       rstm_build.py  "/path/to/sound.wav"  -o "/path/to/sound.rsm"  -lf
 
-# Written by Edness   2022-02-26 - 2024-01-29   v1.4.1
+# Written by Edness   2022-02-26 - 2025-04-07   v1.4.2
 
 import os, random, string, subprocess
 
@@ -106,7 +106,9 @@ def build_rstm(path, output=str(), loopfull=False, loop_start=int(), loop_end=in
                 # -sr:{sample_rate} doesn't resample it on PS2STR, just pitches it up/down
                 subprocess.check_call((PS2STR_PATH, "e", "-o", "-v", "-a", "-is:16", wav_path, ads_path))
             elif mfaudio:
-                subprocess.check_call((MFAUDIO_PATH, "/OTSS2C", f"/OF{sample_rate}", f"/OC{channels}", "/OI10", wav_path, ads_path))
+                # MFAudio's cli argument parsing is garbage, it always expects quotes around the input/output
+                cmd = f"\"{MFAUDIO_PATH}\" /OTSS2C /OF{sample_rate} /OC{channels} /OI10 \"{wav_path}\" \"{ads_path}\""
+                os.system(f"\"{cmd}\"")
 
             if wav_delete:
                 os.remove(wav_path)
@@ -123,7 +125,7 @@ def build_rstm(path, output=str(), loopfull=False, loop_start=int(), loop_end=in
         channels = read_int(file, 0x4)
         assert 1 <= channels <= 2, ERR_ADS2
         interleave = read_int(file, 0x4)
-        assert interleave == 0x10, ERR_ADS2
+        if channels > 1: assert interleave == 0x10, ERR_ADS2
         # not using loop flags from here, use -lf/-ls/-le instead
         #loop_start = read_int(file, 0x4)
         #loop_end = read_int(file, 0x4)
@@ -135,7 +137,7 @@ def build_rstm(path, output=str(), loopfull=False, loop_start=int(), loop_end=in
         ssbd_size = read_int(file, 0x4)
         assert not ssbd_size & 0xF, ERR_SIZE
         rsm_data = bytearray(file.read(ssbd_size))
-        frame_size = interleave * channels  # actually just 0x10*ch but yknow
+        frame_size = 0x10 * channels
         # wipe SPU flags written by MFAudio, Bully is very unhappy with these
         rsm_data[0x1::0x10] = bytes(len(rsm_data) // 0x10)
         # wipe SPU initialization frame written by PS2STR, RSMs don't have these
