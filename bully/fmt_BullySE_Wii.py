@@ -1,4 +1,4 @@
-# Written by Edness   v1.0b   2023-05-07 - 2023-05-08
+# Written by Edness   v1.1   2023-05-07 - 2025-04-25
 
 # Textures require the following plugins to be installed
 #  * lib_zq_nintendo_tex   (Author: Zheneq)
@@ -46,6 +46,7 @@ def registerNoesisTypes():
 BseTexSuffix = "(Scaled to Alpha)"
 BseExcDataFmt = "Unhandled data format 0x{:02X}!"
 
+
 def bseChkDff(data):
     chk = NoeBitStream(data, NOE_BIGENDIAN)
     if chk.readBytes(0x4) == b"CLMP" and chk.readUInt() == 0x1 and chk.readUInt() <= chk.getSize():
@@ -58,24 +59,46 @@ def bseChkTxd(data):
         return True  # Same as above for not using == in the size integer check
     return False
 
-def bseGetPtrs(noe):
-    noe.seek(0xC)
-    ptrOffset = noe.readUInt()
-    if noe.readUInt() != ptrOffset:
-        noesis.doException("Pointer list offset mismatch!")
-    ptrCount = noe.readUInt()
-    noe.seek(ptrOffset)
-    return [noe.readUInt() for x in range(ptrCount)]
 
-def bseReadPtr(noe, ptrList):
-    ptrOffset = noe.getOffset()
-    ptr = noe.readUInt()
-    if not ptr:
-        return 0
-    if ptrOffset not in ptrList:
-        noesis.doException("Attempted to read an unindexed pointer!")
-    ptrList.remove(ptrOffset)
-    return ptr
+def bseSuper(clObj):
+    # Superclass base shortcut, noeSuper() "fix" for BseBitStream
+    return super(clObj.__class__.__base__, clObj)
+
+class BseBitStream(NoeBitStream):
+    def __init__(self, data=None, bigEndian=NOE_LITTLEENDIAN):
+        # initialise internal pointer list alongside the main init
+        noeSuper(self).__init__(data, bigEndian); self.__getPtrs()
+
+    def seek(self, addr, isRelative=NOESEEK_ABS):
+        # Normally calling this would infinitely recurse on NoeBitStream instead of going to NoeUnpacker
+        # read() and checkOverrun() also use noeSuper() which would break here but I don't use them (yet)
+        #self.toUnpacker(); r = NoeUnpacker.seek(self, addr, isRelative); self.fromUnpacker(); return r
+        self.toUnpacker(); r = bseSuper(self).seek(addr, isRelative); self.fromUnpacker(); return r
+
+    def tell(self):
+        # Normally I use getOffset() but for debugging I like to use tell() instead
+        self.toUnpacker(); r = bseSuper(self).tell(); self.fromUnpacker(); return r
+
+    def readPtr(self):
+        ptrOffset = noesis.bsGetOfs(self.h)
+        ptr = noesis.bsReadUInt(self.h)
+        if not ptr:
+            return 0
+        if ptrOffset not in self.ptrList:
+            noesis.doException("Attempted to read an unindexed pointer!")
+        self.ptrList.remove(ptrOffset)
+        return ptr
+
+    def __getPtrs(self):
+        self.seek(0xC)
+        ptrOffset = noesis.bsReadUInt(self.h)
+        if noesis.bsReadUInt(self.h) != ptrOffset:
+            noesis.doException("Pointer list offset mismatch!")
+        ptrCount = noesis.bsReadUInt(self.h)
+        self.seek(ptrOffset)
+        self.ptrList = [noesis.bsReadUInt(self.h) for x in range(ptrCount)]
+        #self.seek(0x0)
+
 
 class BseMdlParseChunk:
     def __init__(self, mdl, dataInfo, mdlInfo):
@@ -87,39 +110,40 @@ class BseMdlParseChunk:
         mdl.seek(dataInfo)
         self.offset = mdl.readUInt() + mdlInfo
         self.count = mdl.readUShort()
-        self.fmt = mdl.readUByte()
-        self.elems = mdl.readUByte()
+        dataFmt = mdl.readUByte()
+        dataElems = mdl.readUByte()
 
         if self.offset == mdlInfo:
             return
 
         mdl.seek(self.offset)
-        if self.fmt & 0xF0 == 0x30:  # shorts, usually 14-bit for verts/normals and 11-bit for uvs
-            self.stride = self.elems * 0x4
+        if dataFmt & 0xF0 == 0x30:  # shorts, usually 14-bit for verts/normals and 11-bit for uvs
+            self.stride = dataElems * 0x4
             self.data = list()
-            dataBits = (1 << (self.fmt & 0xF)) - 1
+            dataBits = (1 << (dataFmt & 0xF)) - 1
+            #dataBits = 0xFFFF / (0x10000 / (1 << (dataFmt & 0xF)))
             for i in range(self.count):
-                dataTmp = [x / dataBits for x in noeUnpack(">{}h".format(self.elems), mdl.readBytes(self.elems * 0x2))]
-                self.data.append(noePack(">{}f".format(self.elems), *dataTmp))
+                dataTmp = [x / dataBits for x in noeUnpack(">{}h".format(dataElems), mdl.readBytes(dataElems * 0x2))]
+                self.data.append(noePack(">{}f".format(dataElems), *dataTmp))
 
-        elif self.fmt == 0x20:  # bytes (1 x BGR-888) padded?
-            if self.elems != 3:
+        elif dataFmt == 0x20:  # bytes (1 x BGR-888) padded?
+            if dataElems != 3:
                 noesis.doException("Unhandled data format 0x20 element size!")
             self.stride = 0x4
             self.data = [rapi.imageDecodeRaw(mdl.readBytes(0x4), 1, 1, "B8G8R8P8") for x in range(self.count)]
 
-        elif self.fmt == 0x40:  # floats
-            self.stride = self.elems * 0x4
+        elif dataFmt == 0x40:  # floats
+            self.stride = dataElems * 0x4
             self.data = [mdl.readBytes(self.stride) for x in range(self.count)]
 
-        elif self.fmt == 0x50:  # bytes (2 x BGR-565)
-            if self.elems != 4:
+        elif dataFmt == 0x50:  # bytes (2 x BGR-565)
+            if dataElems != 4:
                 noesis.doException("Unhandled data format 0x20 element size!")
             self.stride = 0x8
-            self.data = [rapi.imageDecodeRaw(rapi.swapEndianArray(mdl.readBytes(self.elems), 2), 2, 1, "B5G6R5") for x in range(self.count)]
+            self.data = [rapi.imageDecodeRaw(rapi.swapEndianArray(mdl.readBytes(dataElems), 2), 2, 1, "B5G6R5") for x in range(self.count)]
 
         else:
-            noesis.doException(BseExcDataFmt.format(self.fmt))
+            noesis.doException(BseExcDataFmt.format(dataFmt))
 
 def bseMdlHeader(data):
     mdl = NoeBitStream(data, NOE_BIGENDIAN)
@@ -131,7 +155,7 @@ def bseMdlHeader(data):
     if BseDebug:
         print(mdl.readString())
 
-def bseMdlMain(data, texNames):
+def bseMdlMain(data, texNames, boneMap):
     rapi.rpgClearBufferBinds()
     mdl = NoeBitStream(data, NOE_BIGENDIAN)
     if mdl.readUInt() != 0x00B749E0:
@@ -154,6 +178,8 @@ def bseMdlMain(data, texNames):
     if BseDebug:
         print(mdlName)
 
+    rapi.rpgSetTransform(boneMap[mdlName][0])
+
     mdl.seek(mdlInfo)
     vtxInfo = mdl.readUInt() + mdlInfo
     clrInfo = mdl.readUInt() + mdlInfo
@@ -165,6 +191,10 @@ def bseMdlMain(data, texNames):
     clr = BseMdlParseChunk(mdl, clrInfo, mdlInfo)
     uvs = BseMdlParseChunk(mdl, uvsInfo, mdlInfo)
     nrm = BseMdlParseChunk(mdl, nrmInfo, mdlInfo)
+
+    #for i in nrm.data:
+    #    x, y, z = noeUnpack(">3f", i[:12])
+    #    print(math.sqrt(x*x + y*y + z*z))
 
     mdl.seek(idxInfo)
     idxOffset = mdl.readUInt() + mdlInfo  # 1st submesh offset
@@ -213,39 +243,28 @@ def bseMdlMain(data, texNames):
         idxElems = mdl.readUShort()
 
         for j in range(idxElems):
-            #faceData.append(readIdx(vertCount))
-            #if not clrCount: mdl.readUByte()
-
             readIdx(unk1Fmt)
 
-            vtxReloc.extend(vtx.data[readIdx(vtxFmt)])
+            vtxReloc.append(vtx.data[readIdx(vtxFmt)])
             nrmIdx = readIdx(nrmFmt)
             if nrmIdx != -1 and nrm.offset != mdlInfo:
-                nrmReloc.extend(nrm.data[nrmIdx])
+                nrmReloc.append(nrm.data[nrmIdx])
             clrIdxDay = readIdx(clrFmtDay)
             if not BseNightColors and clrIdxDay != -1:
-                clrReloc.extend(clr.data[clrIdxDay])
+                clrReloc.append(clr.data[clrIdxDay])
             clrIdxNight = readIdx(clrFmtNight)
             if BseNightColors and clrIdxNight != -1:
-                clrReloc.extend(clr.data[clrIdxNight])
+                clrReloc.append(clr.data[clrIdxNight])
             uvsIdx = readIdx(uvsFmt)
             if uvsIdx != -1:
-                uvsReloc.extend(uvs.data[uvsIdx])
+                uvsReloc.append(uvs.data[uvsIdx])
 
             readIdx(unk2Fmt)
 
-            #if not vertReloc[vertIdx]:
-            #    vertReloc[vertIdx].append(faceRead)
-            #    faceReloc.append(vertIdx)
-            #elif vertReloc[vertIdx] != faceRead:
-            #    for rel in vertReloc
-            #else:
-            #    faceReloc.append(vertIdx)
-
-        vtxReloc = bytes(vtxReloc)
-        nrmReloc = bytes(nrmReloc)
-        clrReloc = bytes(clrReloc)
-        uvsReloc = bytes(uvsReloc)
+        vtxReloc = b"".join(vtxReloc)
+        nrmReloc = b"".join(nrmReloc)
+        clrReloc = b"".join(clrReloc)
+        uvsReloc = b"".join(uvsReloc)
         rapi.rpgSetName("_".join((mdlName, "{:03}".format(subIdx))) if subIdx else mdlName)
         #rapi.rpgSetMaterial(texNames[subIdx] if subIdx < len(texNames) else "")
         rapi.rpgSetMaterial(texNames[matIdx])
@@ -253,7 +272,6 @@ def bseMdlMain(data, texNames):
             matIdx += 1
         subIdx += 1
 
-        #faceData = noePack(">{}h".format(len(faceReloc)), *faceData)
         rapi.rpgBindPositionBuffer(vtxReloc, noesis.RPGEODATA_FLOAT, vtx.stride)
         if nrmReloc:
             rapi.rpgBindNormalBuffer(nrmReloc, noesis.RPGEODATA_FLOAT, nrm.stride)
@@ -273,25 +291,22 @@ def bseMdlDff(data, mdlList):
     rapi.rpgCreateContext()
     rapi.rpgSetOption(noesis.RPGOPT_BIGENDIAN, True)
     rapi.rpgSetOption(noesis.RPGOPT_TRIWINDBACKWARD, True)
-    rapi.setPreviewOption("setAngOfs", "0 -90 90")  # 0 -90 90 # 0 -120 145 # 0 60 -145 #
-    rapi.processCommands("-rotate 90 0 0")
-    mdl = NoeBitStream(data, NOE_BIGENDIAN)
+    rapi.setPreviewOption("setAngOfs", "0 -90 0")  # 0 -90 90 # 0 -120 145 # 0 60 -145 #
+    #rapi.processCommands("-rotate 90 0 0")
+    mdl = BseBitStream(data, NOE_BIGENDIAN)
 
-    ptrList = bseGetPtrs(mdl)
-    def readPtr():
-        return bseReadPtr(mdl, ptrList)
-
+    boneMap = dict()
     boneList = list()
     matList = list()
     texList = list()
 
     mdl.seek(0x20)
-    mdlHeader = readPtr()
+    mdlHeader = mdl.readPtr()
     # Repeated twice;  mdlHeader  has two pointers back to here too
     # Intended to be something like TDCT's  nextOffset/prevOffset?
 
     mdl.seek(mdlHeader + 0x8)
-    blkOffset = readPtr()
+    blkOffset = mdl.readPtr()
 
     texLoaded = dict()
     txdFile = os.path.splitext(rapi.getInputName())[0] + ".txd"
@@ -303,8 +318,10 @@ def bseMdlDff(data, mdlList):
                 if tex.name not in texLoaded:
                     if not tex.name.endswith(BseTexSuffix):
                         texLoaded[tex.name] = idx
-                else:
-                    noesis.doException("Duplicate texture names!")
+                # Lockersg.txd has 2 identical SC28_Locker3 textures
+                # fContainer.txd has 2 identical Ppoor_coal_traincar
+                #else:
+                #    noesis.doException("Duplicate texture names!")
 
     # Originally I thought the section pointers weren't consistent, might be redone
     def bseMdlRecurse(blkOffset, **kwArgs):
@@ -314,9 +331,9 @@ def bseMdlDff(data, mdlList):
         if mdlHeader == 0x1 << 24:
             if BseDebug:
                 print("Reading 1 {:08X}".format(blkOffset))
-            boneOffset = readPtr()
+            boneOffset = mdl.readPtr()
             mdl.seek(blkOffset + 0x18)
-            mdlOffset = readPtr()
+            mdlOffset = mdl.readPtr()
 
             bseMdlRecurse(boneOffset, boneIdx=0)  # -> 4
             bseMdlRecurse(mdlOffset)  # -> 2
@@ -324,10 +341,10 @@ def bseMdlDff(data, mdlList):
         elif mdlHeader == 0x2 << 24:
             if BseDebug:
                 print("Reading 2 {:08X}".format(blkOffset))
-            nextOffset = readPtr()
-            prevOffset = readPtr()
-            boneOffset = readPtr()
-            mdlOffset = readPtr()
+            nextOffset = mdl.readPtr()
+            prevOffset = mdl.readPtr()
+            boneOffset = mdl.readPtr()
+            mdlOffset = mdl.readPtr()
 
             #bseMdlRecurse(boneOffset) # -> 4, partial?
             bseMdlRecurse(mdlOffset)   # -> 3
@@ -335,11 +352,11 @@ def bseMdlDff(data, mdlList):
 
         elif mdlHeader == 0x3 << 24:
             texNames = list()
-            texPtrOffset = readPtr()
+            texPtrOffset = mdl.readPtr()
             texCount = mdl.readUInt()
             for i in range(texCount):
                 mdl.seek(texPtrOffset + 0xC * i)
-                texNameOffset = readPtr()
+                texNameOffset = mdl.readPtr()
                 matParam = mdl.readUByte()  # is loaded in RAM?
                 matColor = NoeVec4([mdl.readUByte() / 0xFF for x in range(4)])
 
@@ -355,8 +372,11 @@ def bseMdlDff(data, mdlList):
             if BseDebug:
                 print("Reading 3 {:08X}".format(blkOffset), ", ".join(texNames))
 
+            # no idea what this is, but it isn't the bias/scale/transform matrix
+            # transform matrices are instead stored as a bone in block 0x4
             #mdl.seek(blkOffset + 0x3C)
             #mdlBias = NoeVec3.fromBytes(mdl.readBytes(0xC), NOE_BIGENDIAN)
+            #mdlRot = mdl.readFloat()
             #mdlScale = NoeVec3.fromBytes(mdl.readBytes(0xC), NOE_BIGENDIAN)
             #rapi.rpgSetPosScaleBias(mdlScale, mdlBias)
 
@@ -366,11 +386,11 @@ def bseMdlDff(data, mdlList):
             # being a standard Wii data format.
             mdl.seek(blkOffset + 0x64)
             hdrSize = mdl.readUInt()
-            hdrOffset = readPtr()  # -> 0x7B7960
+            hdrOffset = mdl.readPtr()  # -> 0x7B7960
             mdlSize = mdl.readUInt()
-            mdlOffset = readPtr()  # -> 0xB749E0
+            mdlOffset = mdl.readPtr()  # -> 0xB749E0
             unkSize = mdl.readUInt()
-            unkOffset = readPtr()  # anim?
+            unkOffset = mdl.readPtr()  # anim?
 
             mdl.seek(hdrOffset)
             hdrData = mdl.readBytes(hdrSize)
@@ -382,7 +402,7 @@ def bseMdlDff(data, mdlList):
             mdlData = mdl.readBytes(mdlSize)
             if BseDebug:
                 print("Reading mdl {:08X} ({:08X} bytes)".format(mdlOffset, mdlSize), end=" ")
-            bseMdlMain(mdlData, texNames)
+            bseMdlMain(mdlData, texNames, boneMap)
             #for i in range(2):
             #    bseMdlMain(mdlData, texNames, bool(i))
             #    msh = rapi.rpgConstructModel()
@@ -396,19 +416,26 @@ def bseMdlDff(data, mdlList):
 
         elif mdlHeader == 0x4 << 24:
             mdl.seek(blkOffset + 0x14)
-            boneLeft = readPtr()
-            boneRight = readPtr()
+            boneLeft = mdl.readPtr()
+            boneRight = mdl.readPtr()
             mdl.seek(blkOffset + 0x20)
+            transMat = NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43()
             # The rightmost values of each matrix are uninitialised values,
             # all of which are dropped in the conversion to a 4x3 matrix.
-            boneMat = NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43() \
-                    * NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43()
+            boneMat = NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43()
             mdl.seek(blkOffset + 0xAC)
             boneName = mdl.readString()
-            boneIdx = kwArgs.get("boneIdx")
-            if boneIdx is None:
-                boneIdx = boneList[-1].index + 1
-            boneList.append(NoeBone(boneIdx, boneName, boneMat, kwArgs.get("bonePrev")))
+            #boneIdx = kwArgs.get("boneIdx")
+            #if boneIdx is None:
+            #    boneIdx = boneList[-1].index + 1
+            #boneList.append(NoeBone(boneIdx, boneName, boneMat, kwArgs.get("bonePrev")))
+            if boneName in boneMap:
+                noesis.doException("Duplicate bone names!")
+            boneMap[boneName] = (transMat, boneMat, list())
+            bonePrev = kwArgs.get("bonePrev")
+            if bonePrev:
+                boneMap[bonePrev][2].append(boneName)
+
             if BseDebug:
                 print("Reading 4 {:08X}".format(blkOffset), boneName)
             if boneLeft:
@@ -434,16 +461,12 @@ def bseMdlDff(data, mdlList):
 
 def bseTexTxd(data, texList):
     rapi.processCommands("-texnorepfn")
-    tex = NoeBitStream(data, NOE_BIGENDIAN)
-
-    ptrList = bseGetPtrs(tex)
-    def readPtr():
-        return bseReadPtr(tex, ptrList)
+    tex = BseBitStream(data, NOE_BIGENDIAN)
 
     tex.seek(0x26)
     texCount = tex.readUShort()
-    nextOffset = readPtr()
-    prevOffset = readPtr()
+    nextOffset = tex.readPtr()
+    prevOffset = tex.readPtr()
 
     for i in range(texCount):
         texOffset = nextOffset
@@ -451,13 +474,13 @@ def bseTexTxd(data, texList):
         # 0x8C bytes for each entry
         tex.setEndian(NOE_BIGENDIAN)
         tex.seek(texOffset)
-        nextOffset = readPtr()
-        prevOffset = readPtr()
+        nextOffset = tex.readPtr()
+        prevOffset = tex.readPtr()
         texName = tex.readString()
         # 0x20 bytes for the name, but 0x60 byte buffer total?
 
         tex.seek(texOffset + 0x80)
-        tplOffset = readPtr()
+        tplOffset = tex.readPtr()
 
         tex.setEndian(NOE_LITTLEENDIAN)
         tex.seek(texOffset + 0x88)
