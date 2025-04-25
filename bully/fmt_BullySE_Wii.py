@@ -156,7 +156,6 @@ def bseMdlHeader(data):
         print(mdl.readString())
 
 def bseMdlMain(data, texNames, boneMap):
-    rapi.rpgClearBufferBinds()
     mdl = NoeBitStream(data, NOE_BIGENDIAN)
     if mdl.readUInt() != 0x00B749E0:
         noesis.doException("Invalid mesh identifier!")
@@ -284,6 +283,9 @@ def bseMdlMain(data, texNames, boneMap):
 
     if not nrm.count or nrm.offset == mdlInfo:
         rapi.rpgSmoothNormals()
+
+    rapi.rpgClearBufferBinds()
+    rapi.rpgSetTransform(None)
 
     return clrFmtNight
 
@@ -419,9 +421,9 @@ def bseMdlDff(data, mdlList):
             boneLeft = mdl.readPtr()
             boneRight = mdl.readPtr()
             mdl.seek(blkOffset + 0x20)
-            transMat = NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43()
             # The rightmost values of each matrix are uninitialised values,
             # all of which are dropped in the conversion to a 4x3 matrix.
+            transMat = NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43()
             boneMat = NoeMat44.fromBytes(mdl.readBytes(0x40), NOE_BIGENDIAN).toMat43()
             mdl.seek(blkOffset + 0xAC)
             boneName = mdl.readString()
