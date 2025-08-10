@@ -125,16 +125,24 @@ def decrypt_code(code, addr):
     for tbl in KEY_TABLE:
         tmp1 = tbl[0] ^ ROR(addr, 4)
         tmp2 = tbl[1] ^ addr
-        code ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
-                XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
-                XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
-                XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ XOR_TABLE[1][tmp2 >> 24 & 0x3F]
+        code ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ \
+                XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
+                XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ \
+                XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
+                XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ \
+                XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
+                XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
+                XOR_TABLE[1][tmp2 >> 24 & 0x3F]
         tmp1 = tbl[2] ^ ROR(code, 4)
         tmp2 = tbl[3] ^ code
-        addr ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
-                XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
-                XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
-                XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ XOR_TABLE[1][tmp2 >> 24 & 0x3F]
+        addr ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ \
+                XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
+                XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ \
+                XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
+                XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ \
+                XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
+                XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
+                XOR_TABLE[1][tmp2 >> 24 & 0x3F]
     addr = ROR(addr, 1)
     temp = (code ^ addr) & 0xAAAAAAAA
     addr ^= temp
@@ -183,7 +191,7 @@ def parse_gccodelist(file, offs, output):
             assert enabled <= 1, ERR_CODE  # bool, usually used for mastercodes
             # it actually ORs another value with 0x1 if this is any non-zero val
             if cheat_comment: cheat[KEY_COMM] = cheat_comment
-            if enabled: cheat[KEY_FLAG] = enabled
+            if enabled: cheat[KEY_FLAG] = bool(enabled)
             codes = read_int(0x4)
             assert codes & 0x1 == 0, ERR_CODE  # should always be addr/code pairs
             code_list = ["{:08X} {:08X}".format(*decrypt_code(read_int(0x4), read_int(0x4))) for x in range(codes >> 1)]
