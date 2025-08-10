@@ -1,5 +1,7 @@
-# GameCube Action Replay disc code dumper
-# Written by Edness   v1.0   2025-08-10
+# GameCube Action Replay disc cheat code dumper
+# Reimplemented from the function at 800041C8 in
+# Action Replay Ultimate Codes for TLOZ:TP (USA)
+# Written by Edness   v1.0.1   2025-08-10
 
 import json, os
 
@@ -103,8 +105,6 @@ XOR_TABLE = (
 )
 
 def decrypt_code(code, addr):
-    # Reimplemented from the function at 80006D3C in
-    # Action Replay Ultimate Codes for TLOZ:TP (USA)
     addr, code = BYTESWAP(addr), BYTESWAP(code)
     addr = ROL(addr, 4)
     temp = (code ^ addr) & 0xF0F0F0F0
@@ -122,15 +122,15 @@ def decrypt_code(code, addr):
     temp = (code ^ addr) & 0xAAAAAAAA
     addr ^= temp
     code = ROL(code ^ temp,  1)
-    for i in range(8):
-        tmp1 = KEY_TABLE[i][0] ^ ROR(addr, 4)
-        tmp2 = KEY_TABLE[i][1] ^ addr
+    for tbl in KEY_TABLE:
+        tmp1 = tbl[0] ^ ROR(addr, 4)
+        tmp2 = tbl[1] ^ addr
         code ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
                 XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
                 XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
                 XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ XOR_TABLE[1][tmp2 >> 24 & 0x3F]
-        tmp1 = KEY_TABLE[i][2] ^ ROR(code, 4)
-        tmp2 = KEY_TABLE[i][3] ^ code
+        tmp1 = tbl[2] ^ ROR(code, 4)
+        tmp2 = tbl[3] ^ code
         addr ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
                 XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
                 XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
@@ -151,48 +151,52 @@ def decrypt_code(code, addr):
     temp = (code ^ addr) & 0xF0F0F0F0
     addr ^= temp
     code = ROR(code ^ temp,  4)
-    addr, code = BYTESWAP(addr), BYTESWAP(code)
-    return addr, code
+    return BYTESWAP(addr), BYTESWAP(code)
 
 def parse_gccodelist(file, offs, output):
     read_int = lambda bytes: int.from_bytes(file.read(bytes), "little")
     read_str = lambda: "".join(iter(lambda: file.read(0x2).decode("UTF-16LE"), "\x00"))
 
-    # Reimplemented from the function at 800041C8 in
-    # Action Replay Ultimate Codes for TLOZ:TP (USA)
     file.seek(offs)
     assert file.read(0x10) == b"GAMECUBECODELIST"
     games = read_int(0x4)
     total_codes = read_int(0x4)  # unused
 
     for i in range(games):
+        entry = dict()
         game_name = read_str()
         game_comment = read_str()  # rarely used
-        assert game_name not in output, ERR_DUPE
-        output[game_name] = dict()
-        if game_comment: output[game_name][KEY_COMM] = game_comment
+        #assert game_name not in output, game_name
+        entry[KEY_NAME] = game_name
+        if game_comment: entry[KEY_COMM] = game_comment
+        entry[KEY_CHTS] = list()
         cheats = read_int(0x4)
         for j in range(cheats):
+            cheat = dict()
             cheat_name = read_str()
             cheat_comment = read_str()
-            assert cheat_name not in output[game_name], ERR_DUPE
-            output[game_name][cheat_name] = dict()
+            # 18 out of the 28 GC AR discs on Redump failed this or the above check lol
+            #assert cheat_name not in output[game_name], ERR_DUPE
+            #output[game_name][cheat_name] = dict()
+            cheat[KEY_NAME] = cheat_name
             enabled = read_int(0x1)
             assert enabled <= 1, ERR_CODE  # bool, usually used for mastercodes
             # it actually ORs another value with 0x1 if this is any non-zero val
-            if cheat_comment: output[game_name][cheat_name][KEY_COMM] = cheat_comment
-            if enabled: output[game_name][cheat_name][KEY_FLAG] = enabled
+            if cheat_comment: cheat[KEY_COMM] = cheat_comment
+            if enabled: cheat[KEY_FLAG] = enabled
             codes = read_int(0x4)
             assert codes & 0x1 == 0, ERR_CODE  # should always be addr/code pairs
             code_list = ["{:08X} {:08X}".format(*decrypt_code(read_int(0x4), read_int(0x4))) for x in range(codes >> 1)]
             # empty if used as a section header, meta only if used as a directory entry
-            if code_list: output[game_name][cheat_name][KEY_META] = code_list.pop(0)
-            if code_list: output[game_name][cheat_name][KEY_CODE] = code_list
+            if code_list: cheat[KEY_META] = code_list.pop(0)
+            if code_list: cheat[KEY_CODE] = code_list
+            entry[KEY_CHTS].append(cheat)
+        output.append(entry)
 
 def scan_gc_ar_disc(path):
     assert os.path.getsize(path) == 1459978240, ERR_DISC
     offs = int()
-    output = dict()
+    output = list()
     with open(path, "rb") as file:
         serial = file.read(0x6)
         assert serial in {b"GNHE5d", b"DTLX01"}, ERR_DISC
@@ -200,7 +204,7 @@ def scan_gc_ar_disc(path):
         base = 0x50000000 if serial == b"GNHE5d" else 0x0
         file.seek(base)
         dol = file.read(0x400000)  # max, also 0x200000 or 0x300000
-        assert b"\x34\x1C\x84\x9E\xFD\xA4\xB6\x7B" in dol, ERR_KEYS
+        assert b"\x34\x1C\x84\x9E\xFD\xA4\xB6\x7B" in dol, ERR_DISC
         # can have multiple GAMECUBECODELIST chunks in code pack discs
         while (offs := dol.find(b"GAMECUBECODELIST", offs)) != -1:
             parse_gccodelist(file, base + offs, output)
@@ -210,14 +214,15 @@ def scan_gc_ar_disc(path):
         json.dump(output, file, indent=4, ensure_ascii=False)
     print("Done! Output written to", outpath)
 
+KEY_NAME = "name"
 KEY_CODE = "codes"
+KEY_CHTS = "cheats"
 KEY_FLAG = "enabled"
 KEY_COMM = "comment"
 KEY_META = "metadata"
 
 ERR_DISC = "Error! Not a valid GameCube Action Replay disc."
-ERR_KEYS = "Error! Code decryption key seed not found."
-ERR_CODE = "Error! Bad code configuration."
+ERR_CODE = "Error! Bad cheat code configuration."
 ERR_DUPE = "Error! Duplicate entry name found."
 
 if __name__ == "__main__":
