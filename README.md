@@ -55,6 +55,13 @@ If you wish to, you may also [donate to me here](https://ko-fi.com/edness).
 </details>
 
 <details>
+<summary>gcn\</summary>
+
+- gcn_ar_disc.py &mdash; **GameCube** ***Action Replay*** .ISO disc cheat code dumper.
+
+</details>
+
+<details>
 <summary>jak-daxter\</summary>
 
 - jak1-2vagwad.bms &mdash; **Jak and Daxter: The Precursor Legacy** & **Jak II: Renegade** VAGWAD files.
