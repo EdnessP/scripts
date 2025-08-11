@@ -1,7 +1,7 @@
 # GameCube Action Replay disc cheat code dumper
 # Reimplemented from the function at 800041C8 in
 # Action Replay Ultimate Codes for TLOZ:TP (USA)
-# Written by Edness   v1.0.1   2025-08-10
+# Written by Edness   v1.0.2   2025-08-10 - 2025-08-11
 
 import json, os
 
@@ -10,7 +10,7 @@ ROR = lambda num, bits: UINT32(num >> bits | num << 32 - bits)
 ROL = lambda num, bits: UINT32(num << bits | num >> 32 - bits)
 BYTESWAP = lambda num: num >> 24 | num >> 8 & 0xFF00 | (num & 0xFF00) << 8 | (num & 0xFF) << 24
 
-KEY_TABLE = (  # SEED = (0x341C849E, 0xFDA4B67B)
+KEY_TABLE = (  # KEY_SEED = (0x341C849E, 0xFDA4B67B)
     (0x151E213D, 0x34053F12, 0x0316383E, 0x271E343A),
     (0x03293A24, 0x3E1C2F35, 0x3F210237, 0x21112729),
     (0x0D1E1716, 0x213A3D2D, 0x2B0A161B, 0x1E1A291F),
@@ -169,21 +169,24 @@ def parse_gccodelist(file, offs, output):
     assert file.read(0x10) == b"GAMECUBECODELIST"
     games = read_int(0x4)
     total_codes = read_int(0x4)  # unused
+    num_cheats = int()
 
     for i in range(games):
         entry = dict()
         game_name = read_str()
         game_comment = read_str()  # rarely used
         #assert game_name not in output, game_name
+        #output[game_name] = dict()
         entry[KEY_NAME] = game_name
         if game_comment: entry[KEY_COMM] = game_comment
         entry[KEY_CHTS] = list()
         cheats = read_int(0x4)
+        num_cheats += cheats
         for j in range(cheats):
             cheat = dict()
             cheat_name = read_str()
             cheat_comment = read_str()
-            # 18 out of the 28 GC AR discs on Redump failed this or the above check lol
+            # 24 out of the 39 GC AR discs on Redump failed this or the above check lol
             #assert cheat_name not in output[game_name], ERR_DUPE
             #output[game_name][cheat_name] = dict()
             cheat[KEY_NAME] = cheat_name
@@ -200,6 +203,7 @@ def parse_gccodelist(file, offs, output):
             if code_list: cheat[KEY_CODE] = code_list
             entry[KEY_CHTS].append(cheat)
         output.append(entry)
+    assert num_cheats == total_codes, ERR_CODE
 
 def scan_gc_ar_disc(path):
     assert os.path.getsize(path) == 1459978240, ERR_DISC
@@ -212,6 +216,8 @@ def scan_gc_ar_disc(path):
         base = 0x50000000 if serial == b"GNHE5d" else 0x0
         file.seek(base)
         dol = file.read(0x400000)  # max, also 0x200000 or 0x300000
+        # should usually have 1 key seed, but rarely can have it stored twice, e.g.
+        # CD avec les Codes Exclusifs et inedits pour le Jeu Metroid Prime (France)
         assert b"\x34\x1C\x84\x9E\xFD\xA4\xB6\x7B" in dol, ERR_DISC
         # can have multiple GAMECUBECODELIST chunks in code pack discs
         while (offs := dol.find(b"GAMECUBECODELIST", offs)) != -1:
