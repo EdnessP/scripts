@@ -21,7 +21,7 @@ KEY_TABLE = (  # KEY_SEED = (0x341C849E, 0xFDA4B67B)
     (0x16262F1D, 0x39311834, 0x1F35372C, 0x2029111B),
 )
 
-XOR_TABLE = (
+BIT_TABLE = (
     (
         0x01010400, 0x00000000, 0x00010000, 0x01010404, 0x01010004, 0x00010404, 0x00000004, 0x00010000,
         0x00000400, 0x01010400, 0x01010404, 0x00000400, 0x01000404, 0x01010004, 0x01000000, 0x00000004,
@@ -122,27 +122,29 @@ def decrypt_code(code, addr):
     temp = (code ^ addr) & 0xAAAAAAAA
     addr ^= temp
     code = ROL(code ^ temp,  1)
-    for tbl in KEY_TABLE:
-        tmp1 = tbl[0] ^ ROR(addr, 4)
-        tmp2 = tbl[1] ^ addr
-        code ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ \
-                XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
-                XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ \
-                XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
-                XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ \
-                XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
-                XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
-                XOR_TABLE[1][tmp2 >> 24 & 0x3F]
-        tmp1 = tbl[2] ^ ROR(code, 4)
-        tmp2 = tbl[3] ^ code
-        addr ^= XOR_TABLE[6][tmp1 >>  0 & 0x3F] ^ \
-                XOR_TABLE[4][tmp1 >>  8 & 0x3F] ^ \
-                XOR_TABLE[2][tmp1 >> 16 & 0x3F] ^ \
-                XOR_TABLE[0][tmp1 >> 24 & 0x3F] ^ \
-                XOR_TABLE[7][tmp2 >>  0 & 0x3F] ^ \
-                XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
-                XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
-                XOR_TABLE[1][tmp2 >> 24 & 0x3F]
+    for key in KEY_TABLE:
+        # a much more compact implementation, but noticeably slower (~1.5x) in python
+        #key = list(key)
+        #key[0] ^= ROR(addr, 4)
+        #key[1] ^= addr
+        #for i, bit in enumerate(BIT_TABLE):
+        #    code ^= bit[key[0 + (i & 0x1)] >> 24 - (i >> 1 << 3) & 0x3F]
+        #key[2] ^= ROR(code, 4)
+        #key[3] ^= code
+        #for i, bit in enumerate(BIT_TABLE):
+        #    addr ^= bit[key[2 + (i & 0x1)] >> 24 - (i >> 1 << 3) & 0x3F]
+        tmp1 = key[0] ^ ROR(addr, 4)
+        tmp2 = key[1] ^ addr
+        code ^= BIT_TABLE[0][tmp1 >> 24 & 0x3F] ^ BIT_TABLE[1][tmp2 >> 24 & 0x3F] ^ \
+                BIT_TABLE[2][tmp1 >> 16 & 0x3F] ^ BIT_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
+                BIT_TABLE[4][tmp1 >>  8 & 0x3F] ^ BIT_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
+                BIT_TABLE[6][tmp1 >>  0 & 0x3F] ^ BIT_TABLE[7][tmp2 >>  0 & 0x3F]
+        tmp1 = key[2] ^ ROR(code, 4)
+        tmp2 = key[3] ^ code
+        addr ^= BIT_TABLE[0][tmp1 >> 24 & 0x3F] ^ BIT_TABLE[1][tmp2 >> 24 & 0x3F] ^ \
+                BIT_TABLE[2][tmp1 >> 16 & 0x3F] ^ BIT_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
+                BIT_TABLE[4][tmp1 >>  8 & 0x3F] ^ BIT_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
+                BIT_TABLE[6][tmp1 >>  0 & 0x3F] ^ BIT_TABLE[7][tmp2 >>  0 & 0x3F]
     addr = ROR(addr ^ 0x00,  1)
     temp = (code ^ addr) & 0xAAAAAAAA
     addr ^= temp
@@ -167,11 +169,12 @@ def parse_gccodelist(file, offs, output):
     read_str = lambda: "".join(iter(lambda: file.read(0x2).decode("UTF-16LE"), "\x00"))
 
     file.seek(offs)
-    assert file.read(0x10) == b"GAMECUBECODELIST"
+    assert file.read(0x10) == b"GAMECUBECODELIST", ERR_CODE
     games = read_int(0x4)
     total_codes = read_int(0x4)  # unused
     num_cheats = int()
     table = list()
+    print("Found a code list with 0 entries.", end="\r")  # fallback
     for i in range(games):
         entry = dict()
         game_name = read_str()
@@ -183,8 +186,9 @@ def parse_gccodelist(file, offs, output):
         entry[KEY_CHTS] = list()
         cheats = read_int(0x4)
         num_cheats += cheats
-        print(f"Found code list with {num_cheats} entr{plural(num_cheats, 'y', 'ies')} across {i + 1} title{plural(i + 1, '', 's')}.", end="\r")
+        print(f"Found a code list with {num_cheats} entr{plural(num_cheats, 'y', 'ies')} across {i + 1} title{plural(i + 1, '', 's')}.", end="\r")
         for j in range(cheats):
+            #print(f"Found a code list with {num_cheats + j + 1} entries across {i + 1} titles.", end="\r")
             cheat = dict()
             cheat_name = read_str()
             cheat_comment = read_str()
@@ -216,10 +220,10 @@ def scan_gc_ar_disc(path):
     with open(path, "rb") as file:
         serial = file.read(0x6)
         assert serial in {b"GNHE5d", b"DTLX01"}, ERR_DISC
-        # at the beginning of disc for the later DTLX01 discs
+        # at the beginning of the disc for the later DTLX01 releases
         base = 0x50000000 if serial == b"GNHE5d" else 0x0
         file.seek(base)
-        dol = file.read(0x400000)  # max, also 0x200000 or 0x300000
+        dol = file.read(0x400000)  # max, also seen 0x200000 or 0x300000 sizes
         # should usually have 1 key seed, but rarely can have it stored twice, e.g.
         # CD avec les Codes Exclusifs et inedits pour le Jeu Metroid Prime (France)
         assert b"\x34\x1C\x84\x9E\xFD\xA4\xB6\x7B" in dol, ERR_DISC
