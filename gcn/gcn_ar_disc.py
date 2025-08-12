@@ -1,7 +1,7 @@
 # GameCube Action Replay disc cheat code dumper
 # Reimplemented from the function at 800041C8 in
 # Action Replay Ultimate Codes for TLOZ:TP (USA)
-# Written by Edness   v1.0.2   2025-08-10 - 2025-08-11
+# Written by Edness   v1.1   2025-08-10 - 2025-08-12
 
 import json, os
 
@@ -106,7 +106,7 @@ XOR_TABLE = (
 
 def decrypt_code(code, addr):
     addr, code = BYTESWAP(addr), BYTESWAP(code)
-    addr = ROL(addr, 4)
+    addr = ROL(addr ^ 0x00,  4)
     temp = (code ^ addr) & 0xF0F0F0F0
     code ^= temp
     addr = ROR(addr ^ temp, 20)
@@ -143,7 +143,7 @@ def decrypt_code(code, addr):
                 XOR_TABLE[5][tmp2 >>  8 & 0x3F] ^ \
                 XOR_TABLE[3][tmp2 >> 16 & 0x3F] ^ \
                 XOR_TABLE[1][tmp2 >> 24 & 0x3F]
-    addr = ROR(addr, 1)
+    addr = ROR(addr ^ 0x00,  1)
     temp = (code ^ addr) & 0xAAAAAAAA
     addr ^= temp
     code = ROR(code ^ temp,  9)
@@ -162,6 +162,7 @@ def decrypt_code(code, addr):
     return BYTESWAP(addr), BYTESWAP(code)
 
 def parse_gccodelist(file, offs, output):
+    plural = lambda num, sg, pl: sg if num == 1 else pl
     read_int = lambda bytes: int.from_bytes(file.read(bytes), "little")
     read_str = lambda: "".join(iter(lambda: file.read(0x2).decode("UTF-16LE"), "\x00"))
 
@@ -170,7 +171,7 @@ def parse_gccodelist(file, offs, output):
     games = read_int(0x4)
     total_codes = read_int(0x4)  # unused
     num_cheats = int()
-
+    table = list()
     for i in range(games):
         entry = dict()
         game_name = read_str()
@@ -182,6 +183,7 @@ def parse_gccodelist(file, offs, output):
         entry[KEY_CHTS] = list()
         cheats = read_int(0x4)
         num_cheats += cheats
+        print(f"Found code list with {num_cheats} entr{plural(num_cheats, 'y', 'ies')} across {i + 1} title{plural(i + 1, '', 's')}.", end="\r")
         for j in range(cheats):
             cheat = dict()
             cheat_name = read_str()
@@ -202,8 +204,10 @@ def parse_gccodelist(file, offs, output):
             if code_list: cheat[KEY_META] = code_list.pop(0)
             if code_list: cheat[KEY_CODE] = code_list
             entry[KEY_CHTS].append(cheat)
-        output.append(entry)
+        table.append(entry)
     assert num_cheats == total_codes, ERR_CODE
+    output.append(table)
+    print()
 
 def scan_gc_ar_disc(path):
     assert os.path.getsize(path) == 1459978240, ERR_DISC
