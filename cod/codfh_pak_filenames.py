@@ -1,26 +1,122 @@
 #!/usr/bin/env python3
 # Call of Duty: Finest Hour .PAK extract w/ filename support
-# Written by Edness   v1.2   2022-12-01 - 2023-07-16
 
-import os
+# Usage:
+#   Extract:  X
+#   Rebuild:  B
+#     Optional:
+#       -o  | --output    <str> Path to the output file/directory
+#         script.py  X  "Y:\path\to\cod.pak"  -o "X:\path\to\output"
+#         script.py  B  "X:\path\to\output"  -o "Y:\path\to\cod.pak"
 
-def extract_pak(inpath, outpath=""):
-    def read_int(bytes):
-        return int.from_bytes(file.read(bytes), "little")
+# Written by Edness   v1.3   2022-12-01 - 2025-09-15
+
+import os, glob
+
+HASHED = "__hashed"
+ERR_FNV = "Invalid hash detected!"
+ERR_CHR = "Invalid file name detected!"
+ERR_PAK = "Not a valid Spark Pack file!"
+ERR_VER = "Unsupported Spark Pack version!"
+ERR_NUL = "No files were found at the given path!"
+ERR_COL = "A hash collision has occurred! The hash 0x{:016X} resolves to:\n- {}\n- {}"
+SPARK_PACK = b"Spark Pack (C)2004 Spark Unlimited, Inc. Author Jim Schuler."
+
+INT_MAX_RANGE = range(1 << 64)
+UINT64 = lambda x: x & 0xFFFFFFFFFFFFFFFF
+
+def exists_prompt(output, prompt):
+    if os.path.exists(output):
+        response = input(f"Warning! {prompt} (Y/N): ")[:1].upper()
+        if response != "Y":
+            if response != "N":
+                print("Error! Invalid response.", end=" ")
+            print("Exiting...")
+            return False
+    return True
+
+def spark_hash(str):
+    # Call of Duty: Finest Hour filename hashing function reimplementation
+    # from the function at  001429B8  in the PS2 PAL  SPS.BIN  executable.
+    # There is a secondary loop break condition, if the character is a ;
+    hash = 0x84222325CBF29CE4
+    assert str.isascii() and ";" not in str, ERR_CHR
+    str = str.upper().replace("/", "\\").encode("ASCII")
+    for chr in str:
+        hash = UINT64(chr ^ (hash << 40) + hash * 0x1B3)
+    return hash
+
+def build_pak(inpath, outpath=str()):
+    def seek_align():
+        offset = file.tell()
+        if not offset & 0x7FF: return offset
+        return file.seek((offset // 0x800 + 1) * 0x800)
+
+    write_int = lambda int, bytes: file.write(int.to_bytes(bytes, "little"))
+
+    inpath = os.path.abspath(inpath)
+    if not outpath:
+        outpath = inpath + ".pak"
+    outpath = os.path.abspath(outpath)
+    path = os.path.join(os.path.abspath(inpath), "")  # force final path separator
+
+    if not exists_prompt(outpath, "Output file already exists. Overwrite?"):
+        return
+
+    hash_dict = dict()
+    print("Preparing files...")
+    for file_path in glob.iglob(os.path.join(glob.escape(path), "**", "*"), recursive=True):
+        if os.path.isdir(file_path): continue
+        file_name = file_path.removeprefix(path)
+        hash = int(os.path.splitext(os.path.split(file_name)[-1])[0], 16) if \
+               file_name.startswith(HASHED) else spark_hash(file_name.strip())
+        assert hash not in hash_dict, ERR_COL.format(hash, hash_dict[hash], file_name)
+        hash_dict[hash] = file_name
+    assert hash_dict, ERR_NUL
+
+    offs = list()
+    size = list()
+    with open(outpath, "wb") as file:
+        file.seek(0x80 + len(hash_dict) * 0x10)
+        for hash in hash_dict:
+            print("Writing", hash_dict[hash])
+            with open(os.path.join(path, hash_dict[hash]), "rb") as in_file:
+                data = in_file.read()
+            offs.append(seek_align())
+            size.append(file.write(data))
+
+        file.seek(0x0)
+        print("Writing header...")
+        with open(__file__) as pak: pak_header = pak.read(0x800)
+        pak_header = pak_header[pak_header.index(" ".join([chr(x) for x in (35, 87)])) + 0x2:]
+        pak_header = pak_header.splitlines()[0].split(); pak_header = " ".join(pak_header[:3]), pak_header[3]
+        pak_header = " - ".join((os.path.split(__file__)[1], *pak_header[::-1])).encode("UTF-8")
+        file.write(SPARK_PACK)
+        file.write(b"\x00" + pak_header[-0x3B:].rjust(0x3B, b"\x00"))
+        write_int(0x1, 0x4)
+        write_int(len(hash_dict), 0x4)
+        for size, offs, hash in zip(size, offs, hash_dict):
+            write_int(size, 0x4)
+            write_int(offs, 0x4)
+            write_int(hash, 0x8)
+
+    print("Done! Output written to", outpath)
+
+def extract_pak(inpath, outpath=str()):
+    read_int = lambda bytes: int.from_bytes(file.read(bytes), "little")
+
+    if not outpath:
+        outpath = os.path.split(inpath)[0]
+    outpath = os.path.abspath(outpath)
+    posix_separator = os.sep == "/"
+
+    if not exists_prompt(outpath, "Output directory already exists. Overwrite files?"):
+        return
 
     with open(inpath, "rb") as file:
-        if file.read(0x3C) != b"Spark Pack (C)2004 Spark Unlimited, Inc. Author Jim Schuler.":
-            print("Not a valid Spark Pack file!")
-            return
+        assert file.read(0x3C) == SPARK_PACK, ERR_PAK
         file.seek(0x78)  # file.seek(0x3C, 1)
-        if read_int(0x4) != 0x1:
-            print("Unsupported Spark Pack version!")
-            return
-
-        if not outpath:
-            outpath = os.path.split(inpath)[0]
-        outpath = os.path.abspath(outpath)
-        posix_separator = os.sep == "/"
+        assert read_int(0x4) == 0x1, ERR_VER
 
         files = read_int(0x4)
         for idx in range(files):
@@ -29,10 +125,9 @@ def extract_pak(inpath, outpath=""):
             offset = read_int(0x4)
             hash = read_int(0x8)
 
-            filename = HASH_DICT.get(hash, os.path.join("__hashed", f"{hash:016X}"))
-
             # The hash algorithm normally converts all forward slashes to backslashes
             # but that doesn't get interpreted as a directory path on POSIX systems
+            filename = HASH_DICT.get(hash, os.path.join(HASHED, f"{hash:016X}"))
             if posix_separator:
                 filename = filename.replace("\\", "/")
 
@@ -43,7 +138,6 @@ def extract_pak(inpath, outpath=""):
                 print("Writing", path)
                 out.write(file.read(size))
 
-# See  codfh_hash.py  for the hash algorithm
 # Files that are normally outside of the Spark Pack are still included in this.
 
 # There are still several filenames left to go.  See this spreadsheet for hashes not yet reversed:
@@ -10245,9 +10339,23 @@ HASH_DICT = {
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("pak_path", type=str, help="path to the spark pack")
-    parser.add_argument("-o", "--output", type=str, default="", help="where the output folder should be")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Extracts and builds Call of Duty: Finest Hour's Spark Pack archives")
+    subparsers = parser.add_subparsers(description="To view additional help for each subparser, add -h | --help after it")
 
-    extract_pak(args.pak_path, args.output)
+    extract_parser = subparsers.add_parser("X", help="extracts a spark pack (Python 3.6 or newer)")
+    extract_parser.add_argument("path", type=str, help="path to the spark pack")
+    extract_parser.add_argument("-o", "--output", type=str, default="", help="where the output folder should be")
+    extract_parser.set_defaults(func=extract_pak)
+
+    rebuild_parser = subparsers.add_parser("B", help="rebuilds a spark pack (Python 3.9 or newer)")
+    rebuild_parser.add_argument("path", type=str, help="path to the output folder")
+    rebuild_parser.add_argument("-o", "--output", type=str, default="", help="where the spark pack should be")
+    rebuild_parser.set_defaults(func=build_pak)
+
+    args = parser.parse_args()
+    try:
+        func, func_args = args.func, (args.path, args.output)
+    except AttributeError:
+        print("Error! Bad arguments given. Use -h or --help to show valid arguments.")
+    else:
+        func(*func_args)
