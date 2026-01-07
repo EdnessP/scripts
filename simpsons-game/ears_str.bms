@@ -1,0 +1,84 @@
+# Simpsons Game STR
+# script for QuickBMS http://quickbms.aluigi.org
+# Fixed by Edness to support more EARS titles, 2024-07-03
+
+comtype dk2
+endian big
+idstring "SToc"
+get DUMMY1 long
+#get DUMMY2 long
+get FILES byte
+get DUMMY2 threebyte
+get DUMMY3 long
+get INFO_OFF long
+get DUMMY5 long
+get DUMMY6 long
+get DUMMY7 long
+get DUMMY8 long
+get DUMMY9 long
+get DUMMY10 long
+get DUMMY11 long
+get DUMMY12 long
+
+#xmath FILES "(DUMMY2 >> 24) & 0xff"
+
+savepos TMP
+xmath BASE_OFF "TMP + (FILES * 0x18)"  # (8 + 4 + 4 + 4 + 4)
+math BASE_OFF x 0x800
+
+goto INFO_OFF
+for i = 0 < FILES
+    get DUMMY longlong
+    get SIZE long
+    get IGNORE_SIZE long
+    get XSIZE long
+    get DUMMY long
+
+    savepos TMP
+    goto BASE_OFF
+    get SIGN1 byte
+    get SIGN2 byte
+    goto TMP
+    if SIGN1 == 0x10 && SIGN2 == 0xFB
+        clog MEMORY_FILE BASE_OFF XSIZE SIZE
+		#log "DMP" 0 SIZE MEMORY_FILE
+    else
+        log MEMORY_FILE BASE_OFF SIZE
+    endif
+    math BASE_OFF + XSIZE
+
+    get MEM_SIZE asize MEMORY_FILE
+    for OFFSET = 0 != MEM_SIZE
+        get DUMMY1 long MEMORY_FILE
+        get DUMMY2 long MEMORY_FILE
+        get DUMMY3 long MEMORY_FILE
+        if DUMMY2 == 0
+            math OFFSET += 0xC
+        else
+            get HEADER_SIZE long MEMORY_FILE
+            if HEADER_SIZE == 0
+                savepos OFFSET MEMORY_FILE
+                xmath SIZE "MEM_SIZE - OFFSET"
+                set NAME string ""
+            else
+                get NAMESZ long MEMORY_FILE
+                getdstring NAME1 NAMESZ MEMORY_FILE
+                getdstring DUMMY 0x10 MEMORY_FILE
+                get NAMESZ long MEMORY_FILE
+                getdstring NAME2 NAMESZ MEMORY_FILE
+                get NAMESZ long MEMORY_FILE
+                getdstring NAME3 NAMESZ MEMORY_FILE
+                get DUMMYSZ long MEMORY_FILE
+                getdstring DUMMY DUMMYSZ MEMORY_FILE
+                get ZERO long MEMORY_FILE
+                get SIZE long MEMORY_FILE
+                math OFFSET + 0x10
+                math OFFSET + HEADER_SIZE
+            endif
+            log NAME3 OFFSET SIZE MEMORY_FILE
+            math SIZE x 4
+            math OFFSET + SIZE
+            goto OFFSET MEMORY_FILE
+        endif
+    next
+next i
