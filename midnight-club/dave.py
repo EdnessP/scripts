@@ -25,7 +25,7 @@
 #       -cl | --complevel <int> Compression level;  default is 9 (1=fastest, 9=smallest)
 #         dave.py  B  "/path/to/folder"  "/path/to/new_dave.dat"  -cf  -fc 1
 
-# Written by Edness   2022-01-09 - 2023-11-07   v1.5.3
+# Written by Edness   2022-01-09 - 2025-04-08   v1.5.4
 
 import glob, os, zlib
 
@@ -51,6 +51,7 @@ COMP_EXT_BLOCKLIST = (
 COMP_DIR_BLOCKLIST = (
     "flash/",
     "resources/vehicle/",
+    "resources/city/hudmap.",  # L.A. Remix fix, blegh
 )
 
 def exists_prompt(output, prompt):
@@ -64,11 +65,13 @@ def exists_prompt(output, prompt):
     return True
 
 def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compnames=False, dirs=False, align=128, compalign=False):
-    def calc_align(size, align):
+    def calc_align(size, align, force=False):
+        if not force and not size & (align - 1):
+            return size
         return (size // align + 1) * align
 
-    def seek_align(align):
-        return file.seek(calc_align(file.tell(), align))
+    def seek_align(align, force=False):
+        return file.seek(calc_align(file.tell(), align, force))
 
     def get_int(int, bytes):
         return int.to_bytes(bytes, "little")
@@ -217,11 +220,12 @@ def build_dave(inpath, output, compfiles=False, forcecomp=0, complevel=9, compna
                 if len(comp_data) < len(data):
                     data = comp_data
             # pack multiple tiny files into a single sector, if possible
-            # if dirs are included, it will create a new alignment zone.
+            # (if dirs are included, it will create a new alignment zone
+            # which technically is not correct behavior but whatever...)
             if compalign and align > 0x20 and entry_info:
                 prev_offs = entry_info[-1][0]
                 prev_align = prev_offs & (align - 1)
-                prev_size = calc_align(entry_info[-1][2], 0x20)
+                prev_size = calc_align(entry_info[-1][2], 0x10)
                 if 0 < entry_info[-1][2] < align and prev_align + prev_size + len(data) < align:
                     file_offs = file.seek(prev_offs + prev_size)
             entry_info.append((file_offs, os.path.getsize(path), len(data)))
@@ -350,7 +354,7 @@ if __name__ == "__main__":
     extract_parser.add_argument("-o", "--output", type=str, default=str(), help="path to the output folder")
     extract_parser.set_defaults(read=True, func=read_dave)
 
-    build_parser = subparsers.add_parser("B", help="builds a new DAVE archive (Python 3.11 or newer)")
+    build_parser = subparsers.add_parser("B", help="builds a new DAVE/Dave archive (Python 3.11 or newer)")
     build_parser.add_argument("path", type=str, help="path to the input directory")
     build_parser.add_argument("output", type=str, help="path to the output DAVE/Dave archive")
     build_parser.add_argument("-cf", "--compfiles", action="store_true", help="compress all files (with exceptions, see -fc | --forcecomp)")
