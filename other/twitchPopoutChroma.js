@@ -36,8 +36,8 @@ GM_addStyle(`
         font-weight: bold;
     }
     .reply-line--mentioned {
-    		color: white;
-        background-color: #00f;
+        color: white !important;
+        background-color: #00f !important;
     }
     .chat-line__timestamp {
         font-size: 12px;
