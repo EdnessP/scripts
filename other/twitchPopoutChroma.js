@@ -3,7 +3,7 @@
 // @description  Adds a black outline to white text, and makes the background blue (had the best results chroma keying blue in OBS than any other color.)
 // @include      https://www.twitch.tv/popout/*
 // @namespace    Edness
-// @version      1.2.2 (2021-07-19 - 2026-04-25)
+// @version      1.2.3 (2021-07-19 - 2026-05-21)
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -35,7 +35,7 @@ GM_addStyle(`
         font-size: 18px;
         font-weight: bold;
     }
-    .reply-line--mentioned {
+    .reply-line--mentioned, .tw-pill {
         color: white !important;
         background-color: #00f !important;
     }
